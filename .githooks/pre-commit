@@ -15,7 +15,7 @@ if [ -n "$SKIP_DOC_CHECK" ]; then
 fi
 
 # Files that are considered "non-trivial" — changes to these trigger the check
-TRIGGER_PATTERNS="\.(ts|vue|js|mjs|cjs|json|yml|yaml|md|sh|css|env\.example)$"
+TRIGGER_PATTERNS="\.(ts|tsx|jsx|js|mjs|cjs|json|yml|yaml|md|sh|css|env\.example)$"
 
 REQUIRED_FILES="docs/HANDOFF.md docs/PROGRESS.md README.md"
 

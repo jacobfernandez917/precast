@@ -137,6 +137,37 @@ You MUST update PROGRESS.md when you:
 
 ## 8. Session Log
 
+<auto-journal: 2026-07-15 05:57:27 — file edit>
+
+- **2026-07-14 — Claude Code —** Public-prep + doc refinements after the Next.js/Astryx migration. **Scrubbed internal refs** for open-sourcing (`*.917v.dev` hosts → `agentbase.example.com`, internal MCP URL genericized, local path → `~/Projects/precast`); squashed `origin/develop` to a single clean baseline and force-pushed (history + tree verified free of secrets/internal refs; local recovery tag `archive/pre-public-squash`). **Nuxt cleanup** of stale functional leftovers: `auth.ts`/`env.ts` comments, and `.githooks/pre-commit` (`TRIGGER_PATTERNS` gained `tsx`/`jsx` — it wasn't firing the doc-check on React files), `.lintstagedrc.json`, `.dockerignore`, `.prettierignore` (`.nuxt`/`.output` → `.next`). **Direct-A2A clarity**: documented in `auth.ts`, `.env.example`, `INTEGRATION_AGENTBASE.md` §2.1, and README that any A2A (JSON-RPC 2.0) client invokes agents at `POST /api/a2a/:agentId` with `Authorization: Bearer <token>` matching `AGENT_API_TOKEN`. Also updated the external `precast-claude-skill` repo (Next.js/Astryx, flattened current-dir init, direct-A2A note). `pnpm lint`/`typecheck` green.
+
+<auto-journal: 2026-07-15 05:57:01 — file edit>
+
+<auto-journal: 2026-07-15 05:56:45 — file edit>
+
+<auto-journal: 2026-07-15 05:55:55 — file edit>
+
+<auto-journal: 2026-07-15 05:54:15 — file edit>
+
+<auto-journal: 2026-07-15 05:54:05 — file edit>
+
+<auto-journal: 2026-07-15 05:53:56 — file edit>
+
+<auto-journal: 2026-07-15 05:53:49 — file edit>
+
+<auto-journal: 2026-07-15 05:42:39 — file edit>
+
+<auto-journal: 2026-07-15 05:42:34 — file edit>
+
+<auto-journal: 2026-07-15 05:42:29 — file edit>
+
+<auto-journal: 2026-07-15 05:42:22 — file edit>
+
+<auto-journal: 2026-07-15 05:42:16 — file edit>
+
+<auto-journal: 2026-07-15 05:42:09 — file edit>
+
+<auto-journal: 2026-07-15 05:41:15 — file edit>
 
 <auto-journal: 2026-07-15 05:34:24 — file edit>
 

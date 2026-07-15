@@ -8,8 +8,11 @@
  * The Studio playground (root `/`) and agent card discovery remain accessible
  * without auth.
  *
- * AgentBase injects this token when proxying requests to Mastra (see
- * docs/INTEGRATION_AGENTBASE.md §7). The Nuxt app never sends it directly.
+ * Any A2A client (JSON-RPC 2.0) can invoke the agents directly at
+ * `POST /api/a2a/:agentId` by sending `Authorization: Bearer <token>` — the
+ * header value MUST equal the server's `AGENT_API_TOKEN`. AgentBase is one such
+ * client: it injects the token when proxying (see docs/INTEGRATION_AGENTBASE.md
+ * §7). The web app never sends it directly — it always goes through AgentBase.
  */
 
 /**

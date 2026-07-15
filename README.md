@@ -74,6 +74,8 @@ The web app runs at `http://localhost:3000` and the Mastra agent API + Studio pl
 
 **Important:** All Next ↔ Mastra communication routes through the **AgentBase A2A proxy** — never call Mastra directly from the frontend. AgentBase handles auth, audit, and zero-trust forwarding. Set `AGENTBASE_URL`, `AGENTBASE_TOKEN` (Next → AgentBase), and `AGENT_API_TOKEN` (AgentBase → Mastra) in your `.env`. See [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) for the full auth flow.
 
+Any **A2A client can also invoke the agents directly** (JSON-RPC 2.0) at `POST /api/a2a/:agentId` by sending `Authorization: Bearer <AGENT_API_TOKEN>` — the bearer must match the server's `AGENT_API_TOKEN` (routes are open when it's unset). The "route through AgentBase" rule above applies to the **web frontend**; external clients authenticate directly with the token.
+
 To move to non-default ports at any time, run `pnpm set-ports --mastra=4200 --web=3100` (either flag optional) — it rewrites env, config, pnpm scripts, Docker, and the port-stating docs in one pass.
 
 The `precast` placeholder spans package scopes (`@precast/*`), the Postgres database, the Keycloak realm/client, Docker container names, tsconfig path aliases, and env defaults. Renaming rewrites only functional config — the docs keep describing the boilerplate. Afterwards, set your project's name and mission in [docs/PROGRESS.md](docs/PROGRESS.md) §1 and update this README's title.

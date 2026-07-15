@@ -35,7 +35,7 @@ export const EnvSchema = z.object({
   KEYCLOAK_CLIENT_SECRET: z.string().optional(),
 
   // ── AgentBase (A2A registry/proxy) ─────────────────────────────────────────
-  // Base URL for the AgentBase service. All Nuxt ↔ Mastra communication routes
+  // Base URL for the AgentBase service. All Next ↔ Mastra communication routes
   // through AgentBase's A2A proxy rather than calling Mastra directly.
   AGENTBASE_URL: z.string().url().default('https://agentbase.example.com'),
   // Bearer token for AgentBase authentication (optional; off when unset).
