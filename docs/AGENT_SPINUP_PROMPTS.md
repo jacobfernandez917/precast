@@ -29,7 +29,7 @@ static bearer token (AGENT_API_TOKEN) — off when unset. Secrets live in the ro
 | `<AGENT_NAME>` | Gallygal (`gallygal`)                                                                        |
 | `<DOMAIN>`     | Philippine law                                                                               |
 | `<MCP_NAME>`   | Philippine Law MCP                                                                           |
-| `<MCP_URL>`    | `https://agentbase.example.com/proxy/mcp/<org>/<mcp-slug>/mcp` (your AgentBase MCP endpoint)  |
+| `<MCP_URL>`    | `https://agentbase.example.com/proxy/mcp/<org>/<mcp-slug>/mcp` (your AgentBase MCP endpoint) |
 | `<MODEL>`      | `google/gemini-2.5-flash` (Gemini)                                                           |
 | `<DB>`         | PostgreSQL via Drizzle ORM (`packages/db`), `DATABASE_URL`                                   |
 

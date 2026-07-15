@@ -58,10 +58,10 @@ It provides:
 │   └── archive/               ← Frozen, do-not-parse
 │
 ├── apps/
-│   ├── api/                   ← Mastra agent API (ESM)
+│   ├── agents/                ← Mastra agents app — agents + tools ONLY (ESM)
 │   │   ├── src/mastra/
 │   │   │   ├── index.ts       ← Mastra instance (agents, storage, logger, server)
-│   │   │   ├── agents/        ← example-agent.ts (neutral placeholder)
+│   │   │   ├── agents/        ← example-agent.ts, summary-agent.ts (neutral placeholders)
 │   │   │   └── tools/         ← example-tool.ts (+ .spec.ts) (neutral placeholder)
 │   │   ├── package.json
 │   │   └── tsconfig.json
@@ -173,7 +173,7 @@ On disagreement between docs:
 
 - **pnpm** with workspaces.
 - Workspace root: `pnpm-workspace.yaml`.
-- All packages use scoped names (e.g., `@precast/api`, `@precast/shared`). Replace `@precast/` with your project name via `pnpm rename <name>`.
+- All packages use scoped names (e.g., `@precast/agents`, `@precast/shared`). Replace `@precast/` with your project name via `pnpm rename <name>`.
 
 ### 4.2 Task Orchestration
 
@@ -187,7 +187,7 @@ On disagreement between docs:
 - Shared base config: `tsconfig.base.json`.
 - Each app/package extends the base config.
 - **ESM everywhere.** `packages/shared` is NodeNext ESM (relative imports use
-  `.js` extensions); `apps/api` (Mastra) and `apps/web` (Next.js) are ESM. See ADR-007.
+  `.js` extensions); `apps/agents` (Mastra) and `apps/web` (Next.js) are ESM. See ADR-007.
 
 ### 4.4 Validation
 

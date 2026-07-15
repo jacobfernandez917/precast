@@ -22,7 +22,7 @@
 | Types                    | PascalCase                      | `ApiResponse<T>`, `Role`                |
 | Enums                    | PascalCase (values UPPER_SNAKE) | `Role.ADMIN`, `Status.ACTIVE`           |
 | Files                    | kebab-case                      | `user-service.ts`, `auth-middleware.ts` |
-| Directories              | kebab-case                      | `apps/api/src/auth/`                    |
+| Directories              | kebab-case                      | `apps/agents/src/auth/`                 |
 | Private members          | `#` prefix (ES2023)             | `#cache = new Map()`                    |
 
 ### 1.3 Imports
@@ -64,7 +64,7 @@ import { UserService } from './user.service';
 ### 2.3 NestJS Modules
 
 ```
-apps/api/src/<module>/
+apps/agents/src/<module>/
 ├── <module>.module.ts
 ├── <module>.controller.ts
 ├── <module>.service.ts

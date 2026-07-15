@@ -17,28 +17,28 @@
 
 ## Development
 
-| Script         | Command                    | Description                |
-| -------------- | -------------------------- | -------------------------- |
-| `pnpm dev`     | `turbo run dev`            | Start all apps in dev mode |
-| `pnpm dev:api` | `pnpm -F @precast/api dev` | Start API dev server       |
-| `pnpm dev:web` | `pnpm -F @precast/web dev` | Start web dev server       |
+| Script            | Command                       | Description                |
+| ----------------- | ----------------------------- | -------------------------- |
+| `pnpm dev`        | `turbo run dev`               | Start all apps in dev mode |
+| `pnpm dev:agents` | `pnpm -F @precast/agents dev` | Start API dev server       |
+| `pnpm dev:web`    | `pnpm -F @precast/web dev`    | Start web dev server       |
 
 ## Build
 
-| Script           | Command                      | Description                 |
-| ---------------- | ---------------------------- | --------------------------- |
-| `pnpm build`     | `turbo run build`            | Build all packages and apps |
-| `pnpm build:api` | `pnpm -F @precast/api build` | Build API only              |
-| `pnpm build:web` | `pnpm -F @precast/web build` | Build web only              |
+| Script              | Command                         | Description                 |
+| ------------------- | ------------------------------- | --------------------------- |
+| `pnpm build`        | `turbo run build`               | Build all packages and apps |
+| `pnpm build:agents` | `pnpm -F @precast/agents build` | Build API only              |
+| `pnpm build:web`    | `pnpm -F @precast/web build`    | Build web only              |
 
 ## Test
 
-| Script          | Command                     | Description                        |
-| --------------- | --------------------------- | ---------------------------------- |
-| `pnpm test`     | `turbo run test`            | Run all unit/integration tests     |
-| `pnpm test:api` | `pnpm -F @precast/api test` | Run API tests (Jest)               |
-| `pnpm test:web` | `pnpm -F @precast/web test` | Run web tests (Vitest)             |
-| `pnpm test:e2e` | `turbo run test:e2e`        | Run autonomous Playwright UI tests |
+| Script             | Command                        | Description                        |
+| ------------------ | ------------------------------ | ---------------------------------- |
+| `pnpm test`        | `turbo run test`               | Run all unit/integration tests     |
+| `pnpm test:agents` | `pnpm -F @precast/agents test` | Run API tests (Jest)               |
+| `pnpm test:web`    | `pnpm -F @precast/web test`    | Run web tests (Vitest)             |
+| `pnpm test:e2e`    | `turbo run test:e2e`           | Run autonomous Playwright UI tests |
 
 > First E2E run needs a browser: `pnpm -F @precast/web test:e2e:install`. Playwright boots `next dev` itself — no app to start manually.
 

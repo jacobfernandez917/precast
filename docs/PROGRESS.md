@@ -98,7 +98,8 @@ You MUST update PROGRESS.md when you:
 | D-006 | Keep Mastra/web apps neutral; domain lives only in `templates/`                    | 2026-07-06 | Boilerplate must not couple to one example; harness builds structure from feed-forward docs + TECH_STACK                                                                                             |
 | D-007 | Web on **Next.js (App Router) + Astryx**; style with Astryx + Tailwind             | 2026-07-14 | Chosen web tier + design system. Astryx components for the DS, Tailwind for layout. See ADR-008                                                                                                      |
 | D-008 | Web builds with **webpack** + a `jsx-dev-runtime` shim; dev on Turbopack           | 2026-07-14 | Astryx 0.1.x ships dev-JSX components; only webpack's alias reaches SSR. Revisit on Astryx prod build. ADR-008                                                                                       |
-| D-009 | `apps/web` uses the shared root ESLint config (no `eslint-config-next`)            | 2026-07-14 | eslint-config-next's plugins cap at ESLint 9; repo is on ESLint 10. Matches the apps/api pattern                                                                                                     |
+| D-012 | Rename `apps/api` → `apps/agents` (`@precast/agents`); **agents-only** scope       | 2026-07-15 | "API" was misleading — the app defines Mastra agents + tools only (no MCPs, no REST APIs). Mastra's own `/api/*` routes are unchanged. See ADR-009                                                   |
+| D-009 | `apps/web` uses the shared root ESLint config (no `eslint-config-next`)            | 2026-07-14 | eslint-config-next's plugins cap at ESLint 9; repo is on ESLint 10. Matches the apps/agents pattern                                                                                                  |
 | D-010 | **AgentBase optional** via `ENABLE_AGENTBASE`; direct A2A uses `message/send`      | 2026-07-14 | Not everyone runs AgentBase. Direct mode uses A2A 0.3.0 `message/send` (Mastra rejects `tasks/send`); proxy mode keeps AgentBase's `tasks/send`. `callAgent()` normalizes both replies               |
 | D-011 | **AgentBase is the DEFAULT** transport; only `ENABLE_AGENTBASE=0` opts into direct | 2026-07-15 | Guard rail (revises D-010's default): a forgotten flag routes through the audited/zero-trust proxy, not silently at Mastra. `callViaAgentBase` errors loudly if `AGENTBASE_URL` is unset/placeholder |
 
@@ -138,6 +139,78 @@ You MUST update PROGRESS.md when you:
 ---
 
 ## 8. Session Log
+
+<auto-journal: 2026-07-15 09:52:14 — file edit>
+
+<auto-journal: 2026-07-15 09:52:00 — file edit>
+
+<auto-journal: 2026-07-15 09:51:50 — file edit>
+
+<auto-journal: 2026-07-15 09:51:41 — file edit>
+
+<auto-journal: 2026-07-15 09:51:30 — file edit>
+
+<auto-journal: 2026-07-15 09:51:04 — file edit>
+
+<auto-journal: 2026-07-15 09:50:53 — file edit>
+
+- **2026-07-15 — Claude Code —** Renamed the Mastra app **`apps/api` → `apps/agents`** (`@precast/api` → `@precast/agents`) to end the "API" confusion, and added an **agents-only scope rule** (no MCP servers, no hand-rolled REST APIs — agents use tools; frontend/BFF lives in `apps/web`). `git mv` (history preserved); updated root scripts (`dev/build/test:agents`), Docker (service `agents`, `container_name`/volume `precast-agents*`, `MASTRA_INTERNAL_URL=http://agents:4111`), Dockerfile, `set-ports.mjs`, logger name (`precast-agents`), and all structural docs (CLAUDE §4.1 rule + stack label, TECH_STACK, SPEC tree, README, HANDOFF, STYLE_GUIDE, INTEGRATION, TEST_CASES, SCRIPTS, AGENT_SPEC template) + ADR-009 / D-012. **Kept Mastra's `/api/*` HTTP routes unchanged.** `pnpm install` + build 3/3 / typecheck 4/4 / lint 3/3 / test 3/3 green. Historical PROGRESS/ADR entries keep `apps/api` (as-of-then). Skill repo updated too.
+
+<auto-journal: 2026-07-15 09:50:37 — file edit>
+
+<auto-journal: 2026-07-15 09:50:30 — file edit>
+
+<auto-journal: 2026-07-15 09:50:07 — file edit>
+
+<auto-journal: 2026-07-15 09:49:41 — file edit>
+
+<auto-journal: 2026-07-15 09:49:36 — file edit>
+
+<auto-journal: 2026-07-15 09:49:31 — file edit>
+
+<auto-journal: 2026-07-15 09:49:24 — file edit>
+
+<auto-journal: 2026-07-15 09:48:40 — file edit>
+
+<auto-journal: 2026-07-15 09:48:33 — file edit>
+
+<auto-journal: 2026-07-15 09:48:27 — file edit>
+
+<auto-journal: 2026-07-15 09:48:21 — file edit>
+
+<auto-journal: 2026-07-15 09:48:12 — file edit>
+
+<auto-journal: 2026-07-15 09:48:06 — file edit>
+
+<auto-journal: 2026-07-15 09:47:59 — file edit>
+
+<auto-journal: 2026-07-15 09:47:54 — file edit>
+
+<auto-journal: 2026-07-15 09:44:57 — file edit>
+
+<auto-journal: 2026-07-15 09:44:45 — file edit>
+
+<auto-journal: 2026-07-15 09:44:37 — file edit>
+
+<auto-journal: 2026-07-15 09:44:29 — file edit>
+
+<auto-journal: 2026-07-15 09:44:23 — file edit>
+
+<auto-journal: 2026-07-15 09:44:06 — file edit>
+
+<auto-journal: 2026-07-15 09:44:00 — file edit>
+
+<auto-journal: 2026-07-15 09:43:44 — file edit>
+
+<auto-journal: 2026-07-15 09:43:30 — file edit>
+
+<auto-journal: 2026-07-15 09:43:24 — file edit>
+
+<auto-journal: 2026-07-15 09:43:18 — file edit>
+
+<auto-journal: 2026-07-15 09:42:55 — file edit>
+
+<auto-journal: 2026-07-15 09:42:40 — file edit>
 
 - **2026-07-15 — Claude Code —** Guard rail: made **AgentBase the DEFAULT** transport (revises D-010). `isAgentBaseEnabled()` = `ENABLE_AGENTBASE !== '0'` — a missing/any-non-`0` value proxies through AgentBase; only `=0` uses direct A2A. Added a config guard in `callViaAgentBase` (errors with a fix-it message if `AGENTBASE_URL` unset/placeholder). Flipped env-schema default → `'1'`, `.env.example`, docker-compose comment, README + INTEGRATION §7 framing. Runtime-verified: unset→agentbase, `=0`→direct, unconfigured→guard error. Strengthened the external **precast skill** `description` (trigger accuracy) + added a "Making sure the skill gets used" section; synced the app-managed install copy. `pnpm build`/`typecheck`/`lint` green. See D-011.
 

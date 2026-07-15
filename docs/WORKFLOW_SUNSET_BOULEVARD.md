@@ -37,8 +37,8 @@ This keeps SMS provider secrets and agent access **out of the web app** and cent
 | ------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------- |
 | **Sunset Boulevard site** | Landing page, bike catalog, booking + contact form                                         | Next.js (React) — `apps/web` shape |
 | **Next.js API (BFF)**     | Validates the form, calls AgentBase, holds the AgentBase caller token (not SMS secrets)    | Next.js route handler              |
-| **AgentBase**             | A2A invocation proxy: authn, credential injection, zero-trust, audit                       | AgentBase `apps/api`               |
-| **SMS Sender Agent**      | Mastra agent; skill `send-booking-sms` renders the message and calls the SMS provider tool | Mastra — `apps/api` shape          |
+| **AgentBase**             | A2A invocation proxy: authn, credential injection, zero-trust, audit                       | AgentBase `apps/agents`            |
+| **SMS Sender Agent**      | Mastra agent; skill `send-booking-sms` renders the message and calls the SMS provider tool | Mastra — `apps/agents` shape       |
 | **SMS provider**          | Twilio/Vonage; delivers the text. Credential lives in AgentBase, injected at call time     | External                           |
 
 ---

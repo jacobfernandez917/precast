@@ -1,16 +1,16 @@
 # ─── Full Stack ─────────────────────────────────────────────────────────────
-# Apps: Mastra API (api), Next web (web). Infra: Postgres, Redis, Keycloak.
+# Apps: Mastra agents (agents), Next web (web). Infra: Postgres, Redis, Keycloak.
 # Run with: docker compose -f docker/docker-compose.yml up -d
 # Override with: docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d
 # App ports are set by `pnpm set-ports` / `pnpm bootstrap` — change them there,
 # not by hand, so every config, script, and doc stays in sync.
 
 services:
-  api:
+  agents:
     build:
       context: ..
-      dockerfile: apps/api/Dockerfile
-    container_name: precast-api
+      dockerfile: apps/agents/Dockerfile
+    container_name: precast-agents
     restart: unless-stopped
     # Load the user's root .env if present (API keys etc.); optional so the
     # stack still boots without one. Values below override for the Docker network.
@@ -28,7 +28,7 @@ services:
     ports:
       - '4111:4111'
     volumes:
-      - precast-api-data:/data
+      - precast-agents-data:/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,8 +58,8 @@ services:
       HOSTNAME: 0.0.0.0
       PORT: 3000
       WEB_PORT: 3000
-      # Reach the API over the Docker network, not localhost.
-      MASTRA_INTERNAL_URL: http://api:4111
+      # Reach the agents app over the Docker network, not localhost.
+      MASTRA_INTERNAL_URL: http://agents:4111
       # AgentBase is the default transport, but this self-contained stack has no
       # AgentBase service — so opt into direct in-cluster A2A. Set to "1" (with
       # AGENTBASE_URL/AGENTBASE_TOKEN) to proxy through AgentBase instead.
@@ -67,7 +67,7 @@ services:
     ports:
       - '3000:3000'
     depends_on:
-      api:
+      agents:
         condition: service_healthy
     healthcheck:
       test:
@@ -135,7 +135,7 @@ services:
       start_period: 30s
 
 volumes:
-  precast-api-data:
+  precast-agents-data:
   precast-postgres-data:
   precast-redis-data:
   precast-keycloak-data:

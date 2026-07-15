@@ -17,20 +17,20 @@ This is a **monorepo boilerplate** — a curated, opinionated starting point for
 
 **Stack at a glance:**
 
-| Layer                   | Tech                                          |
-| ----------------------- | --------------------------------------------- |
-| Package Manager         | **pnpm** (workspaces)                         |
-| Monorepo Orchestrator   | **Turborepo**                                 |
-| API / Agents (template) | **Mastra** on Node.js (agents, tools, Studio) |
-| Web (template)          | **Next.js** (App Router) with route handlers  |
-| Design system           | **Astryx** (`@astryxdesign/core`, web UI)     |
-| Shared                  | **TypeScript** packages with zod validation   |
-| Database                | **Postgres** + optional pgvector              |
-| Identity                | **Keycloak** (external or Docker Compose)     |
-| Cache                   | **Redis**                                     |
-| Containers              | **Docker Compose**                            |
-| Testing                 | **Vitest** + **Playwright**                   |
-| Linting                 | **ESLint** + **Prettier**                     |
+| Layer                 | Tech                                                  |
+| --------------------- | ----------------------------------------------------- |
+| Package Manager       | **pnpm** (workspaces)                                 |
+| Monorepo Orchestrator | **Turborepo**                                         |
+| Agents (template)     | **Mastra** on Node.js — agents + their tools (Studio) |
+| Web (template)        | **Next.js** (App Router) with route handlers          |
+| Design system         | **Astryx** (`@astryxdesign/core`, web UI)             |
+| Shared                | **TypeScript** packages with zod validation           |
+| Database              | **Postgres** + optional pgvector                      |
+| Identity              | **Keycloak** (external or Docker Compose)             |
+| Cache                 | **Redis**                                             |
+| Containers            | **Docker Compose**                                    |
+| Testing               | **Vitest** + **Playwright**                           |
+| Linting               | **ESLint** + **Prettier**                             |
 
 ---
 
@@ -139,6 +139,7 @@ HANDOFF.md is a snapshot; PROGRESS.md is the long-form ledger. On disagreement a
 ### 4.1 Code
 
 - **Monorepo structure:** `apps/*` for deployable applications, `packages/*` for shared libraries.
+- **`apps/agents` hosts Mastra agents ONLY** (and the tools they call). Do **not** add MCP servers or hand-rolled REST/HTTP endpoints there — agents reach external MCPs/APIs as _tools_ (`@mastra/mcp`), and Mastra already exposes each agent over A2A. Frontend/BFF endpoints belong in `apps/web`. (The app is named `agents`, not `api`, to make this scope obvious; Mastra's own HTTP surface is still served under `/api/*`.)
 - **Validation:** `zod` at all external boundaries (HTTP body, env vars, API payloads).
 - **Logging:** `pino` or equivalent structured logger. **Never** `console.log` in committed code.
 - **Design system first** in web apps — build UI from **Astryx** components (`@astryxdesign/core`) and theme tokens. Use **Tailwind** utility classes for layout/spacing (via the Astryx Tailwind bridge). No hand-written CSS beyond `app/globals.css`; reach for StyleX's `xstyle` prop only for one-offs with no Tailwind/token equivalent.

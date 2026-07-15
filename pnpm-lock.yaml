@@ -33,7 +33,7 @@ importers:
         specifier: ^8.60.0
         version: 8.62.1(eslint@10.6.0(jiti@2.7.0))(typescript@5.9.3)
 
-  apps/api:
+  apps/agents:
     dependencies:
       '@mastra/core':
         specifier: ^1.49.0

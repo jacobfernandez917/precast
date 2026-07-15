@@ -3,7 +3,7 @@
 > **What this is.** A verified integration note describing how an agent built on the **Precast** boilerplate (Mastra API app) is registered and invoked on **AgentBase**. The compatibility claims here were confirmed by booting the Precast `example-agent`, fetching its live A2A card, and running that card through AgentBase's actual registration validator.
 
 **Last Updated:** 2026-07-07
-**Status:** Verified against Precast `apps/api` (Mastra `@mastra/core@1.49`) and AgentBase `apps/api` (A2A registry).
+**Status:** Verified against Precast `apps/agents` (Mastra `@mastra/core@1.49`) and AgentBase `apps/agents` (A2A registry).
 
 ---
 
@@ -20,7 +20,7 @@
 
 ### 2.1 Precast — produces the agent
 
-Precast's `apps/api` is a **Mastra** app. A running instance exposes (default port **4111**, `MASTRA_PORT`):
+Precast's `apps/agents` is a **Mastra** app. A running instance exposes (default port **4111**, `MASTRA_PORT`):
 
 | Purpose                    | Endpoint                                        | Protocol                                       |
 | -------------------------- | ----------------------------------------------- | ---------------------------------------------- |
@@ -32,7 +32,7 @@ Precast's `apps/api` is a **Mastra** app. A running instance exposes (default po
 
 Key facts:
 
-- **Agents** are defined in `apps/api/src/mastra/index.ts` and identified by `id` (e.g. `example-agent`).
+- **Agents** are defined in `apps/agents/src/mastra/index.ts` and identified by `id` (e.g. `example-agent`).
 - **Skills = tools.** Each Mastra tool becomes one A2A skill in the card (tag `"tool"`). An agent with no tools still registers (AgentBase synthesizes a fallback `chat` skill).
 - **Auth is off by default** in the boilerplate — the card declares no security schemes.
 - **Direct A2A access with a bearer token.** Any A2A client (JSON-RPC 2.0) can invoke the agents directly at `POST /api/a2a/:agentId` by sending `Authorization: Bearer <token>`, where the token **must match the server's `AGENT_API_TOKEN`**. When `AGENT_API_TOKEN` is set, `/api/a2a/*` and `/api/agents/*` reject any request without that exact bearer (401); when unset, they are open (local dev). AgentBase is one such client — it injects the token when proxying (§7) — but external clients can call the agents directly with the same token. Studio (`/`) and card discovery stay open regardless.
@@ -44,7 +44,7 @@ AgentBase **does not host external agents**; it registers external agent _endpoi
 
 - **Register:** `POST /agents` (see §4).
 - **Invoke at runtime:** `POST /a2a` — AgentBase validates the caller, resolves the target agent + skill, injects the agent's declared credential, **strips the inbound caller auth (zero-trust)**, forwards to the agent's service endpoint, streams the response back, and writes an audit record.
-- Registration is gated by the A2A card schema `a2aAgentCardSchema` (in `@agentbase/mcp`), with a normalizer in `apps/api/src/sync/a2a/agentCard.validator.ts`.
+- Registration is gated by the A2A card schema `a2aAgentCardSchema` (in `@agentbase/mcp`), with a normalizer in `apps/agents/src/sync/a2a/agentCard.validator.ts`.
 
 ---
 
@@ -183,7 +183,7 @@ ENABLE_AGENTBASE=0  (direct mode — explicit opt-out)
 
 `callAgent()` returns a normalized `{ ok, text, error?, via, raw }` so the UI is independent of each mode's wire format (AgentBase and Mastra return different response shapes). Direct mode speaks A2A 0.3.0 (`message/send` with a `Message` envelope — Mastra rejects the older `tasks/send`); proxy mode uses AgentBase's `tasks/send` contract. **Guard rail:** if AgentBase mode is active but `AGENTBASE_URL` is unset or still the `example.com` placeholder, `callAgent()` returns an error reply telling you to configure it or set `ENABLE_AGENTBASE=0`.
 
-> **Multi-agent routing.** `POST /api/a2a/:agentId` is per-agent: the route handler reads `:agentId`. In direct mode it's the Mastra URL path; in proxy mode `callAgent()` forwards it into `params.agentId`. Registering more agents on the Mastra instance (`agents: { … }` in `apps/api/src/mastra/index.ts`) is all the API-side work — each one auto-serves its own card at `/api/.well-known/:id/agent-card.json`. In proxy mode, every agent must also be registered separately on AgentBase (§4) with its own `agentCardUrl`.
+> **Multi-agent routing.** `POST /api/a2a/:agentId` is per-agent: the route handler reads `:agentId`. In direct mode it's the Mastra URL path; in proxy mode `callAgent()` forwards it into `params.agentId`. Registering more agents on the Mastra instance (`agents: { … }` in `apps/agents/src/mastra/index.ts`) is all the API-side work — each one auto-serves its own card at `/api/.well-known/:id/agent-card.json`. In proxy mode, every agent must also be registered separately on AgentBase (§4) with its own `agentCardUrl`.
 
 ### 7.2 Files
 
@@ -269,13 +269,13 @@ The second integration axis — registering the Mastra agent itself on AgentBase
 
 ## 8. Source references
 
-**Precast** (`/apps/api`)
+**Precast** (`/apps/agents`)
 
 - `src/mastra/index.ts` — Mastra instance + server config (host/port)
 - `src/mastra/agents/example-agent.ts` — agent definition (`id`, tools)
 - A2A routes come from `@mastra/server` (`/api/a2a/:agentId`, `/api/.well-known/:agentId/agent-card.json`)
 
-**AgentBase** (`/apps/api`)
+**AgentBase** (`/apps/agents`)
 
 - `src/agents/agents.dto.ts` — `createAgentSchema` (registration payload)
 - `src/agents/agents.service.ts` — `create()` → `a2aSyncService.syncAgent()`

@@ -42,7 +42,7 @@
 
 ---
 
-## Agent Tests (Vitest, `apps/api/src/mastra/`)
+## Agent Tests (Vitest, `apps/agents/src/mastra/`)
 
 > Neutral placeholder — replace with your agents' tests.
 

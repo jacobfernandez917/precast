@@ -35,7 +35,7 @@ export const EnvSchema = z.object({
   KEYCLOAK_CLIENT_SECRET: z.string().optional(),
 
   // Base URL the web app uses to reach the Mastra agent API for *direct* A2A
-  // calls (when AgentBase is disabled). Docker sets this to http://api:4111.
+  // calls (when AgentBase is disabled). Docker sets this to http://agents:4111.
   MASTRA_INTERNAL_URL: z.string().url().default('http://localhost:4111'),
 
   // ── AgentBase (A2A registry/proxy) ─────────────────────────────────────────

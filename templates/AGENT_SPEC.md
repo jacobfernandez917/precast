@@ -3,7 +3,7 @@
 > **Template + worked example.** Specify each agent's job, its tools, and its
 > guardrails _before_ implementing, so behavior is intentional rather than
 > emergent. The example specs the **reservation agent** shipped in
-> `apps/api/src/mastra/` — replace with your agents.
+> `apps/agents/src/mastra/` — replace with your agents.
 
 **Last updated:** [ISO date] · **Runtime:** Mastra (see [TECH_STACK](../docs/TECH_STACK.md))
 
@@ -31,7 +31,7 @@ chat, asking for missing details and never inventing data.
 | `book-room`          | Reserve a specific room for a window.        | `{ roomId, start, end, organizer, title }`    | `{ reservationId, roomId, confirmed }` |
 
 > Tool input/output schemas are the source of truth and must mirror
-> [DATA_MODEL.md](DATA_MODEL.md). Implement under `apps/api/src/mastra/tools/`
+> [DATA_MODEL.md](DATA_MODEL.md). Implement under `apps/agents/src/mastra/tools/`
 > (the boilerplate ships only a neutral `example-tool.ts` placeholder).
 
 ### Guardrails
@@ -64,7 +64,7 @@ Agent: Sure — for when, how long, and how many people?
 ## 3. Memory & storage
 
 Agent memory/threads persist via the Mastra `storage` adapter (LibSQL by
-default; see `apps/api/src/mastra/index.ts` and `MASTRA_DB_URL`). Not durable
+default; see `apps/agents/src/mastra/index.ts` and `MASTRA_DB_URL`). Not durable
 until a real store is configured for production.
 
 ## 4. Evaluation (todo)

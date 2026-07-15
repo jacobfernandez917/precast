@@ -177,3 +177,25 @@
 - -: The production build is pinned to webpack + a JSX shim until Astryx ships a prod-compiled build; a Turbopack production build currently fails on Astryx.
 - -: No `eslint-config-next` means Next-specific lint rules (e.g. `no-img-element`) aren't enforced; `next build` still type-checks.
 - -: Astryx is pre-1.0 (`^0.1`); its component APIs may shift before a stable release.
+
+---
+
+## ADR-009: Rename `apps/api` → `apps/agents`; agents-only scope
+
+**Date:** 2026-07-15
+**Status:** Accepted
+
+**Context:** The Mastra app was named `apps/api` (`@precast/api`). "API" was misleading: the app's purpose is to define **Mastra agents** (and their tools), not to host a general REST API or MCP servers. The name invited scope creep — contributors adding endpoints/MCPs where they don't belong. (Note: Mastra's own HTTP surface is legitimately served under `/api/*`; that is separate from the workspace folder name.)
+
+**Decision:**
+
+- Rename the workspace app `apps/api` → **`apps/agents`** and the package `@precast/api` → **`@precast/agents`**. Root scripts become `dev:agents` / `build:agents` / `test:agents`. Docker: service `api` → **`agents`**, `container_name`/volume `precast-api*` → `precast-agents*`, and the web app's `MASTRA_INTERNAL_URL` DNS → `http://agents:4111`.
+- **Scope rule (guard rail):** `apps/agents` hosts **Mastra agents and their tools only** — no MCP servers, no hand-rolled REST/HTTP endpoints. Agents reach external MCPs/APIs as _tools_ (`@mastra/mcp`); Mastra already exposes each agent over A2A; frontend/BFF routes live in `apps/web`. Documented in `CLAUDE.md` §4.1 and the `index.ts` header.
+- **Do NOT rename Mastra's HTTP routes** (`/api/a2a/:id`, `/api/agents`, `/api/health`, `/api/.well-known/...`) — those are Mastra's framework surface, unchanged.
+
+**Consequences:**
+
+- +: The folder name states its purpose; the scope rule discourages turning the agents app into a catch-all backend.
+- +: Consistent identifiers across scripts, Docker service/DNS, logger name, and docs.
+- -: A one-time churn across config + docs; historical PROGRESS/ADR entries still reference `apps/api` as the name at the time (intentionally left as history).
+- Neutral: `KEYCLOAK_CLIENT_ID` stays `precast-api` — it names an OAuth client tier, not the workspace app.

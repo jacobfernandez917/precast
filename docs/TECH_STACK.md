@@ -13,9 +13,9 @@
 | Package Manager       | pnpm                 | 9.15.9  | Workspaces monorepo                                   |
 | Monorepo Orchestrator | Turborepo            | ^2.9.16 | Task orchestration                                    |
 | Runtime               | Node.js              | 24      | `.nvmrc` pin                                          |
-| Container base        | node:24-alpine       | —       | api + web multi-stage image base                      |
+| Container base        | node:24-alpine       | —       | agents + web multi-stage image base                   |
 | Language              | TypeScript           | ^5.9.3  | Strict mode                                           |
-| API / Agents          | Mastra               | ^1.18   | `apps/api/` — agent framework, `mastra dev`           |
+| Agents                | Mastra               | ^1.18   | `apps/agents/` — agent framework, `mastra dev`        |
 | LLM access            | Mastra model gateway | —       | `provider/model` string; no separate AI SDK           |
 | Agent store           | @mastra/libsql       | ^1.15   | Agent memory/threads (SQLite/libsql)                  |
 | Web                   | Next.js (App Router) | ^16     | `apps/web/`                                           |
@@ -30,7 +30,7 @@
 | Cache                 | Redis                | 7       | Docker Compose                                        |
 | Linting               | ESLint               | ^10     | Flat config                                           |
 | Formatting            | Prettier             | ^3      |                                                       |
-| Testing (API)         | Vitest               | ^2      | `apps/api` — no config (defaults)                     |
+| Testing (agents)      | Vitest               | ^2      | `apps/agents` — no config (defaults)                  |
 | Testing (Web)         | Vitest               | ^2      | `apps/web/vitest.config.ts`                           |
 | E2E Testing           | Playwright           | ^1      | `apps/web/playwright.config.ts` (autonomous)          |
 | Git Hooks             | `.githooks/`         | —       | Native core.hooksPath; doc-contract + lint-staged     |
@@ -38,11 +38,13 @@
 
 ---
 
-## 2. API / Agents (`apps/api/`)
+## 2. Agents (`apps/agents/`)
 
-Mastra agent app. `mastra dev` serves the agent API under `/api/*` and the
-Studio playground at the root, on `MASTRA_PORT` (default 4111). Source lives in
-`src/mastra/` (`index.ts` instance, `agents/`, `tools/`). ESM, no decorators.
+Mastra **agents-only** app — hosts agents and their tools, nothing else (no MCP
+servers, no hand-rolled REST APIs; agents reach external services as tools).
+`mastra dev` serves Mastra's HTTP surface under `/api/*` (A2A + agent routes)
+and the Studio playground at the root, on `MASTRA_PORT` (default 4111). Source
+lives in `src/mastra/` (`index.ts` instance, `agents/`, `tools/`). ESM, no decorators.
 
 | Dependency      | Version | Purpose                                    |
 | --------------- | ------- | ------------------------------------------ |
@@ -98,23 +100,23 @@ Studio playground at the root, on `MASTRA_PORT` (default 4111). Source lives in
 
 > `packages/shared` compiles to **ESM** (NodeNext) so Mastra's bundler can
 > statically analyze its named exports; relative imports use `.js` extensions.
-> `apps/api` (Mastra) and `apps/web` (Next.js) are both ESM. See ADR-005.
+> `apps/agents` (Mastra) and `apps/web` (Next.js) are both ESM. See ADR-005.
 
 ---
 
 ## 5. Docker Compose Services
 
-| Service  | Image                            | Port (host) | Purpose                              |
-| -------- | -------------------------------- | ----------- | ------------------------------------ |
-| api      | built — `apps/api/Dockerfile`    | 4111        | Mastra agent API (multi-stage build) |
-| web      | built — `apps/web/Dockerfile`    | 3000        | Next.js web app (multi-stage build)  |
-| postgres | postgres:17-alpine               | 5432        | Primary database                     |
-| redis    | redis:7-alpine                   | 6379        | Cache                                |
-| keycloak | quay.io/keycloak/keycloak:latest | 8080        | Identity provider                    |
+| Service  | Image                            | Port (host) | Purpose                               |
+| -------- | -------------------------------- | ----------- | ------------------------------------- |
+| agents   | built — `apps/agents/Dockerfile` | 4111        | Mastra agents app (multi-stage build) |
+| web      | built — `apps/web/Dockerfile`    | 3000        | Next.js web app (multi-stage build)   |
+| postgres | postgres:17-alpine               | 5432        | Primary database                      |
+| redis    | redis:7-alpine                   | 6379        | Cache                                 |
+| keycloak | quay.io/keycloak/keycloak:latest | 8080        | Identity provider                     |
 
-- **api** / **web** images build from the repo root on **node:24-alpine** (multi-stage: pnpm workspace install + build → self-contained runtime bundle — `.mastra/output` for api, Next `.next/standalone` for web).
-- Inter-service URLs use Docker DNS names (`postgres`, `redis`, `keycloak`, `api`), never `localhost`. `web` reaches the API via `MASTRA_INTERNAL_URL=http://api:4111`.
-- `api` persists agent memory to the `precast-api-data` volume (`MASTRA_DB_URL=file:/data/mastra.db`).
+- **agents** / **web** images build from the repo root on **node:24-alpine** (multi-stage: pnpm workspace install + build → self-contained runtime bundle — `.mastra/output` for agents, Next `.next/standalone` for web).
+- Inter-service URLs use Docker DNS names (`postgres`, `redis`, `keycloak`, `api`), never `localhost`. `web` reaches the API via `MASTRA_INTERNAL_URL=http://agents:4111`.
+- `api` persists agent memory to the `precast-agents-data` volume (`MASTRA_DB_URL=file:/data/mastra.db`).
 - Both load the root `.env` if present (`env_file` optional); the compose `environment:` block overrides network-specific values.
 
 ---
@@ -135,11 +137,11 @@ The **Web** and **Mastra** dev ports above are the defaults; they are chosen at 
 
 ## 7. Testing Tools
 
-| Tool       | Scope             | Config                                                    |
-| ---------- | ----------------- | --------------------------------------------------------- |
-| Vitest     | API (`apps/api/`) | Defaults; specs alongside source (`*.spec.ts`)            |
-| Vitest     | Web (`apps/web/`) | `apps/web/vitest.config.ts`                               |
-| Playwright | E2E (`apps/web/`) | `apps/web/playwright.config.ts`; specs in `apps/web/e2e/` |
+| Tool       | Scope                | Config                                                    |
+| ---------- | -------------------- | --------------------------------------------------------- |
+| Vitest     | API (`apps/agents/`) | Defaults; specs alongside source (`*.spec.ts`)            |
+| Vitest     | Web (`apps/web/`)    | `apps/web/vitest.config.ts`                               |
+| Playwright | E2E (`apps/web/`)    | `apps/web/playwright.config.ts`; specs in `apps/web/e2e/` |
 
 > Playwright is **autonomous**: its `webServer` block boots `next dev` itself,
 > so `pnpm test:e2e` needs no manually-started app. Install the browser once

@@ -1,5 +1,5 @@
 {
-  "name": "@precast/api",
+  "name": "@precast/agents",
   "version": "0.1.0",
   "private": true,
   "type": "module",

@@ -22,8 +22,13 @@ const LOG_LEVEL_MAP = {
 
 /**
  * The Mastra instance is the entry point for all agents, tools, and workflows.
- * `mastra dev` serves this on MASTRA_PORT (default 4111): the API under
- * `/api/*` and the Studio playground at the root.
+ * `mastra dev` serves this on MASTRA_PORT (default 4111): Mastra's HTTP surface
+ * under `/api/*` (A2A + agent routes) and the Studio playground at the root.
+ *
+ * SCOPE — this app (`apps/agents`) hosts **Mastra agents only** (and the tools
+ * they call). Do NOT add MCP servers or hand-rolled REST/HTTP endpoints here:
+ * agents reach external MCPs/APIs as *tools* (e.g. via `@mastra/mcp`), and
+ * Mastra already exposes each agent over A2A. Web/BFF routes live in `apps/web`.
  *
  * `exampleAgent` and `summaryAgent` are neutral placeholders that prove the
  * wiring is multi-agent: each key in `agents` gets its own A2A card at
@@ -44,7 +49,7 @@ export const mastra = new Mastra({
     url: env.MASTRA_DB_URL,
   }),
   logger: new PinoLogger({
-    name: 'precast-api',
+    name: 'precast-agents',
     level: LOG_LEVEL_MAP[env.LOG_LEVEL],
   }),
   server: {

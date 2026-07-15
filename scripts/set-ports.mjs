@@ -92,8 +92,8 @@ edit('packages/shared/src/env.ts', [
   [/(MASTRA_PORT:\s*z\.coerce\.number\(\)\.default\()\d+(\))/, `$1${mastra}$2`],
   [/(WEB_PORT:\s*z\.coerce\.number\(\)\.default\()\d+(\))/, `$1${web}$2`],
 ]);
-edit('apps/api/src/mastra/index.ts', [[/(MASTRA_PORT \(default )\d+(\))/, `$1${mastra}$2`]]);
-edit('apps/api/Dockerfile', [
+edit('apps/agents/src/mastra/index.ts', [[/(MASTRA_PORT \(default )\d+(\))/, `$1${mastra}$2`]]);
+edit('apps/agents/Dockerfile', [
   [/(MASTRA_PORT=)\d+/, `$1${mastra}`],
   [/(EXPOSE )\d+/, `$1${mastra}`],
 ]);

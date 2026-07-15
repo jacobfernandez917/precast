@@ -67,7 +67,7 @@ git config core.hooksPath .githooks    # activate the doc-contract pre-commit ho
 cp .env.example .env
 pnpm install
 pnpm build
-pnpm dev                               # all apps, or: pnpm dev:api / pnpm dev:web
+pnpm dev                               # all apps, or: pnpm dev:agents / pnpm dev:web
 ```
 
 The web app runs at `http://localhost:3000` and the Mastra agent API + Studio playground at `http://localhost:4111`. The placeholder example agent needs an LLM key — set `GOOGLE_GENERATIVE_AI_API_KEY` in `.env` to converse (build/test work without it).
@@ -88,10 +88,10 @@ The `precast` placeholder spans package scopes (`@precast/*`), the Postgres data
 ### Run in Docker (full stack)
 
 ```bash
-pnpm docker:up      # api + web + Postgres + Redis + Keycloak (builds app images on first run)
+pnpm docker:up      # agents + web + Postgres + Redis + Keycloak (builds app images on first run)
 ```
 
-Both apps are containerized (`apps/api/Dockerfile`, `apps/web/Dockerfile`, multi-stage on `node:24-alpine`). The web container reaches the API over the Docker network (`http://api:4111`). App ports follow your `pnpm set-ports` / `pnpm bootstrap` choices. To run only infra, target those services: `pnpm docker:up postgres redis keycloak`.
+Both apps are containerized (`apps/agents/Dockerfile`, `apps/web/Dockerfile`, multi-stage on `node:24-alpine`). The web container reaches the API over the Docker network (`http://agents:4111`). App ports follow your `pnpm set-ports` / `pnpm bootstrap` choices. To run only infra, target those services: `pnpm docker:up postgres redis keycloak`.
 
 ### Keeping dependencies current
 
