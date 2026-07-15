@@ -72,7 +72,12 @@ pnpm dev                               # all apps, or: pnpm dev:api / pnpm dev:w
 
 The web app runs at `http://localhost:3000` and the Mastra agent API + Studio playground at `http://localhost:4111`. The placeholder example agent needs an LLM key — set `GOOGLE_GENERATIVE_AI_API_KEY` in `.env` to converse (build/test work without it).
 
-**Important:** All Next ↔ Mastra communication routes through the **AgentBase A2A proxy** — never call Mastra directly from the frontend. AgentBase handles auth, audit, and zero-trust forwarding. Set `AGENTBASE_URL`, `AGENTBASE_TOKEN` (Next → AgentBase), and `AGENT_API_TOKEN` (AgentBase → Mastra) in your `.env`. See [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) for the full auth flow.
+**Important:** the web app talks to Mastra **only** through its server-side route handler / `callAgent()` util — never call Mastra from client code. **AgentBase is optional**, selected by `ENABLE_AGENTBASE`:
+
+- `ENABLE_AGENTBASE=1` → route A2A calls through the **AgentBase proxy** (`AGENTBASE_URL`/`AGENTBASE_TOKEN`); AgentBase handles auth, audit, and zero-trust forwarding.
+- otherwise (default) → talk to Mastra **directly over A2A** at `POST $MASTRA_INTERNAL_URL/api/a2a/:agentId` with `Authorization: Bearer $AGENT_API_TOKEN`.
+
+See [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) for both flows.
 
 Any **A2A client can also invoke the agents directly** (JSON-RPC 2.0) at `POST /api/a2a/:agentId` by sending `Authorization: Bearer <AGENT_API_TOKEN>` — the bearer must match the server's `AGENT_API_TOKEN` (routes are open when it's unset). The "route through AgentBase" rule above applies to the **web frontend**; external clients authenticate directly with the token.
 

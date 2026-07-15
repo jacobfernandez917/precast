@@ -153,33 +153,44 @@ The live Precast `example-agent` card (abridged):
 
 ---
 
-## 7. Next ↔ Mastra wiring (via AgentBase)
+## 7. Next ↔ Mastra wiring
 
-Precast ships a **Next.js** app (`apps/web`) that communicates with Mastra agents **exclusively through the AgentBase A2A proxy**. This means:
+Precast ships a **Next.js** app (`apps/web`) that talks to Mastra agents **only through its server-side route handler / `callAgent()` util** — client code never calls Mastra. **AgentBase is optional**, selected by the `ENABLE_AGENTBASE` env flag:
 
 ```
-┌─────────┐   POST /api/a2a/:agentId   ┌────────────┐   POST /a2a (JSON-RPC)   ┌──────────┐
-│  Next   │ ──────────────────────────▶ │  AgentBase  │ ─────────────────────────▶ │  Mastra  │
-│ (React) │  (route handler proxy)     │  (proxy)    │                           │ (agents) │
-└─────────┘                            └────────────┘                           └──────────┘
+ENABLE_AGENTBASE=1  (proxy mode)
+┌─────────┐  POST /api/a2a/:id   ┌────────────┐  POST /a2a (tasks/send)   ┌──────────┐
+│  Next   │ ────────────────────▶│  AgentBase  │ ─────────────────────────▶│  Mastra  │
+│ (React) │  (route handler)     │  (proxy)    │  Bearer AGENTBASE→AGENT   │ (agents) │
+└─────────┘                      └────────────┘                           └──────────┘
+
+ENABLE_AGENTBASE unset  (direct mode, default)
+┌─────────┐  POST /api/a2a/:id   ┌──────────────────────────────────────────────────┐
+│  Next   │ ────────────────────▶│ Mastra  POST $MASTRA_INTERNAL_URL/api/a2a/:id     │
+│ (React) │  (route handler)     │ A2A message/send · Bearer AGENT_API_TOKEN         │
+└─────────┘                      └──────────────────────────────────────────────────┘
 ```
 
 ### 7.1 Routing
 
-| Layer                     | Route                    | Description                                                |
-| ------------------------- | ------------------------ | ---------------------------------------------------------- |
-| **Client component**      | `POST /api/a2a/:agentId` | Client sends message → route handler                       |
-| **Server util**           | `callAgent()`            | Reads `process.env.AGENTBASE_URL` + `AGENTBASE_TOKEN`      |
-| **Next.js route handler** | `POST /api/a2a/:agentId` | Validates input, calls `callAgent()`, returns A2A response |
-| **AgentBase proxy**       | `POST /a2a`              | Forwards JSON-RPC 2.0 to registered Mastra agent           |
+| Layer                     | Route                                        | Description                                                        |
+| ------------------------- | -------------------------------------------- | ------------------------------------------------------------------ |
+| **Client component**      | `POST /api/a2a/:agentId`                     | Client sends message → route handler                               |
+| **Next.js route handler** | `POST /api/a2a/:agentId`                     | Validates input, calls `callAgent()`, returns a normalized reply   |
+| **Server util**           | `callAgent()`                                | Branches on `ENABLE_AGENTBASE` (see modes below)                   |
+| **Proxy mode** (`=1`)     | `POST $AGENTBASE_URL/a2a`                    | JSON-RPC `tasks/send` + `params.agentId`; `Bearer AGENTBASE_TOKEN` |
+| **Direct mode** (default) | `POST $MASTRA_INTERNAL_URL/api/a2a/:agentId` | A2A `message/send`; `Bearer AGENT_API_TOKEN`                       |
 
-> **Multi-agent routing.** `POST /api/a2a/:agentId` is per-agent: the route handler reads `:agentId` and `callAgent()` forwards it into the JSON-RPC `params.agentId`, so distinct agents route to distinct AgentBase targets. Registering more agents on the Mastra instance (`agents: { … }` in `apps/api/src/mastra/index.ts`) is all the API-side work — each one auto-serves its own card at `/api/.well-known/:id/agent-card.json`. Every agent must still be registered separately on AgentBase (§4) with its own `agentCardUrl`.
+`callAgent()` returns a normalized `{ ok, text, error?, via, raw }` so the UI is independent of each mode's wire format (AgentBase and Mastra return different response shapes). Direct mode speaks A2A 0.3.0 (`message/send` with a `Message` envelope — Mastra rejects the older `tasks/send`); proxy mode uses AgentBase's `tasks/send` contract.
+
+> **Multi-agent routing.** `POST /api/a2a/:agentId` is per-agent: the route handler reads `:agentId`. In direct mode it's the Mastra URL path; in proxy mode `callAgent()` forwards it into `params.agentId`. Registering more agents on the Mastra instance (`agents: { … }` in `apps/api/src/mastra/index.ts`) is all the API-side work — each one auto-serves its own card at `/api/.well-known/:id/agent-card.json`. In proxy mode, every agent must also be registered separately on AgentBase (§4) with its own `agentCardUrl`.
 
 ### 7.2 Files
 
-- `apps/web/app/lib/a2a-client.ts` — `callAgent()` utility that wraps the A2A proxy call (reads `AGENTBASE_URL` / `AGENTBASE_TOKEN` from the environment)
+- `apps/web/app/lib/a2a-client.ts` — `callAgent()` util; branches on `ENABLE_AGENTBASE` (proxy vs direct) and normalizes the reply
 - `apps/web/app/api/a2a/[agentId]/route.ts` — Next.js route handler exposed to the frontend
-- `apps/web/app/AgentChat.tsx` — client component with an agent chat input wired through the proxy (rendered by `app/page.tsx`)
+- `apps/web/app/AgentChat.tsx` — client component with an agent chat input (shows which transport handled the reply)
+- Env: `ENABLE_AGENTBASE` (toggle), `MASTRA_INTERNAL_URL` (direct base), `AGENTBASE_URL`/`AGENTBASE_TOKEN` (proxy), `AGENT_API_TOKEN` (Mastra bearer)
 
 ### 7.3 Configuration
 
@@ -202,30 +213,36 @@ const data = await res.json();
 
 ### 7.5 Auth flow
 
-All Mastra agents require a static bearer token (`AGENT_API_TOKEN`) on their A2A and agent API routes. The auth flow is:
+Mastra protects its A2A/agent routes with a static bearer (`AGENT_API_TOKEN`) — enforced when set, open when unset (local dev). Studio (`/`) and card discovery stay open. The token that reaches Mastra depends on the mode:
+
+**Proxy mode (`ENABLE_AGENTBASE=1`):**
 
 ```
-Next route handler → POST /api/a2a/:agentId
+Next route handler → POST $AGENTBASE_URL/a2a
   ↓  (sends AGENTBASE_TOKEN)
-AgentBase proxy → POST /a2a
+AgentBase proxy
   ↓  (validates caller, strips inbound auth, injects AGENT_API_TOKEN)
-Mastra agent → POST /api/a2a/:agentId
-  ↓  (verifies Bearer <AGENT_API_TOKEN>)
-Agent responds
+Mastra agent → POST /api/a2a/:agentId  (verifies Bearer <AGENT_API_TOKEN>)
 ```
 
-| Layer                      | Token             | Purpose                                                    |
-| -------------------------- | ----------------- | ---------------------------------------------------------- |
-| **Next → AgentBase**       | `AGENTBASE_TOKEN` | Authenticates the Next app to the AgentBase proxy          |
-| **AgentBase → Mastra**     | `AGENT_API_TOKEN` | AgentBase injects this when forwarding; Mastra verifies it |
-| **Next → Mastra (direct)** | —                 | **Never happens** — all traffic routes through AgentBase   |
+**Direct mode (default):**
+
+```
+Next route handler → POST $MASTRA_INTERNAL_URL/api/a2a/:agentId
+  ↓  (sends Authorization: Bearer <AGENT_API_TOKEN>)
+Mastra agent  (verifies Bearer <AGENT_API_TOKEN>)
+```
+
+| Mode   | Token the web app sends                | Reaches Mastra as                   |
+| ------ | -------------------------------------- | ----------------------------------- |
+| Proxy  | `AGENTBASE_TOKEN` (to AgentBase)       | AgentBase injects `AGENT_API_TOKEN` |
+| Direct | `AGENT_API_TOKEN` (straight to Mastra) | `AGENT_API_TOKEN`                   |
 
 **Key points:**
 
-- The Next app **never knows** `AGENT_API_TOKEN`. It only sends `AGENTBASE_TOKEN`.
-- AgentBase strips the inbound caller auth (zero-trust) and injects the agent's declared credential (`AGENT_API_TOKEN`) before forwarding to Mastra.
+- In **proxy** mode the web app never knows `AGENT_API_TOKEN` — AgentBase strips inbound auth (zero-trust) and injects the agent's declared credential.
+- In **direct** mode the web app holds `AGENT_API_TOKEN` and sends it as the bearer itself.
 - When `AGENT_API_TOKEN` is unset in the Mastra environment, auth is off (open for local dev).
-- The Studio playground (root `/`) and agent card discovery remain accessible without auth.
 
 ### 7.6 Configuration
 
@@ -234,13 +251,15 @@ Agent responds
 AGENT_API_TOKEN=your-secret-token
 
 # .env (or environment) — Next side
-AGENTBASE_URL=https://agentbase.example.com
-AGENTBASE_TOKEN=your-agentbase-token
+ENABLE_AGENTBASE=0                              # 1 = proxy via AgentBase; else direct
+MASTRA_INTERNAL_URL=http://localhost:4111       # direct-mode Mastra base URL
+AGENTBASE_URL=https://agentbase.example.com     # proxy mode only
+AGENTBASE_TOKEN=your-agentbase-token            # proxy mode only
 ```
 
 ### 7.7 Design rule
 
-> **All Next ↔ Mastra communication MUST pass through the AgentBase proxy.** Never call Mastra directly from the Next frontend or route handlers. This ensures auth, audit, and zero-trust forwarding are handled consistently by AgentBase.
+> **The web app must reach Mastra only through its server-side route handler / `callAgent()` util — never from client code.** That util is the single switch point: with `ENABLE_AGENTBASE=1` it proxies through AgentBase (auth, audit, zero-trust forwarding); otherwise it calls Mastra directly over A2A with the `AGENT_API_TOKEN` bearer.
 
 ### 7.8 Related: Mastra → AgentBase registration
 

@@ -88,17 +88,18 @@ You MUST update PROGRESS.md when you:
 
 ## 4. Open Decisions
 
-| ID    | Decision                                                                 | Date       | Rationale                                                                                                      |
-| ----- | ------------------------------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------- |
-| D-001 | Use `precast` as the placeholder namespace, renamed via `pnpm rename`    | 2026-07-06 | One consistent token is safer to find-replace than a mix; resolved the `precast_dev`/`project_dev` DB mismatch |
-| D-002 | Rename script rewrites only functional config, never docs/ prose         | 2026-07-06 | Docs describe the boilerplate itself and must stay readable after a rename                                     |
-| D-003 | Runtime packages (`api`, `shared`) compile to CommonJS; remove Husky     | 2026-07-06 | Pure-ESM NestJS+decorators is fragile on node; Husky's `prepare` silently hijacked `.githooks`. See ADR-005    |
-| D-004 | `develop` default branch; bootstrap resets git history; CI external      | 2026-07-06 | A forked project shouldn't inherit Precast's history; CI is owned outside the repo. See ADR-006                |
-| D-005 | Replace NestJS with Mastra; ESM everywhere; ports Mastra 4111/Nuxt 3000  | 2026-07-06 | Agent-native fit; Mastra bundler needs ESM named exports (reverses ADR-005 CJS). See ADR-007                   |
-| D-006 | Keep Mastra/web apps neutral; domain lives only in `templates/`          | 2026-07-06 | Boilerplate must not couple to one example; harness builds structure from feed-forward docs + TECH_STACK       |
-| D-007 | Web on **Next.js (App Router) + Astryx**; style with Astryx + Tailwind   | 2026-07-14 | Chosen web tier + design system. Astryx components for the DS, Tailwind for layout. See ADR-008                |
-| D-008 | Web builds with **webpack** + a `jsx-dev-runtime` shim; dev on Turbopack | 2026-07-14 | Astryx 0.1.x ships dev-JSX components; only webpack's alias reaches SSR. Revisit on Astryx prod build. ADR-008 |
-| D-009 | `apps/web` uses the shared root ESLint config (no `eslint-config-next`)  | 2026-07-14 | eslint-config-next's plugins cap at ESLint 9; repo is on ESLint 10. Matches the apps/api pattern               |
+| ID    | Decision                                                                                  | Date       | Rationale                                                                                                                                                                              |
+| ----- | ----------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D-001 | Use `precast` as the placeholder namespace, renamed via `pnpm rename`                     | 2026-07-06 | One consistent token is safer to find-replace than a mix; resolved the `precast_dev`/`project_dev` DB mismatch                                                                         |
+| D-002 | Rename script rewrites only functional config, never docs/ prose                          | 2026-07-06 | Docs describe the boilerplate itself and must stay readable after a rename                                                                                                             |
+| D-003 | Runtime packages (`api`, `shared`) compile to CommonJS; remove Husky                      | 2026-07-06 | Pure-ESM NestJS+decorators is fragile on node; Husky's `prepare` silently hijacked `.githooks`. See ADR-005                                                                            |
+| D-004 | `develop` default branch; bootstrap resets git history; CI external                       | 2026-07-06 | A forked project shouldn't inherit Precast's history; CI is owned outside the repo. See ADR-006                                                                                        |
+| D-005 | Replace NestJS with Mastra; ESM everywhere; ports Mastra 4111/Nuxt 3000                   | 2026-07-06 | Agent-native fit; Mastra bundler needs ESM named exports (reverses ADR-005 CJS). See ADR-007                                                                                           |
+| D-006 | Keep Mastra/web apps neutral; domain lives only in `templates/`                           | 2026-07-06 | Boilerplate must not couple to one example; harness builds structure from feed-forward docs + TECH_STACK                                                                               |
+| D-007 | Web on **Next.js (App Router) + Astryx**; style with Astryx + Tailwind                    | 2026-07-14 | Chosen web tier + design system. Astryx components for the DS, Tailwind for layout. See ADR-008                                                                                        |
+| D-008 | Web builds with **webpack** + a `jsx-dev-runtime` shim; dev on Turbopack                  | 2026-07-14 | Astryx 0.1.x ships dev-JSX components; only webpack's alias reaches SSR. Revisit on Astryx prod build. ADR-008                                                                         |
+| D-009 | `apps/web` uses the shared root ESLint config (no `eslint-config-next`)                   | 2026-07-14 | eslint-config-next's plugins cap at ESLint 9; repo is on ESLint 10. Matches the apps/api pattern                                                                                       |
+| D-010 | **AgentBase optional** via `ENABLE_AGENTBASE`; direct A2A (`message/send`) is the default | 2026-07-14 | Not everyone runs AgentBase. Direct mode uses A2A 0.3.0 `message/send` (Mastra rejects `tasks/send`); proxy mode keeps AgentBase's `tasks/send`. `callAgent()` normalizes both replies |
 
 ---
 
@@ -137,6 +138,37 @@ You MUST update PROGRESS.md when you:
 
 ## 8. Session Log
 
+<auto-journal: 2026-07-15 06:12:46 — file edit>
+
+- **2026-07-14 — Claude Code —** Made **AgentBase optional** (`ENABLE_AGENTBASE`). `apps/web/app/lib/a2a-client.ts` `callAgent()` branches: `=1` proxies via AgentBase (`tasks/send` → `$AGENTBASE_URL/a2a`, Bearer `AGENTBASE_TOKEN`); default = **direct A2A** to Mastra (`message/send` → `$MASTRA_INTERNAL_URL/api/a2a/:agentId`, Bearer `AGENT_API_TOKEN`). Confirmed the live Mastra A2A endpoint requires `message/send` and rejects `tasks/send`. `callAgent()` returns normalized `{ ok, text, error?, via, raw }`; updated the route handler + `AgentChat` (shows transport). Added `ENABLE_AGENTBASE` + `MASTRA_INTERNAL_URL` to `packages/shared/src/env.ts` + `.env.example`; docker-compose web sets `ENABLE_AGENTBASE=0`. Docs: INTEGRATION §7 (both flows + auth), README, and the external `precast-claude-skill` repo. Both modes runtime-verified with a capturing echo server (method/URL/bearer + normalized reply correct). `pnpm build`/`typecheck`/`lint` green. See D-010.
+
+<auto-journal: 2026-07-15 06:12:30 — file edit>
+
+<auto-journal: 2026-07-15 06:12:14 — file edit>
+
+<auto-journal: 2026-07-15 06:11:44 — file edit>
+
+<auto-journal: 2026-07-15 06:11:08 — file edit>
+
+<auto-journal: 2026-07-15 06:10:39 — file edit>
+
+<auto-journal: 2026-07-15 06:10:08 — file edit>
+
+<auto-journal: 2026-07-15 06:09:06 — file edit>
+
+<auto-journal: 2026-07-15 06:07:53 — file edit>
+
+<auto-journal: 2026-07-15 06:07:08 — file edit>
+
+<auto-journal: 2026-07-15 06:06:59 — file edit>
+
+<auto-journal: 2026-07-15 06:06:50 — file edit>
+
+<auto-journal: 2026-07-15 06:06:36 — file edit>
+
+<auto-journal: 2026-07-15 06:06:16 — file edit>
+
+<auto-journal: 2026-07-15 06:06:06 — file edit>
 <auto-journal: 2026-07-15 05:57:27 — file edit>
 
 - **2026-07-14 — Claude Code —** Public-prep + doc refinements after the Next.js/Astryx migration. **Scrubbed internal refs** for open-sourcing (`*.917v.dev` hosts → `agentbase.example.com`, internal MCP URL genericized, local path → `~/Projects/precast`); squashed `origin/develop` to a single clean baseline and force-pushed (history + tree verified free of secrets/internal refs; local recovery tag `archive/pre-public-squash`). **Nuxt cleanup** of stale functional leftovers: `auth.ts`/`env.ts` comments, and `.githooks/pre-commit` (`TRIGGER_PATTERNS` gained `tsx`/`jsx` — it wasn't firing the doc-check on React files), `.lintstagedrc.json`, `.dockerignore`, `.prettierignore` (`.nuxt`/`.output` → `.next`). **Direct-A2A clarity**: documented in `auth.ts`, `.env.example`, `INTEGRATION_AGENTBASE.md` §2.1, and README that any A2A (JSON-RPC 2.0) client invokes agents at `POST /api/a2a/:agentId` with `Authorization: Bearer <token>` matching `AGENT_API_TOKEN`. Also updated the external `precast-claude-skill` repo (Next.js/Astryx, flattened current-dir init, direct-A2A note). `pnpm lint`/`typecheck` green.

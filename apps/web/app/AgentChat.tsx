@@ -6,17 +6,18 @@ import { Card } from '@astryxdesign/core/Card';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
-import type { A2aResponse } from './lib/a2a-client';
+import type { AgentReply } from './lib/a2a-client';
 
 /**
- * Agent chat demo — sends a message to a Mastra agent through the Next → AgentBase
- * A2A proxy route (`/api/a2a/:agentId`). The agent id is editable so the demo
- * proves multi-agent routing (e.g. `example-agent`, `summary-agent`).
+ * Agent chat demo — sends a message to a Mastra agent through the `/api/a2a/:agentId`
+ * route handler, which either proxies via AgentBase or calls Mastra directly
+ * over A2A (per `ENABLE_AGENTBASE`). The agent id is editable so the demo proves
+ * multi-agent routing (e.g. `example-agent`, `summary-agent`).
  */
 export function AgentChat() {
   const [agentId, setAgentId] = useState('example-agent');
   const [message, setMessage] = useState('');
-  const [response, setResponse] = useState<A2aResponse | null>(null);
+  const [reply, setReply] = useState<AgentReply | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
 
@@ -26,7 +27,7 @@ export function AgentChat() {
 
     setIsSending(true);
     setError(null);
-    setResponse(null);
+    setReply(null);
 
     try {
       const res = await fetch(`/api/a2a/${agentId}`, {
@@ -34,13 +35,15 @@ export function AgentChat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: message }),
       });
-      // The proxy route returns an A2aResponse, or `{ error: string }` on a 400.
-      const data = (await res.json()) as A2aResponse | { error: string };
+      // 200 → normalized AgentReply; non-2xx → { error: string } (e.g. 400 validation).
+      const data = (await res.json()) as AgentReply | { error: string };
 
-      if ('error' in data && data.error) {
-        setError(typeof data.error === 'string' ? data.error : data.error.message);
+      if (!res.ok) {
+        setError((data as { error?: string }).error ?? 'Request failed');
       } else {
-        setResponse(data as A2aResponse);
+        const r = data as AgentReply;
+        if (r.ok) setReply(r);
+        else setError(r.error ?? 'Agent error');
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Request failed');
@@ -49,12 +52,10 @@ export function AgentChat() {
     }
   }
 
-  const answer = response?.result?.result.message.content?.[0]?.text;
-
   return (
     <Card>
       <form onSubmit={sendMessage} className="flex flex-col gap-4">
-        <Heading level={2}>Agent chat (via AgentBase A2A proxy)</Heading>
+        <Heading level={2}>Agent chat (A2A)</Heading>
 
         <TextInput
           label="Agent"
@@ -88,10 +89,12 @@ export function AgentChat() {
           </div>
         )}
 
-        {answer !== undefined && (
+        {reply && (
           <div className="rounded-lg border border-border bg-surface p-3">
-            <Text type="supporting">Agent response</Text>
-            <Text as="p">{answer || '(no text content)'}</Text>
+            <Text type="supporting">
+              Agent response · {reply.via === 'agentbase' ? 'via AgentBase proxy' : 'direct A2A'}
+            </Text>
+            <Text as="p">{reply.text || '(no text content)'}</Text>
           </div>
         )}
       </form>

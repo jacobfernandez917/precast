@@ -34,9 +34,16 @@ export const EnvSchema = z.object({
   KEYCLOAK_CLIENT_ID: z.string().default('precast-api'),
   KEYCLOAK_CLIENT_SECRET: z.string().optional(),
 
+  // Base URL the web app uses to reach the Mastra agent API for *direct* A2A
+  // calls (when AgentBase is disabled). Docker sets this to http://api:4111.
+  MASTRA_INTERNAL_URL: z.string().url().default('http://localhost:4111'),
+
   // ── AgentBase (A2A registry/proxy) ─────────────────────────────────────────
-  // Base URL for the AgentBase service. All Next ↔ Mastra communication routes
-  // through AgentBase's A2A proxy rather than calling Mastra directly.
+  // AgentBase is OPTIONAL. When ENABLE_AGENTBASE=1 the web app routes A2A calls
+  // through the AgentBase proxy; otherwise it talks to Mastra directly over A2A
+  // (see MASTRA_INTERNAL_URL + AGENT_API_TOKEN).
+  ENABLE_AGENTBASE: z.enum(['0', '1']).default('0'),
+  // Base URL for the AgentBase service (used only when ENABLE_AGENTBASE=1).
   AGENTBASE_URL: z.string().url().default('https://agentbase.example.com'),
   // Bearer token for AgentBase authentication (optional; off when unset).
   AGENTBASE_TOKEN: z.string().optional(),

@@ -60,6 +60,9 @@ services:
       WEB_PORT: 3000
       # Reach the API over the Docker network, not localhost.
       MASTRA_INTERNAL_URL: http://api:4111
+      # AgentBase is optional; in-cluster the web app talks to Mastra directly
+      # over A2A. Set to "1" (and AGENTBASE_URL/AGENTBASE_TOKEN) to proxy instead.
+      ENABLE_AGENTBASE: '0'
     ports:
       - '3000:3000'
     depends_on:

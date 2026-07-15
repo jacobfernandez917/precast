@@ -1,20 +1,22 @@
 import { NextResponse } from 'next/server';
-import { callAgent, type A2aResponse } from '../../../lib/a2a-client';
+import { callAgent, type AgentReply } from '../../../lib/a2a-client';
 
 /**
  * POST /api/a2a/:agentId
  *
- * Frontend-facing proxy route that forwards chat messages to a Mastra agent
- * through the AgentBase A2A proxy. This is the ONLY route the client should use
- * to talk to agents — never call Mastra directly from client code.
+ * Frontend-facing proxy route that forwards chat messages to a Mastra agent.
+ * Depending on `ENABLE_AGENTBASE`, `callAgent()` either proxies through the
+ * AgentBase A2A proxy or calls the Mastra A2A endpoint directly. This is the
+ * ONLY route the client should use to talk to agents — never call Mastra
+ * directly from client code.
  *
  * Request body: { text: string; sessionId?: string; skillId?: string }
- * Returns the full A2A JSON-RPC 2.0 response.
+ * Returns a normalized { ok, text, error?, via, raw } reply.
  */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ agentId: string }> },
-): Promise<NextResponse<A2aResponse | { error: string }>> {
+): Promise<NextResponse<AgentReply | { error: string }>> {
   const { agentId } = await params;
 
   if (!agentId) {
@@ -31,10 +33,10 @@ export async function POST(
     return NextResponse.json({ error: 'Missing or invalid text field' }, { status: 400 });
   }
 
-  const result = await callAgent(agentId, body.text, {
+  const reply = await callAgent(agentId, body.text, {
     sessionId: body.sessionId,
     skillId: body.skillId,
   });
 
-  return NextResponse.json(result);
+  return NextResponse.json(reply);
 }
