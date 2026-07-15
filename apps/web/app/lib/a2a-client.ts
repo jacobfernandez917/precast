@@ -14,8 +14,13 @@
  * Defaulting to AgentBase is a guard rail: forgetting the flag routes through
  * the audited, zero-trust proxy rather than silently exposing Mastra directly.
  *
- * All Next → Mastra traffic goes through this util (via the route handler) —
- * never call Mastra or AgentBase directly from client components.
+ * INVARIANT: the web app talks to agents **only over A2A** (JSON-RPC 2.0),
+ * always through this util — with or without AgentBase. Both branches target an
+ * A2A endpoint (`/api/a2a/:id` direct, or AgentBase `/a2a`); neither ever calls
+ * Mastra's native REST (`/api/agents/:id/generate|stream`), listing, or Studio.
+ * All Next → Mastra traffic goes through here (via the route handler) — never
+ * call Mastra or AgentBase directly from client components. Enforced by
+ * `apps/web/test/a2a-only.spec.ts`.
  */
 
 export type A2aTransport = 'agentbase' | 'direct';

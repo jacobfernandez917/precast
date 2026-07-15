@@ -52,6 +52,15 @@
 
 ---
 
+## Web Tests (Vitest, `apps/web/test/`)
+
+| ID      | Description                                                                                       | Status  |
+| ------- | ------------------------------------------------------------------------------------------------- | ------- |
+| WEB-001 | `health.spec.ts` — shared `EnvSchema` defaults (`MASTRA_PORT`/`WEB_PORT`/`LOG_LEVEL`)             | Passing |
+| WEB-002 | `a2a-only.spec.ts` — fitness guard: no web source references a non-A2A Mastra agent route (D-013) | Passing |
+
+---
+
 ## E2E UI Tests (Playwright, `apps/web/e2e/`)
 
 > Autonomous — Playwright boots `next dev` itself. Verified on 2026-07-06 (Playwright 1.61.1, chromium). Run: `pnpm test:e2e`.

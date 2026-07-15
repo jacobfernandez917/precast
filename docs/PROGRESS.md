@@ -98,6 +98,7 @@ You MUST update PROGRESS.md when you:
 | D-006 | Keep Mastra/web apps neutral; domain lives only in `templates/`                    | 2026-07-06 | Boilerplate must not couple to one example; harness builds structure from feed-forward docs + TECH_STACK                                                                                             |
 | D-007 | Web on **Next.js (App Router) + Astryx**; style with Astryx + Tailwind             | 2026-07-14 | Chosen web tier + design system. Astryx components for the DS, Tailwind for layout. See ADR-008                                                                                                      |
 | D-008 | Web builds with **webpack** + a `jsx-dev-runtime` shim; dev on Turbopack           | 2026-07-14 | Astryx 0.1.x ships dev-JSX components; only webpack's alias reaches SSR. Revisit on Astryx prod build. ADR-008                                                                                       |
+| D-013 | **Web → agents is A2A-only** (JSON-RPC 2.0), with or without AgentBase             | 2026-07-15 | The web app must never use Mastra's native REST/listing/Studio — only A2A via `callAgent()`. Enforced by `apps/web/test/a2a-only.spec.ts`                                                            |
 | D-012 | Rename `apps/api` → `apps/agents` (`@precast/agents`); **agents-only** scope       | 2026-07-15 | "API" was misleading — the app defines Mastra agents + tools only (no MCPs, no REST APIs). Mastra's own `/api/*` routes are unchanged. See ADR-009                                                   |
 | D-009 | `apps/web` uses the shared root ESLint config (no `eslint-config-next`)            | 2026-07-14 | eslint-config-next's plugins cap at ESLint 9; repo is on ESLint 10. Matches the apps/agents pattern                                                                                                  |
 | D-010 | **AgentBase optional** via `ENABLE_AGENTBASE`; direct A2A uses `message/send`      | 2026-07-14 | Not everyone runs AgentBase. Direct mode uses A2A 0.3.0 `message/send` (Mastra rejects `tasks/send`); proxy mode keeps AgentBase's `tasks/send`. `callAgent()` normalizes both replies               |
@@ -140,6 +141,30 @@ You MUST update PROGRESS.md when you:
 
 ## 8. Session Log
 
+<auto-journal: 2026-07-15 10:10:48 — file edit>
+<auto-journal: 2026-07-15 10:09:15 — file edit>
+
+<auto-journal: 2026-07-15 10:08:44 — file edit>
+
+- **2026-07-15 — Claude Code —** Established the **web → agents A2A-only invariant** (D-013): `apps/web` interacts with Mastra agents exclusively over A2A (JSON-RPC 2.0) via `callAgent()`, with or without AgentBase — never Mastra native REST (`/api/agents/:id/generate`|`/stream`), listing, or Studio. Added fitness test `apps/web/test/a2a-only.spec.ts` (scans web source, fails on any non-A2A agent route; verified it allows `/api/a2a`+`/a2a` and catches native/listing/legacy). Locked into CLAUDE.md §4.1, `a2a-client.ts` header, INTEGRATION §7.7, README, and the skill. Fixed stale INTEGRATION §2.1 native-route row (`/api/agents/:id/generate|stream`, not the 404 `/agents/:id/messages`). Web tests 3/3; build/typecheck/lint green.
+
+<auto-journal: 2026-07-15 10:08:31 — file edit>
+
+<auto-journal: 2026-07-15 10:08:21 — file edit>
+
+<auto-journal: 2026-07-15 10:08:08 — file edit>
+
+<auto-journal: 2026-07-15 10:07:54 — file edit>
+
+<auto-journal: 2026-07-15 10:07:44 — file edit>
+
+<auto-journal: 2026-07-15 10:07:31 — file edit>
+
+<auto-journal: 2026-07-15 10:07:13 — file edit>
+
+<auto-journal: 2026-07-15 10:07:06 — file edit>
+
+<auto-journal: 2026-07-15 10:06:24 — file edit>
 <auto-journal: 2026-07-15 09:52:14 — file edit>
 
 <auto-journal: 2026-07-15 09:52:00 — file edit>

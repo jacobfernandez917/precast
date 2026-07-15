@@ -22,13 +22,13 @@
 
 Precast's `apps/agents` is a **Mastra** app. A running instance exposes (default port **4111**, `MASTRA_PORT`):
 
-| Purpose                    | Endpoint                                        | Protocol                                       |
-| -------------------------- | ----------------------------------------------- | ---------------------------------------------- |
-| A2A agent card (discovery) | `GET /api/.well-known/:agentId/agent-card.json` | A2A 0.3.0 card JSON                            |
-| A2A invocation             | `POST /api/a2a/:agentId`                        | JSON-RPC 2.0 over HTTP                         |
-| Mastra-native invocation   | `POST /agents/:agentId/messages`                | Mastra REST (`{text, threadId?, resourceId?}`) |
-| Agent listing              | `GET /api/agents`                               | Mastra-native JSON                             |
-| Studio playground          | `/`                                             | Browser UI                                     |
+| Purpose                    | Endpoint                                          | Protocol                                         |
+| -------------------------- | ------------------------------------------------- | ------------------------------------------------ |
+| A2A agent card (discovery) | `GET /api/.well-known/:agentId/agent-card.json`   | A2A 0.3.0 card JSON                              |
+| A2A invocation             | `POST /api/a2a/:agentId`                          | JSON-RPC 2.0 over HTTP                           |
+| Mastra-native invocation   | `POST /api/agents/:agentId/generate` \| `/stream` | Mastra REST (not used by the web app — A2A only) |
+| Agent listing              | `GET /api/agents`                                 | Mastra-native JSON                               |
+| Studio playground          | `/`                                               | Browser UI                                       |
 
 Key facts:
 
@@ -259,7 +259,7 @@ AGENTBASE_TOKEN=your-agentbase-token            # proxy mode only
 
 ### 7.7 Design rule
 
-> **The web app must reach Mastra only through its server-side route handler / `callAgent()` util — never from client code.** That util is the single switch point: with `ENABLE_AGENTBASE=1` it proxies through AgentBase (auth, audit, zero-trust forwarding); otherwise it calls Mastra directly over A2A with the `AGENT_API_TOKEN` bearer.
+> **The web app talks to agents only over A2A, only through `callAgent()`.** `apps/web` interacts with Mastra agents **exclusively via the A2A protocol** (JSON-RPC 2.0) — with or without AgentBase — and always through the server-side `callAgent()` util (never from client code). `callAgent()` is the single switch point: `ENABLE_AGENTBASE=1` (default) proxies through AgentBase (auth, audit, zero-trust forwarding); `=0` calls Mastra directly at `POST /api/a2a/:id` (A2A `message/send`) with the `AGENT_API_TOKEN` bearer. The web app must **never** use Mastra's non-A2A surfaces — native REST (`POST /api/agents/:id/generate` | `/stream`), agent listing (`GET /api/agents`), or Studio. This is enforced by `apps/web/test/a2a-only.spec.ts` (fails the build on any non-A2A agent route in web source).
 
 ### 7.8 Related: Mastra → AgentBase registration
 
