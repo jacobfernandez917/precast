@@ -46,13 +46,14 @@ servers, no hand-rolled REST APIs; agents reach external services as tools).
 and the Studio playground at the root, on `MASTRA_PORT` (default 4111). Source
 lives in `src/mastra/` (`index.ts` instance, `agents/`, `tools/`). ESM, no decorators.
 
-| Dependency      | Version | Purpose                                    |
-| --------------- | ------- | ------------------------------------------ |
-| @mastra/core    | ^1.49   | Agent, tools, Mastra instance              |
-| @mastra/libsql  | ^1.15   | Durable agent memory/thread store (SQLite) |
-| @mastra/loggers | ^1.2    | PinoLogger for structured logs             |
-| mastra          | ^1.18   | CLI: `mastra dev` / `mastra build`         |
-| zod             | ^3      | Tool input/output schemas + env validation |
+| Dependency      | Version | Purpose                                           |
+| --------------- | ------- | ------------------------------------------------- |
+| @mastra/core    | ^1.49   | Agent, tools, Mastra instance                     |
+| @mastra/libsql  | ^1.15   | Durable agent memory/thread store (SQLite)        |
+| @mastra/loggers | ^1.2    | PinoLogger for structured logs                    |
+| @a2a-js/sdk     | ^0.3    | Official A2A types (agent card `securitySchemes`) |
+| mastra          | ^1.18   | CLI: `mastra dev` / `mastra build`                |
+| zod             | ^3      | Tool input/output schemas + env validation        |
 
 > The LLM is reached via Mastra's **model gateway** using a `provider/model`
 > string (default `google/gemini-2.5-flash`). Set the matching provider key in

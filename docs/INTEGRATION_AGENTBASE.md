@@ -34,7 +34,7 @@ Key facts:
 
 - **Agents** are defined in `apps/agents/src/mastra/index.ts` and identified by `id` (e.g. `example-agent`).
 - **Skills = tools.** Each Mastra tool becomes one A2A skill in the card (tag `"tool"`). An agent with no tools still registers (AgentBase synthesizes a fallback `chat` skill).
-- **Auth is off by default** in the boilerplate — the card declares no security schemes.
+- **Card advertises the auth scheme when enabled.** With `AGENT_API_TOKEN` unset, the agent is public and the card declares no security schemes. When it's set, the boilerplate's server middleware augments the card (Mastra owns the `.well-known` route and offers no hook) to declare a standard bearer scheme — typed with `@a2a-js/sdk` — so discovery is truthful: `securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer' } }` + `security: [{ bearerAuth: [] }]`. (Enforced/advertised by the built server; `mastra dev` runs open.)
 - **Direct A2A access with a bearer token.** Any A2A client (JSON-RPC 2.0) can invoke the agents directly at `POST /api/a2a/:agentId` by sending `Authorization: Bearer <token>`, where the token **must match the server's `AGENT_API_TOKEN`**. When `AGENT_API_TOKEN` is set, `/api/a2a/*` and `/api/agents/*` reject any request without that exact bearer (401); when unset, they are open (local dev). AgentBase is one such client — it injects the token when proxying (§7) — but external clients can call the agents directly with the same token. Studio (`/`) and card discovery stay open regardless.
 - Card is emitted in **A2A 0.3.0 shape**: top-level `url`, `additionalInterfaces`, `capabilities`, `defaultInputModes` / `defaultOutputModes`, `skills`.
 
