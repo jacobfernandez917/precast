@@ -1,0 +1,63 @@
+{
+  "model": "claude-opus-4-8",
+  "permissions": {
+    "allow": [
+      "Bash(npm *)",
+      "Bash(pnpm *)",
+      "Bash(yarn *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(docker compose *)",
+      "Bash(docker *)",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(ls *)",
+      "Bash(find . *)",
+      "Bash(rg *)",
+      "Bash(grep *)",
+      "Bash(gh *)",
+      "Read(**)",
+      "Write(**)",
+      "Edit(**)"
+    ],
+    "deny": ["Bash(rm -rf /*)", "Bash(sudo *)", "Bash(curl * | sh)", "Bash(curl * | bash)"]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/progress-stamp.mjs --event=edit"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/progress-stamp.mjs --event=session-stop"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/progress-stamp.mjs --event=session-start"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+# ─── Local Overrides for Infra Services (template) ──────────────────────────
+# Copy this file to `docker-compose.override.yml` (same directory) to use it:
+#   cp docker-compose.override.yml.example docker-compose.override.yml
+# Compose auto-merges docker-compose.override.yml on top of docker-compose.yml.
+# The real override is gitignored — add local-only tweaks (port conflicts,
+# volume paths) there, not here. Never put secrets in it.
+
+# Example: uncomment to use different ports on macOS (avoid AirPlay receiver conflict on 5000)
+# services:
+#   keycloak:
+#     ports:
+#       - "8081:8080"
+
+# Note: to change the Mastra/web app ports, use `pnpm set-ports` (it rewrites the
+# base compose + config + scripts together). Use this override only to remap the
+# published *host* port without touching the container, e.g.:
+# services:
+#   web:
+#     ports:
+#       - "3001:3000"   # host 3001 → container 3000

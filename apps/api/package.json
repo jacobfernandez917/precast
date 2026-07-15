@@ -1,0 +1,29 @@
+{
+  "name": "@precast/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "mastra dev",
+    "build": "mastra build",
+    "start": "mastra start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .mastra dist"
+  },
+  "dependencies": {
+    "@mastra/core": "^1.49.0",
+    "@mastra/libsql": "^1.15.0",
+    "@mastra/loggers": "^1.2.0",
+    "@precast/shared": "workspace:*",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "mastra": "^1.18.0",
+    "typescript": "^5.9.3",
+    "vitest": "^2.0.0"
+  }
+}

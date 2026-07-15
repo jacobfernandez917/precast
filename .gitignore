@@ -1,0 +1,33 @@
+node_modules
+dist
+.next
+next-env.d.ts
+*.tsbuildinfo
+.turbo
+coverage
+playwright-report
+test-results
+.playwright
+.mastra
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+.env
+.env.local
+*.log
+.DS_Store
+.pnpm-store/
+
+# Docker (per-developer local overrides — see docker-compose.override.yml header)
+docker/docker-compose.override.yml
+
+# Claude Code
+.claude/settings.local.json
+docs/.progress-journal.jsonl
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

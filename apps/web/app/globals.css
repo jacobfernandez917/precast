@@ -1,0 +1,21 @@
+/*
+ * Astryx + Tailwind v4 integration.
+ *
+ * Layer order is declared up front so the cascade is deterministic: reset
+ * lowest, Tailwind preflight above it, Astryx component/theme styles in the
+ * middle, and Tailwind utilities last — so utility classes on `className`
+ * intentionally override component defaults. See `pnpm exec astryx docs
+ * styling-libraries tailwind`.
+ */
+@layer reset, theme, base, astryx-base, astryx-theme, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+
+@import '@astryxdesign/core/reset.css';
+@import '@astryxdesign/core/astryx.css';
+@import '@astryxdesign/theme-neutral/theme.css';
+/* Maps Tailwind theme vars (text-primary, bg-surface, …) to Astryx tokens. */
+@import '@astryxdesign/core/tailwind-theme.css';
+
+@import 'tailwindcss/utilities.css' layer(utilities);

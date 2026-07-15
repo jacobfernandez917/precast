@@ -1,0 +1,47 @@
+{
+  "name": "precast",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.9",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "bootstrap": "node scripts/bootstrap.mjs",
+    "rename": "node scripts/rename-project.mjs",
+    "set-ports": "node scripts/set-ports.mjs",
+    "deps:update": "node scripts/update-deps.mjs",
+    "setup": "pnpm install && pnpm build",
+    "dev": "turbo run dev",
+    "dev:api": "pnpm -F @precast/api dev",
+    "dev:web": "pnpm -F @precast/web dev",
+    "build": "turbo run build",
+    "build:api": "pnpm -F @precast/api build",
+    "build:web": "pnpm -F @precast/web build",
+    "test": "turbo run test",
+    "test:api": "pnpm -F @precast/api test",
+    "test:web": "pnpm -F @precast/web test",
+    "test:e2e": "turbo run test:e2e",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "clean": "turbo run clean",
+    "docker:up": "docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d",
+    "docker:down": "docker compose -f docker/docker-compose.yml down",
+    "docker:logs": "docker compose -f docker/docker-compose.yml logs -f",
+    "docker:ps": "docker compose -f docker/docker-compose.yml ps",
+    "docker:rebuild": "docker compose -f docker/docker-compose.yml build --no-cache"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.4.1",
+    "eslint-config-prettier": "^10.1.8",
+    "lint-staged": "^17.0.7",
+    "prettier": "^3.8.3",
+    "turbo": "^2.9.16",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.60.0"
+  }
+}

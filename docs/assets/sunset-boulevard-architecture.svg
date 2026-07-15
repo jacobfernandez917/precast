@@ -1,0 +1,217 @@
+<svg viewBox="0 0 1240 780" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, 'Helvetica Neue', Arial, sans-serif">
+  <title id="title">Sunset Boulevard — Booking Confirmation Workflow</title>
+  <desc id="desc">A renter books a motorcycle on the Sunset Boulevard landing page; the app backend invokes the SMS Sender Agent skill through AgentBase, which authenticates, injects credentials, and forwards the call to the agent runtime, which sends a confirmation SMS back to the renter.</desc>
+
+  <defs>
+    <linearGradient id="sunset" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FF9500"/>
+      <stop offset="0.55" stop-color="#FF6B4A"/>
+      <stop offset="1" stop-color="#FF375F"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="14" flood-color="#000000" flood-opacity="0.10"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="arrowFill"/>
+    </marker>
+    <marker id="arrowMuted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="arrowFillMuted"/>
+    </marker>
+    <style>
+      :root { color-scheme: light dark; }
+      .canvas { fill: #F5F5F7; }
+      .card { fill: #FFFFFF; stroke: #E3E3E8; stroke-width: 1; }
+      .cardAlt { fill: #FBFBFD; stroke: #E3E3E8; stroke-width: 1; }
+      .h1 { fill: #1D1D1F; font-size: 30px; font-weight: 700; letter-spacing: -0.4px; }
+      .sub { fill: #86868B; font-size: 15px; font-weight: 400; }
+      .cardTitle { fill: #1D1D1F; font-size: 17px; font-weight: 600; letter-spacing: -0.2px; }
+      .cardKicker { fill: #0071E3; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; }
+      .cardBody { fill: #6E6E73; font-size: 12.5px; font-weight: 400; }
+      .stepLabel { fill: #48484A; font-size: 12.5px; font-weight: 500; }
+      .stepBadge { fill: #0071E3; }
+      .stepNum { fill: #FFFFFF; font-size: 13px; font-weight: 700; }
+      .connector { stroke: #C7C7CC; stroke-width: 2; fill: none; }
+      .connectorMuted { stroke: #C7C7CC; stroke-width: 2; fill: none; stroke-dasharray: 2 7; stroke-linecap: round; }
+      .arrowFill { fill: #C7C7CC; }
+      .arrowFillMuted { fill: #C7C7CC; }
+      .pill { fill: #F0EEF7; stroke: none; }
+      .pillText { fill: #5E5CE6; font-size: 11.5px; font-weight: 600; }
+      .greenPill { fill: #E7F8EC; }
+      .greenText { fill: #248A3D; font-size: 11.5px; font-weight: 600; }
+      .icon { stroke: #1D1D1F; stroke-width: 1.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .iconAccent { stroke: #0071E3; stroke-width: 1.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .bubble { fill: #34C759; }
+      .bubbleText { fill: #FFFFFF; font-size: 11px; font-weight: 500; }
+      .legend { fill: #86868B; font-size: 12px; }
+      @media (prefers-color-scheme: dark) {
+        .canvas { fill: #000000; }
+        .card { fill: #1C1C1E; stroke: #38383A; }
+        .cardAlt { fill: #161618; stroke: #38383A; }
+        .h1 { fill: #F5F5F7; }
+        .sub { fill: #98989D; }
+        .cardTitle { fill: #F5F5F7; }
+        .cardKicker { fill: #409CFF; }
+        .cardBody { fill: #AEAEB2; }
+        .stepLabel { fill: #C7C7CC; }
+        .connector, .connectorMuted { stroke: #48484A; }
+        .arrowFill, .arrowFillMuted { fill: #48484A; }
+        .pill { fill: #2A2A3A; }
+        .pillText { fill: #7D7AFF; }
+        .greenPill { fill: #12331C; }
+        .greenText { fill: #30D158; }
+        .icon { stroke: #F5F5F7; }
+        .iconAccent { stroke: #409CFF; }
+        .legend { fill: #98989D; }
+      }
+    </style>
+  </defs>
+
+  <rect class="canvas" x="0" y="0" width="1240" height="780" rx="0"/>
+
+  <!-- Header -->
+  <text class="h1" x="60" y="64">Sunset Boulevard — Booking Confirmation</text>
+  <text class="sub" x="60" y="92">Landing page → AgentBase (governance proxy) → SMS Sender Agent</text>
+  <rect x="60" y="106" width="128" height="6" rx="3" fill="url(#sunset)"/>
+
+  <!-- ===================== TOP ROW ===================== -->
+  <!-- Card A: Renter / Landing page -->
+  <g>
+    <rect class="card" x="50" y="176" width="240" height="168" rx="20" filter="url(#cardShadow)"/>
+    <!-- browser/person icon -->
+    <g transform="translate(74,206)">
+      <rect class="iconAccent" x="0" y="0" width="30" height="24" rx="4"/>
+      <line class="iconAccent" x1="0" y1="7" x2="30" y2="7"/>
+      <circle class="iconAccent" cx="4.5" cy="3.5" r="1"/>
+      <circle class="iconAccent" cx="8.5" cy="3.5" r="1"/>
+    </g>
+    <text class="cardKicker" x="118" y="214">RENTER</text>
+    <text class="cardTitle" x="74" y="262">Sunset Boulevard site</text>
+    <text class="cardBody" x="74" y="288">Web landing page</text>
+    <text class="cardBody" x="74" y="308">Picks a motorcycle,</text>
+    <text class="cardBody" x="74" y="326">submits contact form</text>
+  </g>
+
+  <!-- Card B: Next.js API -->
+  <g>
+    <rect class="card" x="350" y="176" width="240" height="168" rx="20" filter="url(#cardShadow)"/>
+    <g transform="translate(374,204)">
+      <rect class="iconAccent" x="0" y="0" width="28" height="12" rx="3"/>
+      <rect class="iconAccent" x="0" y="16" width="28" height="12" rx="3"/>
+      <circle class="iconAccent" cx="6" cy="6" r="1.4"/>
+      <circle class="iconAccent" cx="6" cy="22" r="1.4"/>
+    </g>
+    <text class="cardKicker" x="416" y="214">APP BACKEND · BFF</text>
+    <text class="cardTitle" x="374" y="262">Server API route</text>
+    <text class="cardBody" x="374" y="288">Validates the form,</text>
+    <text class="cardBody" x="374" y="308">builds skill request,</text>
+    <text class="cardBody" x="374" y="326">holds no SMS secrets</text>
+  </g>
+
+  <!-- Card C: AgentBase (governance) -->
+  <g>
+    <rect class="cardAlt" x="650" y="176" width="240" height="168" rx="20" filter="url(#cardShadow)"/>
+    <g transform="translate(674,203)">
+      <path class="icon" d="M14 0 L27 5 V15 C27 23 21 28 14 30 C7 28 1 23 1 15 V5 Z"/>
+      <path class="iconAccent" d="M8 15 l4 4 l8 -9"/>
+    </g>
+    <text class="cardKicker" x="716" y="214" fill="#5E5CE6">AGENTBASE · A2A PROXY</text>
+    <text class="cardTitle" x="674" y="262">Governed invocation</text>
+    <!-- governance pills -->
+    <g>
+      <rect class="pill" x="674" y="278" width="78" height="22" rx="11"/>
+      <text class="pillText" x="713" y="293" text-anchor="middle">Authn</text>
+      <rect class="pill" x="674" y="308" width="120" height="22" rx="11"/>
+      <text class="pillText" x="734" y="323" text-anchor="middle">Credential inject</text>
+      <rect class="pill" x="800" y="308" width="66" height="22" rx="11"/>
+      <text class="pillText" x="833" y="323" text-anchor="middle">Audit</text>
+    </g>
+  </g>
+
+  <!-- Card D: Mastra SMS Sender Agent -->
+  <g>
+    <rect class="card" x="950" y="176" width="240" height="168" rx="20" filter="url(#cardShadow)"/>
+    <g transform="translate(974,204)">
+      <path class="iconAccent" d="M14 0 C15 8 16 9 24 10 C16 11 15 12 14 20 C13 12 12 11 4 10 C12 9 13 8 14 0 Z"/>
+      <path class="iconAccent" d="M27 0 C27.5 3.5 28 4 31 4.5 C28 5 27.5 5.5 27 9 C26.5 5.5 26 5 23 4.5 C26 4 26.5 3.5 27 0 Z"/>
+    </g>
+    <text class="cardKicker" x="1016" y="214">AGENT RUNTIME</text>
+    <text class="cardTitle" x="974" y="262">SMS Sender Agent</text>
+    <text class="cardBody" x="974" y="288">skill:</text>
+    <text class="cardBody" x="1008" y="288" font-weight="600" fill="#0071E3">send-booking-sms</text>
+    <text class="cardBody" x="974" y="308">Renders message +</text>
+    <text class="cardBody" x="974" y="326">calls SMS provider tool</text>
+  </g>
+
+  <!-- Top row connectors -->
+  <path class="connector" d="M290 260 H344" marker-end="url(#arrow)"/>
+  <path class="connector" d="M590 260 H644" marker-end="url(#arrow)"/>
+  <path class="connector" d="M890 260 H944" marker-end="url(#arrow)"/>
+
+  <!-- step badges 1,2,3 -->
+  <g>
+    <circle class="stepBadge" cx="317" cy="234" r="12"/><text class="stepNum" x="317" y="239" text-anchor="middle">1</text>
+    <circle class="stepBadge" cx="617" cy="234" r="12"/><text class="stepNum" x="617" y="239" text-anchor="middle">2</text>
+    <circle class="stepBadge" cx="917" cy="234" r="12"/><text class="stepNum" x="917" y="239" text-anchor="middle">3</text>
+  </g>
+
+  <!-- ===================== RIGHT-SIDE DOWN ===================== -->
+  <path class="connector" d="M1070 344 V430" marker-end="url(#arrow)"/>
+  <circle class="stepBadge" cx="1070" cy="388" r="12"/><text class="stepNum" x="1070" y="393" text-anchor="middle">4</text>
+
+  <!-- ===================== BOTTOM ROW ===================== -->
+  <!-- SMS Provider -->
+  <g>
+    <rect class="card" x="950" y="430" width="240" height="150" rx="20" filter="url(#cardShadow)"/>
+    <g transform="translate(974,456)">
+      <path class="iconAccent" d="M0 4 a4 4 0 0 1 4 -4 h20 a4 4 0 0 1 4 4 v12 a4 4 0 0 1 -4 4 h-14 l-8 6 v-6 a4 4 0 0 1 -2 -3.4 Z"/>
+    </g>
+    <text class="cardKicker" x="1016" y="466">SMS PROVIDER</text>
+    <text class="cardTitle" x="974" y="512">m360</text>
+    <text class="cardBody" x="974" y="538">Credential supplied by</text>
+    <text class="cardBody" x="974" y="558">AgentBase, not the app</text>
+  </g>
+
+  <!-- Renter's phone -->
+  <g>
+    <rect class="card" x="50" y="430" width="240" height="150" rx="20" filter="url(#cardShadow)"/>
+    <g transform="translate(74,452)">
+      <rect class="icon" x="0" y="0" width="26" height="46" rx="6"/>
+      <line class="icon" x1="9" y1="40" x2="17" y2="40"/>
+    </g>
+    <rect class="bubble" x="112" y="452" width="158" height="40" rx="12"/>
+    <text class="bubbleText" x="122" y="468">Sunset Blvd: Harley booked</text>
+    <text class="bubbleText" x="122" y="484">Sat 10AM. Reply Y to confirm.</text>
+    <text class="cardKicker" x="112" y="518" fill="#248A3D">CONFIRMATION SMS</text>
+    <text class="cardBody" x="112" y="540">Delivered to the renter's</text>
+    <text class="cardBody" x="112" y="558">phone number</text>
+  </g>
+
+  <!-- bottom connector: provider -> phone (right to left) -->
+  <path class="connector" d="M950 505 H296" marker-end="url(#arrow)"/>
+  <circle class="stepBadge" cx="620" cy="505" r="12" fill="#34C759"/><text class="stepNum" x="620" y="510" text-anchor="middle">5</text>
+  <text class="stepLabel" x="620" y="486" text-anchor="middle">confirmation SMS delivered</text>
+
+  <!-- left-side loop: phone up to renter (dashed) -->
+  <path class="connectorMuted" d="M170 430 V350" marker-end="url(#arrowMuted)"/>
+  <g transform="translate(170,388)">
+    <circle cx="0" cy="0" r="12" fill="none" stroke="#C7C7CC" stroke-width="1.5" stroke-dasharray="2 4"/>
+    <text class="stepNum" x="0" y="5" text-anchor="middle" fill="#86868B">6</text>
+  </g>
+
+  <!-- ===================== STEP CAPTIONS ===================== -->
+  <g class="stepLabel" text-anchor="middle">
+    <text x="317" y="150">book + submit form</text>
+    <text x="617" y="150">POST /a2a · invoke skill</text>
+    <text x="917" y="150">forward JSON-RPC</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(360,636)">
+    <rect x="0" y="0" width="14" height="14" rx="7" class="stepBadge"/>
+    <text class="legend" x="22" y="11">Synchronous request path (1–4)</text>
+    <rect x="248" y="0" width="14" height="14" rx="7" fill="#34C759"/>
+    <text class="legend" x="270" y="11">SMS delivery (5)</text>
+    <circle cx="425" cy="7" r="7" fill="none" stroke="#C7C7CC" stroke-width="1.5" stroke-dasharray="2 4"/>
+    <text class="legend" x="440" y="11">Renter notified — loop closed (6)</text>
+  </g>
+</svg>

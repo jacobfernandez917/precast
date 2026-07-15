@@ -1,0 +1,39 @@
+{
+  "name": "@precast/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build --webpack",
+    "start": "next start -p 3000",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .next dist playwright-report test-results"
+  },
+  "dependencies": {
+    "@astryxdesign/core": "^0.1.5",
+    "@astryxdesign/theme-neutral": "^0.1.5",
+    "@precast/shared": "workspace:*",
+    "next": "^16.2.10",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@astryxdesign/cli": "^0.1.5",
+    "@playwright/test": "^1.0.0",
+    "@tailwindcss/postcss": "^4.3.2",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^10.4.1",
+    "postcss": "^8.5.19",
+    "tailwindcss": "^4.3.2",
+    "typescript": "^5.9.3",
+    "vitest": "^2.0.0"
+  }
+}

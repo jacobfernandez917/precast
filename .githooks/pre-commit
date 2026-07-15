@@ -1,0 +1,85 @@
+#!/bin/sh
+# ─── Documentation contract enforcement pre-commit hook ─────────────────────
+# Blocks any commit that touches non-trivial files without also staging
+# HANDOFF.md, PROGRESS.md, and README.md.
+#
+# Bypass: SKIP_DOC_CHECK=1 git commit -m "..."
+#
+# Activate: git config core.hooksPath .githooks
+
+set -e
+
+if [ -n "$SKIP_DOC_CHECK" ]; then
+  echo "⚠️  SKIP_DOC_CHECK set — bypassing documentation contract check."
+  exit 0
+fi
+
+# Files that are considered "non-trivial" — changes to these trigger the check
+TRIGGER_PATTERNS="\.(ts|vue|js|mjs|cjs|json|yml|yaml|md|sh|css|env\.example)$"
+
+REQUIRED_FILES="docs/HANDOFF.md docs/PROGRESS.md README.md"
+
+staged_files=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Check if any staged file matches a trigger pattern
+has_triggers=0
+for f in $staged_files; do
+  if echo "$f" | grep -qE "$TRIGGER_PATTERNS"; then
+    # Only trigger for non-doc source files, not for the required docs themselves
+    case "$f" in
+      docs/HANDOFF.md|docs/PROGRESS.md|README.md)
+        # These are the required docs themselves — don't trigger
+        ;;
+      *)
+        has_triggers=1
+        ;;
+    esac
+  fi
+done
+
+if [ "$has_triggers" = "0" ]; then
+  exit 0
+fi
+
+# Check that all required files are also staged
+missing=""
+for f in $REQUIRED_FILES; do
+  found=0
+  for sf in $staged_files; do
+    if [ "$sf" = "$f" ]; then
+      found=1
+      break
+    fi
+  done
+  if [ "$found" = "0" ]; then
+    missing="$missing $f"
+  fi
+done
+
+if [ -n "$missing" ]; then
+  echo "❌ Documentation contract violation:"
+  echo "   Non-trivial files changed but the following required docs are NOT staged:"
+  echo ""
+  for f in $missing; do
+    echo "     • $f"
+  done
+  echo ""
+  echo "   These docs must be updated and staged in the same commit:"
+  echo "     - docs/HANDOFF.md (continuity checkpoint)"
+  echo "     - docs/PROGRESS.md (context memory + session log)"
+  echo "     - README.md (user-facing overview)"
+  echo ""
+  echo "   Bypass with: SKIP_DOC_CHECK=1 git commit ..."
+  echo "   (Explain why in the commit message.)"
+  exit 1
+fi
+
+echo "✅ Documentation contract satisfied — all required docs are staged."
+
+# ─── Lint-staged: ESLint + Prettier on staged files ─────────────────────────
+# Runs after the doc-contract check. Skips gracefully if deps aren't installed.
+if [ -z "$SKIP_LINT_STAGED" ] && [ -x node_modules/.bin/lint-staged ]; then
+  node_modules/.bin/lint-staged || exit 1
+fi
+
+exit 0
