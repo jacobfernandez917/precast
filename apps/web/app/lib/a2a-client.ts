@@ -1,14 +1,18 @@
 /**
  * Server-only client for invoking Mastra agents over the A2A protocol
- * (JSON-RPC 2.0). AgentBase is **optional** — the transport is chosen by the
- * `ENABLE_AGENTBASE` env flag:
+ * (JSON-RPC 2.0). The transport is chosen by the `ENABLE_AGENTBASE` env flag,
+ * and **AgentBase is the default** — you must explicitly opt out to talk to
+ * Mastra directly:
  *
- *   ENABLE_AGENTBASE=1   → proxy through the AgentBase A2A proxy:
- *                          POST ${AGENTBASE_URL}/a2a  (auth: Bearer AGENTBASE_TOKEN)
- *   otherwise (default)  → talk directly to the Mastra agent API over A2A:
+ *   ENABLE_AGENTBASE=0   → talk directly to the Mastra agent API over A2A:
  *                          POST ${MASTRA_INTERNAL_URL}/api/a2a/:agentId
  *                          (auth: Bearer AGENT_API_TOKEN — must match the
  *                          Mastra server's token; omitted when unset)
+ *   anything else / unset → proxy through the AgentBase A2A proxy (DEFAULT):
+ *                          POST ${AGENTBASE_URL}/a2a  (auth: Bearer AGENTBASE_TOKEN)
+ *
+ * Defaulting to AgentBase is a guard rail: forgetting the flag routes through
+ * the audited, zero-trust proxy rather than silently exposing Mastra directly.
  *
  * All Next → Mastra traffic goes through this util (via the route handler) —
  * never call Mastra or AgentBase directly from client components.
@@ -38,14 +42,18 @@ interface CallOptions {
   signal?: AbortSignal;
 }
 
-/** True when the AgentBase proxy transport is enabled. */
+/**
+ * True when the AgentBase proxy transport is enabled. AgentBase is the DEFAULT:
+ * only an explicit `ENABLE_AGENTBASE=0` opts into direct Mastra A2A. A missing
+ * or any other value keeps the audited proxy path (guard rail).
+ */
 export function isAgentBaseEnabled(): boolean {
-  return process.env.ENABLE_AGENTBASE === '1';
+  return process.env.ENABLE_AGENTBASE !== '0';
 }
 
 /**
- * Invoke a Mastra agent. Routes through AgentBase when `ENABLE_AGENTBASE=1`,
- * otherwise calls the Mastra A2A endpoint directly.
+ * Invoke a Mastra agent. Proxies through AgentBase by default; calls the Mastra
+ * A2A endpoint directly only when `ENABLE_AGENTBASE=0`.
  */
 export async function callAgent(
   agentId: string,
@@ -62,8 +70,22 @@ async function callViaAgentBase(
   text: string,
   options?: CallOptions,
 ): Promise<AgentReply> {
-  const url = process.env.AGENTBASE_URL ?? 'https://agentbase.example.com';
+  const url = process.env.AGENTBASE_URL ?? '';
   const token = process.env.AGENTBASE_TOKEN ?? '';
+
+  // Guard rail: AgentBase is the default transport, so fail loudly (with a fix)
+  // rather than silently POST to an unset/placeholder host.
+  if (!url || url.includes('example.com')) {
+    return {
+      ok: false,
+      text: null,
+      via: 'agentbase',
+      raw: null,
+      error:
+        'AgentBase is enabled (the default) but AGENTBASE_URL is not configured. ' +
+        'Set AGENTBASE_URL (+ AGENTBASE_TOKEN), or set ENABLE_AGENTBASE=0 to call Mastra directly over A2A.',
+    };
+  }
 
   // AgentBase's proxy resolves the target from params.agentId.
   const body = {

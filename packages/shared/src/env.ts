@@ -39,10 +39,10 @@ export const EnvSchema = z.object({
   MASTRA_INTERNAL_URL: z.string().url().default('http://localhost:4111'),
 
   // ── AgentBase (A2A registry/proxy) ─────────────────────────────────────────
-  // AgentBase is OPTIONAL. When ENABLE_AGENTBASE=1 the web app routes A2A calls
-  // through the AgentBase proxy; otherwise it talks to Mastra directly over A2A
-  // (see MASTRA_INTERNAL_URL + AGENT_API_TOKEN).
-  ENABLE_AGENTBASE: z.enum(['0', '1']).default('0'),
+  // AgentBase is the DEFAULT transport (guard rail): the web app proxies A2A
+  // calls through AgentBase unless ENABLE_AGENTBASE=0, in which case it talks to
+  // Mastra directly over A2A (see MASTRA_INTERNAL_URL + AGENT_API_TOKEN).
+  ENABLE_AGENTBASE: z.enum(['0', '1']).default('1'),
   // Base URL for the AgentBase service (used only when ENABLE_AGENTBASE=1).
   AGENTBASE_URL: z.string().url().default('https://agentbase.example.com'),
   // Bearer token for AgentBase authentication (optional; off when unset).

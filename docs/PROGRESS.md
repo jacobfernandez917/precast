@@ -88,18 +88,19 @@ You MUST update PROGRESS.md when you:
 
 ## 4. Open Decisions
 
-| ID    | Decision                                                                                  | Date       | Rationale                                                                                                                                                                              |
-| ----- | ----------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D-001 | Use `precast` as the placeholder namespace, renamed via `pnpm rename`                     | 2026-07-06 | One consistent token is safer to find-replace than a mix; resolved the `precast_dev`/`project_dev` DB mismatch                                                                         |
-| D-002 | Rename script rewrites only functional config, never docs/ prose                          | 2026-07-06 | Docs describe the boilerplate itself and must stay readable after a rename                                                                                                             |
-| D-003 | Runtime packages (`api`, `shared`) compile to CommonJS; remove Husky                      | 2026-07-06 | Pure-ESM NestJS+decorators is fragile on node; Husky's `prepare` silently hijacked `.githooks`. See ADR-005                                                                            |
-| D-004 | `develop` default branch; bootstrap resets git history; CI external                       | 2026-07-06 | A forked project shouldn't inherit Precast's history; CI is owned outside the repo. See ADR-006                                                                                        |
-| D-005 | Replace NestJS with Mastra; ESM everywhere; ports Mastra 4111/Nuxt 3000                   | 2026-07-06 | Agent-native fit; Mastra bundler needs ESM named exports (reverses ADR-005 CJS). See ADR-007                                                                                           |
-| D-006 | Keep Mastra/web apps neutral; domain lives only in `templates/`                           | 2026-07-06 | Boilerplate must not couple to one example; harness builds structure from feed-forward docs + TECH_STACK                                                                               |
-| D-007 | Web on **Next.js (App Router) + Astryx**; style with Astryx + Tailwind                    | 2026-07-14 | Chosen web tier + design system. Astryx components for the DS, Tailwind for layout. See ADR-008                                                                                        |
-| D-008 | Web builds with **webpack** + a `jsx-dev-runtime` shim; dev on Turbopack                  | 2026-07-14 | Astryx 0.1.x ships dev-JSX components; only webpack's alias reaches SSR. Revisit on Astryx prod build. ADR-008                                                                         |
-| D-009 | `apps/web` uses the shared root ESLint config (no `eslint-config-next`)                   | 2026-07-14 | eslint-config-next's plugins cap at ESLint 9; repo is on ESLint 10. Matches the apps/api pattern                                                                                       |
-| D-010 | **AgentBase optional** via `ENABLE_AGENTBASE`; direct A2A (`message/send`) is the default | 2026-07-14 | Not everyone runs AgentBase. Direct mode uses A2A 0.3.0 `message/send` (Mastra rejects `tasks/send`); proxy mode keeps AgentBase's `tasks/send`. `callAgent()` normalizes both replies |
+| ID    | Decision                                                                           | Date       | Rationale                                                                                                                                                                                            |
+| ----- | ---------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D-001 | Use `precast` as the placeholder namespace, renamed via `pnpm rename`              | 2026-07-06 | One consistent token is safer to find-replace than a mix; resolved the `precast_dev`/`project_dev` DB mismatch                                                                                       |
+| D-002 | Rename script rewrites only functional config, never docs/ prose                   | 2026-07-06 | Docs describe the boilerplate itself and must stay readable after a rename                                                                                                                           |
+| D-003 | Runtime packages (`api`, `shared`) compile to CommonJS; remove Husky               | 2026-07-06 | Pure-ESM NestJS+decorators is fragile on node; Husky's `prepare` silently hijacked `.githooks`. See ADR-005                                                                                          |
+| D-004 | `develop` default branch; bootstrap resets git history; CI external                | 2026-07-06 | A forked project shouldn't inherit Precast's history; CI is owned outside the repo. See ADR-006                                                                                                      |
+| D-005 | Replace NestJS with Mastra; ESM everywhere; ports Mastra 4111/Nuxt 3000            | 2026-07-06 | Agent-native fit; Mastra bundler needs ESM named exports (reverses ADR-005 CJS). See ADR-007                                                                                                         |
+| D-006 | Keep Mastra/web apps neutral; domain lives only in `templates/`                    | 2026-07-06 | Boilerplate must not couple to one example; harness builds structure from feed-forward docs + TECH_STACK                                                                                             |
+| D-007 | Web on **Next.js (App Router) + Astryx**; style with Astryx + Tailwind             | 2026-07-14 | Chosen web tier + design system. Astryx components for the DS, Tailwind for layout. See ADR-008                                                                                                      |
+| D-008 | Web builds with **webpack** + a `jsx-dev-runtime` shim; dev on Turbopack           | 2026-07-14 | Astryx 0.1.x ships dev-JSX components; only webpack's alias reaches SSR. Revisit on Astryx prod build. ADR-008                                                                                       |
+| D-009 | `apps/web` uses the shared root ESLint config (no `eslint-config-next`)            | 2026-07-14 | eslint-config-next's plugins cap at ESLint 9; repo is on ESLint 10. Matches the apps/api pattern                                                                                                     |
+| D-010 | **AgentBase optional** via `ENABLE_AGENTBASE`; direct A2A uses `message/send`      | 2026-07-14 | Not everyone runs AgentBase. Direct mode uses A2A 0.3.0 `message/send` (Mastra rejects `tasks/send`); proxy mode keeps AgentBase's `tasks/send`. `callAgent()` normalizes both replies               |
+| D-011 | **AgentBase is the DEFAULT** transport; only `ENABLE_AGENTBASE=0` opts into direct | 2026-07-15 | Guard rail (revises D-010's default): a forgotten flag routes through the audited/zero-trust proxy, not silently at Mastra. `callViaAgentBase` errors loudly if `AGENTBASE_URL` is unset/placeholder |
 
 ---
 
@@ -138,6 +139,33 @@ You MUST update PROGRESS.md when you:
 
 ## 8. Session Log
 
+- **2026-07-15 — Claude Code —** Guard rail: made **AgentBase the DEFAULT** transport (revises D-010). `isAgentBaseEnabled()` = `ENABLE_AGENTBASE !== '0'` — a missing/any-non-`0` value proxies through AgentBase; only `=0` uses direct A2A. Added a config guard in `callViaAgentBase` (errors with a fix-it message if `AGENTBASE_URL` unset/placeholder). Flipped env-schema default → `'1'`, `.env.example`, docker-compose comment, README + INTEGRATION §7 framing. Runtime-verified: unset→agentbase, `=0`→direct, unconfigured→guard error. Strengthened the external **precast skill** `description` (trigger accuracy) + added a "Making sure the skill gets used" section; synced the app-managed install copy. `pnpm build`/`typecheck`/`lint` green. See D-011.
+
+<auto-journal: 2026-07-15 09:28:10 — file edit>
+
+<auto-journal: 2026-07-15 09:27:54 — file edit>
+
+<auto-journal: 2026-07-15 09:27:43 — file edit>
+
+<auto-journal: 2026-07-15 09:27:20 — file edit>
+
+<auto-journal: 2026-07-15 09:26:46 — file edit>
+
+<auto-journal: 2026-07-15 09:26:35 — file edit>
+
+<auto-journal: 2026-07-15 09:26:09 — file edit>
+
+<auto-journal: 2026-07-15 09:25:56 — file edit>
+
+<auto-journal: 2026-07-15 09:25:45 — file edit>
+
+<auto-journal: 2026-07-15 09:25:35 — file edit>
+
+<auto-journal: 2026-07-15 09:25:25 — file edit>
+
+<auto-journal: 2026-07-15 09:25:13 — file edit>
+
+<auto-journal: 2026-07-15 09:25:05 — file edit>
 <auto-journal: 2026-07-15 06:12:46 — file edit>
 
 - **2026-07-14 — Claude Code —** Made **AgentBase optional** (`ENABLE_AGENTBASE`). `apps/web/app/lib/a2a-client.ts` `callAgent()` branches: `=1` proxies via AgentBase (`tasks/send` → `$AGENTBASE_URL/a2a`, Bearer `AGENTBASE_TOKEN`); default = **direct A2A** to Mastra (`message/send` → `$MASTRA_INTERNAL_URL/api/a2a/:agentId`, Bearer `AGENT_API_TOKEN`). Confirmed the live Mastra A2A endpoint requires `message/send` and rejects `tasks/send`. `callAgent()` returns normalized `{ ok, text, error?, via, raw }`; updated the route handler + `AgentChat` (shows transport). Added `ENABLE_AGENTBASE` + `MASTRA_INTERNAL_URL` to `packages/shared/src/env.ts` + `.env.example`; docker-compose web sets `ENABLE_AGENTBASE=0`. Docs: INTEGRATION §7 (both flows + auth), README, and the external `precast-claude-skill` repo. Both modes runtime-verified with a capturing echo server (method/URL/bearer + normalized reply correct). `pnpm build`/`typecheck`/`lint` green. See D-010.
