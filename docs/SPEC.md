@@ -34,7 +34,7 @@ It provides:
 ├── .prettierignore            ← Formatting exclusions
 ├── .editorconfig              ← Editor settings
 ├── .nvmrc                     ← Node version pin
-├── .env.example               ← Env var template
+├── .env.example               ← Env var template (single root .env; no per-app .env)
 ├── .dockerignore              ← Docker build exclusions
 ├── .lintstagedrc.json         ← Lint-staged configuration
 │
@@ -193,6 +193,7 @@ On disagreement between docs:
 
 - `zod` at all external boundaries (HTTP body, env vars, API payloads).
 - Env validation in `packages/shared/src/env.ts`.
+- **Single root `.env`** — the only env file in the monorepo; no per-app `.env` in `apps/*`. Dev/start scripts load it via `dotenv-cli`; Docker Compose via `env_file: ../.env`; production from the real environment.
 
 ### 4.5 Logging
 

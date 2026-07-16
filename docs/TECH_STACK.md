@@ -35,6 +35,7 @@
 | E2E Testing           | Playwright           | ^1      | `apps/web/playwright.config.ts` (autonomous)          |
 | Git Hooks             | `.githooks/`         | —       | Native core.hooksPath; doc-contract + lint-staged     |
 | Lint-Staged           | lint-staged          | ^17     | Invoked from `.githooks/pre-commit`                   |
+| Env loading (dev)     | dotenv-cli           | ^11     | Dev/start scripts load the single root `.env`         |
 
 ---
 

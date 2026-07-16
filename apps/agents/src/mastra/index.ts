@@ -6,7 +6,9 @@ import { agentAuthMiddleware } from './middleware/auth';
 import { exampleAgent } from './agents/example-agent';
 import { summaryAgent } from './agents/summary-agent';
 
-// Validate env at boot — fail fast on missing/invalid config.
+// Validate env at boot — fail fast on missing/invalid config. The single root
+// `.env` is loaded by the dev/start scripts (dotenv-cli); in production the real
+// environment (Docker/host) supplies the vars.
 const env = parseApiEnv();
 
 // The shared schema allows pino's full range; Mastra's logger supports a

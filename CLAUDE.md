@@ -164,6 +164,7 @@ HANDOFF.md is a snapshot; PROGRESS.md is the long-form ledger. On disagreement a
 - Validate env at boot. Missing required vars → fail fast.
 - All secrets in environment variables, never in code.
 - `.env.example` is the source of truth for env var schema.
+- **Single root `.env`.** The repo uses ONE `.env` at the root — **never** create per-app `.env` files in `apps/agents` or `apps/web`. Local dev/start scripts load the root `.env` via `dotenv-cli` (`dotenv -e ../../.env -- …`); Docker Compose loads it via `env_file: ../.env`; production supplies vars from the real environment. `.gitignore` ignores `.env` at any depth so a stray per-app file can't be committed.
 
 ### 4.5 Ports & Compose
 

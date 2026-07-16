@@ -72,6 +72,8 @@ pnpm dev                               # all apps, or: pnpm dev:agents / pnpm de
 
 The web app runs at `http://localhost:3000` and the Mastra agent API + Studio playground at `http://localhost:4111`. The placeholder example agent needs an LLM key — set `GOOGLE_GENERATIVE_AI_API_KEY` in `.env` to converse (build/test work without it).
 
+There is a **single `.env` at the repo root** — don't create per-app `.env` files. The dev/start scripts load it (via `dotenv-cli`), Docker Compose loads it (`env_file: ../.env`), and production uses the real environment.
+
 **Important:** the web app talks to Mastra agents **only over A2A** (JSON-RPC 2.0), always through its server-side `callAgent()` util — never Mastra's native REST, and never from client code. This holds with or without AgentBase; the transport is selected by `ENABLE_AGENTBASE`, and **AgentBase is the default** (guard rail — you must explicitly opt out):
 
 - `ENABLE_AGENTBASE=1` or **unset (default)** → route A2A calls through the **AgentBase proxy** (`AGENTBASE_URL`/`AGENTBASE_TOKEN`); AgentBase handles auth, audit, and zero-trust forwarding. If AgentBase is enabled but `AGENTBASE_URL` is unset/placeholder, the call fails loudly with a fix-it message.

@@ -88,22 +88,23 @@ You MUST update PROGRESS.md when you:
 
 ## 4. Open Decisions
 
-| ID    | Decision                                                                           | Date       | Rationale                                                                                                                                                                                                                                      |
-| ----- | ---------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D-001 | Use `precast` as the placeholder namespace, renamed via `pnpm rename`              | 2026-07-06 | One consistent token is safer to find-replace than a mix; resolved the `precast_dev`/`project_dev` DB mismatch                                                                                                                                 |
-| D-002 | Rename script rewrites only functional config, never docs/ prose                   | 2026-07-06 | Docs describe the boilerplate itself and must stay readable after a rename                                                                                                                                                                     |
-| D-003 | Runtime packages (`api`, `shared`) compile to CommonJS; remove Husky               | 2026-07-06 | Pure-ESM NestJS+decorators is fragile on node; Husky's `prepare` silently hijacked `.githooks`. See ADR-005                                                                                                                                    |
-| D-004 | `develop` default branch; bootstrap resets git history; CI external                | 2026-07-06 | A forked project shouldn't inherit Precast's history; CI is owned outside the repo. See ADR-006                                                                                                                                                |
-| D-005 | Replace NestJS with Mastra; ESM everywhere; ports Mastra 4111/Nuxt 3000            | 2026-07-06 | Agent-native fit; Mastra bundler needs ESM named exports (reverses ADR-005 CJS). See ADR-007                                                                                                                                                   |
-| D-006 | Keep Mastra/web apps neutral; domain lives only in `templates/`                    | 2026-07-06 | Boilerplate must not couple to one example; harness builds structure from feed-forward docs + TECH_STACK                                                                                                                                       |
-| D-007 | Web on **Next.js (App Router) + Astryx**; style with Astryx + Tailwind             | 2026-07-14 | Chosen web tier + design system. Astryx components for the DS, Tailwind for layout. See ADR-008                                                                                                                                                |
-| D-008 | Web builds with **webpack** + a `jsx-dev-runtime` shim; dev on Turbopack           | 2026-07-14 | Astryx 0.1.x ships dev-JSX components; only webpack's alias reaches SSR. Revisit on Astryx prod build. ADR-008                                                                                                                                 |
-| D-014 | Agent card advertises the bearer scheme (SDK-typed) via middleware, not a route    | 2026-07-15 | Mastra owns `.well-known` (no route override, no securitySchemes hook — verified), so the server middleware augments the card using `@a2a-js/sdk` types when `AGENT_API_TOKEN` is set. Kept `GOOGLE_GENERATIVE_AI_API_KEY` (provider reads it) |
-| D-013 | **Web → agents is A2A-only** (JSON-RPC 2.0), with or without AgentBase             | 2026-07-15 | The web app must never use Mastra's native REST/listing/Studio — only A2A via `callAgent()`. Enforced by `apps/web/test/a2a-only.spec.ts`                                                                                                      |
-| D-012 | Rename `apps/api` → `apps/agents` (`@precast/agents`); **agents-only** scope       | 2026-07-15 | "API" was misleading — the app defines Mastra agents + tools only (no MCPs, no REST APIs). Mastra's own `/api/*` routes are unchanged. See ADR-009                                                                                             |
-| D-009 | `apps/web` uses the shared root ESLint config (no `eslint-config-next`)            | 2026-07-14 | eslint-config-next's plugins cap at ESLint 9; repo is on ESLint 10. Matches the apps/agents pattern                                                                                                                                            |
-| D-010 | **AgentBase optional** via `ENABLE_AGENTBASE`; direct A2A uses `message/send`      | 2026-07-14 | Not everyone runs AgentBase. Direct mode uses A2A 0.3.0 `message/send` (Mastra rejects `tasks/send`); proxy mode keeps AgentBase's `tasks/send`. `callAgent()` normalizes both replies                                                         |
-| D-011 | **AgentBase is the DEFAULT** transport; only `ENABLE_AGENTBASE=0` opts into direct | 2026-07-15 | Guard rail (revises D-010's default): a forgotten flag routes through the audited/zero-trust proxy, not silently at Mastra. `callViaAgentBase` errors loudly if `AGENTBASE_URL` is unset/placeholder                                           |
+| ID    | Decision                                                                               | Date       | Rationale                                                                                                                                                                                                                                      |
+| ----- | -------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D-001 | Use `precast` as the placeholder namespace, renamed via `pnpm rename`                  | 2026-07-06 | One consistent token is safer to find-replace than a mix; resolved the `precast_dev`/`project_dev` DB mismatch                                                                                                                                 |
+| D-002 | Rename script rewrites only functional config, never docs/ prose                       | 2026-07-06 | Docs describe the boilerplate itself and must stay readable after a rename                                                                                                                                                                     |
+| D-003 | Runtime packages (`api`, `shared`) compile to CommonJS; remove Husky                   | 2026-07-06 | Pure-ESM NestJS+decorators is fragile on node; Husky's `prepare` silently hijacked `.githooks`. See ADR-005                                                                                                                                    |
+| D-004 | `develop` default branch; bootstrap resets git history; CI external                    | 2026-07-06 | A forked project shouldn't inherit Precast's history; CI is owned outside the repo. See ADR-006                                                                                                                                                |
+| D-005 | Replace NestJS with Mastra; ESM everywhere; ports Mastra 4111/Nuxt 3000                | 2026-07-06 | Agent-native fit; Mastra bundler needs ESM named exports (reverses ADR-005 CJS). See ADR-007                                                                                                                                                   |
+| D-006 | Keep Mastra/web apps neutral; domain lives only in `templates/`                        | 2026-07-06 | Boilerplate must not couple to one example; harness builds structure from feed-forward docs + TECH_STACK                                                                                                                                       |
+| D-007 | Web on **Next.js (App Router) + Astryx**; style with Astryx + Tailwind                 | 2026-07-14 | Chosen web tier + design system. Astryx components for the DS, Tailwind for layout. See ADR-008                                                                                                                                                |
+| D-008 | Web builds with **webpack** + a `jsx-dev-runtime` shim; dev on Turbopack               | 2026-07-14 | Astryx 0.1.x ships dev-JSX components; only webpack's alias reaches SSR. Revisit on Astryx prod build. ADR-008                                                                                                                                 |
+| D-015 | **Single root `.env`** — no per-app `.env`; dev/start scripts load it via `dotenv-cli` | 2026-07-15 | Frameworks default to per-app `.env` and neither loaded the root one; in-code `loadEnvFile` was unreliable under Mastra bundling, so load at script level. Docker uses `env_file`; prod uses real env                                          |
+| D-014 | Agent card advertises the bearer scheme (SDK-typed) via middleware, not a route        | 2026-07-15 | Mastra owns `.well-known` (no route override, no securitySchemes hook — verified), so the server middleware augments the card using `@a2a-js/sdk` types when `AGENT_API_TOKEN` is set. Kept `GOOGLE_GENERATIVE_AI_API_KEY` (provider reads it) |
+| D-013 | **Web → agents is A2A-only** (JSON-RPC 2.0), with or without AgentBase                 | 2026-07-15 | The web app must never use Mastra's native REST/listing/Studio — only A2A via `callAgent()`. Enforced by `apps/web/test/a2a-only.spec.ts`                                                                                                      |
+| D-012 | Rename `apps/api` → `apps/agents` (`@precast/agents`); **agents-only** scope           | 2026-07-15 | "API" was misleading — the app defines Mastra agents + tools only (no MCPs, no REST APIs). Mastra's own `/api/*` routes are unchanged. See ADR-009                                                                                             |
+| D-009 | `apps/web` uses the shared root ESLint config (no `eslint-config-next`)                | 2026-07-14 | eslint-config-next's plugins cap at ESLint 9; repo is on ESLint 10. Matches the apps/agents pattern                                                                                                                                            |
+| D-010 | **AgentBase optional** via `ENABLE_AGENTBASE`; direct A2A uses `message/send`          | 2026-07-14 | Not everyone runs AgentBase. Direct mode uses A2A 0.3.0 `message/send` (Mastra rejects `tasks/send`); proxy mode keeps AgentBase's `tasks/send`. `callAgent()` normalizes both replies                                                         |
+| D-011 | **AgentBase is the DEFAULT** transport; only `ENABLE_AGENTBASE=0` opts into direct     | 2026-07-15 | Guard rail (revises D-010's default): a forgotten flag routes through the audited/zero-trust proxy, not silently at Mastra. `callViaAgentBase` errors loudly if `AGENTBASE_URL` is unset/placeholder                                           |
 
 ---
 
@@ -142,6 +143,39 @@ You MUST update PROGRESS.md when you:
 
 ## 8. Session Log
 
+<auto-journal: 2026-07-16 01:34:11 — file edit>
+
+- **2026-07-16 — Claude Code —** Enforced a **single root `.env`** (D-015): no per-app `.env` in `apps/agents`/`apps/web`. Found neither app actually loaded the root `.env` (Next reads `apps/web`, Mastra reads its cwd), so the dev/start scripts now load it via **`dotenv-cli`** (`dotenv -e ../../.env -- mastra dev`/`next dev`; `next start`/`mastra start` too) — added `dotenv-cli` as a root devDep (tolerant of a missing file). Docker already uses `env_file: ../.env`; production uses the real env; `.gitignore` ignores `.env` at any depth. Reverted an in-code `process.loadEnvFile` attempt (unreliable under Mastra's bundling — `process.cwd()`/`NODE_ENV` not dependable). Verified with **zero inline env**: `pnpm dev:agents` boots (DATABASE_URL from root `.env`), web dev forwards `AGENTBASE_TOKEN` from root `.env`. build/typecheck/lint/test green. Docs: CLAUDE §4.4, SPEC, README, TECH_STACK, `.env.example`.
+
+<auto-journal: 2026-07-16 01:33:53 — file edit>
+
+<auto-journal: 2026-07-16 01:33:19 — file edit>
+
+<auto-journal: 2026-07-16 01:32:57 — file edit>
+
+<auto-journal: 2026-07-16 01:32:45 — file edit>
+
+<auto-journal: 2026-07-16 01:32:39 — file edit>
+
+<auto-journal: 2026-07-16 01:32:23 — file edit>
+
+<auto-journal: 2026-07-16 01:31:54 — file edit>
+
+<auto-journal: 2026-07-16 01:31:46 — file edit>
+
+<auto-journal: 2026-07-16 01:27:01 — file edit>
+
+<auto-journal: 2026-07-16 01:26:51 — file edit>
+
+<auto-journal: 2026-07-16 01:26:19 — file edit>
+
+<auto-journal: 2026-07-16 01:26:06 — file edit>
+
+<auto-journal: 2026-07-16 01:19:38 — file edit>
+
+<auto-journal: 2026-07-16 01:19:24 — file edit>
+
+<auto-journal: 2026-07-15 13:04:32 — file edit>
 <auto-journal: 2026-07-15 13:01:43 — file edit>
 
 - **2026-07-15 — Claude Code —** Made the **agent card advertise the bearer auth scheme** (D-014). Checked feasibility: a custom `registerApiRoute` at `.well-known/:id/agent-card.json` does **not** override Mastra's built-in route (verified on the built server), and Mastra has no `securitySchemes` hook. So `apps/agents/src/mastra/middleware/auth.ts` augments the card response — typed with the official **`@a2a-js/sdk`** (`AgentCard`/`SecurityScheme`), added as a direct dep of `apps/agents`. When `AGENT_API_TOKEN` is set the card returns `securitySchemes.bearerAuth` (http/bearer) + `security:[{bearerAuth:[]}]`; unset → empty/public. Verified on the **built** server (fresh `.mastra/output`, isolated ports to avoid stale-server races): token-set → card advertises + `/api/agents` 401 (no token) / 200 (bearer); token-unset → card empty + open. Also **reverted** an attempted `GOOGLE_GENERATIVE_AI_API_KEY`→`GEMINI_API_KEY` rename (Mastra's Google provider reads `GOOGLE_API_KEY`/`GOOGLE_GENERATIVE_AI_API_KEY`, not `GEMINI_API_KEY`). `pnpm build`/`typecheck`/`lint` green.

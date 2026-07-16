@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "mastra dev",
+    "dev": "dotenv -e ../../.env -- mastra dev",
     "build": "mastra build",
-    "start": "mastra start",
+    "start": "dotenv -e ../../.env -- mastra start",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src",
