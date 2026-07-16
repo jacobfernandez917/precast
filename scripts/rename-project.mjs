@@ -44,6 +44,9 @@ const SOURCE_DIRS = ['apps', 'packages'];
 const SKIP_DIRS = new Set(['node_modules', 'dist', '.next', '.turbo', 'coverage', 'docs']);
 
 const SOURCE_EXT = /\.(ts|tsx|mjs|cjs|js|json|yml|yaml|css)$/;
+// Extensionless files that still hold functional `precast` references (e.g. the
+// `-t precast-*` image tags in Dockerfiles). Matched by exact filename.
+const SOURCE_NAMES = new Set(['Dockerfile']);
 
 function walk(dir, acc) {
   for (const entry of readdirSync(dir)) {
@@ -51,7 +54,7 @@ function walk(dir, acc) {
     const abs = join(dir, entry);
     const st = statSync(abs);
     if (st.isDirectory()) walk(abs, acc);
-    else if (SOURCE_EXT.test(entry)) acc.push(abs);
+    else if (SOURCE_EXT.test(entry) || SOURCE_NAMES.has(entry)) acc.push(abs);
   }
   return acc;
 }

@@ -2,8 +2,8 @@
 
 > **This file is the ultimate cross-tool context memory.** All coding agents MUST update this file on every meaningful change. If you finish work without updating PROGRESS.md, the work is **not** considered complete.
 
-**Last Updated:** 2026-07-14
-**Updated By:** Claude Code — Migrated web from Nuxt → Next.js (App Router) + Astryx design system
+**Last Updated:** 2026-07-16
+**Updated By:** Claude Code — Fixed rename-safety footgun in Docker builds (path filters + artifact assertions)
 **Active Branch:** develop
 
 ---
@@ -143,6 +143,35 @@ You MUST update PROGRESS.md when you:
 
 ## 8. Session Log
 
+
+<auto-journal: 2026-07-16 03:27:47 — file edit>
+- **2026-07-16 — Claude Code:** Fixed a rename-safety footgun in the Docker builds (reported from a downstream project renamed to `@sprint-manager/*`). Both Dockerfiles used name-based `pnpm --filter @precast/…`, which silently matches nothing + exits 0 after a scope rename → empty build → opaque `COPY` failure. Switched both to **path-based** filters (`./packages/shared`, `./apps/agents`|`./apps/web`) and added post-build **artifact assertions** (`test -f …/.mastra/output/index.mjs`, `…/.next/standalone/apps/web/server.js`). Fixed the origin too: `scripts/rename-project.mjs` skipped extensionless files, so added a `SOURCE_NAMES` set covering `Dockerfile`. Verified: path filters resolve while stale name filter reproduces `exit 0`; real local build emitted both asserted artifacts; `rename --dry` now lists both Dockerfiles.
+
+<auto-journal: 2026-07-16 03:27:30 — file edit>
+
+<auto-journal: 2026-07-16 03:27:22 — file edit>
+
+<auto-journal: 2026-07-16 03:25:03 — file edit>
+
+<auto-journal: 2026-07-16 03:24:56 — file edit>
+
+<auto-journal: 2026-07-16 03:24:50 — file edit>
+
+<auto-journal: 2026-07-16 02:40:33 — file edit>
+
+<auto-journal: 2026-07-16 02:40:10 — file edit>
+
+<auto-journal: 2026-07-16 02:40:02 — file edit>
+
+<auto-journal: 2026-07-16 02:39:54 — file edit>
+
+<auto-journal: 2026-07-16 02:39:47 — file edit>
+
+<auto-journal: 2026-07-16 02:39:34 — file edit>
+
+<auto-journal: 2026-07-16 01:44:13 — file edit>
+
+<auto-journal: 2026-07-16 01:35:19 — file edit>
 <auto-journal: 2026-07-16 01:34:11 — file edit>
 
 - **2026-07-16 — Claude Code —** Enforced a **single root `.env`** (D-015): no per-app `.env` in `apps/agents`/`apps/web`. Found neither app actually loaded the root `.env` (Next reads `apps/web`, Mastra reads its cwd), so the dev/start scripts now load it via **`dotenv-cli`** (`dotenv -e ../../.env -- mastra dev`/`next dev`; `next start`/`mastra start` too) — added `dotenv-cli` as a root devDep (tolerant of a missing file). Docker already uses `env_file: ../.env`; production uses the real env; `.gitignore` ignores `.env` at any depth. Reverted an in-code `process.loadEnvFile` attempt (unreliable under Mastra's bundling — `process.cwd()`/`NODE_ENV` not dependable). Verified with **zero inline env**: `pnpm dev:agents` boots (DATABASE_URL from root `.env`), web dev forwards `AGENTBASE_TOKEN` from root `.env`. build/typecheck/lint/test green. Docs: CLAUDE §4.4, SPEC, README, TECH_STACK, `.env.example`.

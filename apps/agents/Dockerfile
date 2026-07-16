@@ -8,8 +8,13 @@ RUN corepack enable
 WORKDIR /repo
 COPY . .
 RUN pnpm install --frozen-lockfile --ignore-scripts
-RUN pnpm --filter @precast/shared build \
- && pnpm --filter @precast/agents build
+# Filter by workspace PATH, not package name: a name-based `--filter @scope/pkg`
+# that matches nothing (e.g. after `pnpm rename`) exits 0 and builds nothing,
+# which only surfaces as an opaque COPY failure below. The `test -f` then makes
+# a would-be-empty build fail loudly, here, instead of at the runtime COPY.
+RUN pnpm --filter "./packages/shared" build \
+ && pnpm --filter "./apps/agents" build \
+ && test -f apps/agents/.mastra/output/index.mjs
 
 # ---- runtime: the self-contained .mastra/output bundle (own node_modules) ----
 FROM node:24-alpine AS runtime
