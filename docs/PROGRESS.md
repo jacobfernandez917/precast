@@ -2,8 +2,8 @@
 
 > **This file is the ultimate cross-tool context memory.** All coding agents MUST update this file on every meaningful change. If you finish work without updating PROGRESS.md, the work is **not** considered complete.
 
-**Last Updated:** 2026-07-16
-**Updated By:** Claude Code — Fixed rename-safety footgun in Docker builds (path filters + artifact assertions)
+**Last Updated:** 2026-07-17
+**Updated By:** Claude Code — Made the testing contract enforceable per build (CLAUDE §4.2 + pre-commit hook); removed apps/api leftover
 **Active Branch:** develop
 
 ---
@@ -143,8 +143,34 @@ You MUST update PROGRESS.md when you:
 
 ## 8. Session Log
 
+<auto-journal: 2026-07-17 01:49:59 — file edit>
+
+<auto-journal: 2026-07-17 01:49:28 — file edit>
+
+<auto-journal: 2026-07-17 01:31:45 — file edit>
+
+- **2026-07-17 — Claude Code —** Made the testing contract **enforceable per build** and cleaned a rename leftover. Deleted the empty, untracked `apps/api/` dir (only a stale `.mastra` cache remained after D-012's `apps/api → apps/agents` rename). Fixed two stale current-tense rows in `docs/TEST_CASES.md` (APP-001, APP-004: "api" → "agents"; left the `/api/health` + `/api/agents` Mastra/Next route refs). Rewrote **CLAUDE.md §4.2** into a MANDATORY per-build testing contract (author Vitest + Playwright, register a stable ID in TEST_CASES.md, run + record real status, update coverage) and added `docs/TEST_CASES.md` to the §4.6 Documentation Contract list. Wired **`.githooks/pre-commit`**: staging code under `apps/`|`packages/` (`CODE_PATTERNS`) now also requires `docs/TEST_CASES.md`; docs/config-only commits unaffected. Hook `sh -n` clean; pattern matching sanity-checked. No app code touched → no test run needed.
+
+<auto-journal: 2026-07-17 01:31:32 — file edit>
+
+<auto-journal: 2026-07-17 01:31:27 — file edit>
+
+<auto-journal: 2026-07-17 01:30:49 — file edit>
+
+<auto-journal: 2026-07-17 01:30:38 — file edit>
+
+<auto-journal: 2026-07-17 01:30:33 — file edit>
+
+<auto-journal: 2026-07-17 01:30:01 — file edit>
+
+<auto-journal: 2026-07-17 01:29:53 — file edit>
+
+<auto-journal: 2026-07-17 01:29:35 — file edit>
+
+<auto-journal: 2026-07-17 01:29:32 — file edit>
 
 <auto-journal: 2026-07-16 03:27:47 — file edit>
+
 - **2026-07-16 — Claude Code:** Fixed a rename-safety footgun in the Docker builds (reported from a downstream project renamed to `@sprint-manager/*`). Both Dockerfiles used name-based `pnpm --filter @precast/…`, which silently matches nothing + exits 0 after a scope rename → empty build → opaque `COPY` failure. Switched both to **path-based** filters (`./packages/shared`, `./apps/agents`|`./apps/web`) and added post-build **artifact assertions** (`test -f …/.mastra/output/index.mjs`, `…/.next/standalone/apps/web/server.js`). Fixed the origin too: `scripts/rename-project.mjs` skipped extensionless files, so added a `SOURCE_NAMES` set covering `Dockerfile`. Verified: path filters resolve while stale name filter reproduces `exit 0`; real local build emitted both asserted artifacts; `rename --dry` now lists both Dockerfiles.
 
 <auto-journal: 2026-07-16 03:27:30 — file edit>

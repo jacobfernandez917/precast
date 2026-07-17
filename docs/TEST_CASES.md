@@ -32,10 +32,10 @@
 
 | ID      | Description                                                                                | Status                          |
 | ------- | ------------------------------------------------------------------------------------------ | ------------------------------- |
-| APP-001 | `pnpm build` succeeds for shared + api (mastra build) + web from clean                     | Passing                         |
+| APP-001 | `pnpm build` succeeds for shared + agents (mastra build) + web from clean                  | Passing                         |
 | APP-002 | `pnpm typecheck` passes across all packages                                                | Passing                         |
 | APP-003 | `pnpm lint` passes across all packages                                                     | Passing                         |
-| APP-004 | `pnpm test` passes (api + web Vitest)                                                      | Passing                         |
+| APP-004 | `pnpm test` passes (agents + web Vitest)                                                   | Passing                         |
 | APP-005 | Mastra API boots; `GET /api/agents` lists the example agent                                | Passing                         |
 | APP-006 | Web builds; `GET /api/health` (Next.js route handler) returns `{status:"ok"}`; `/` renders | Passing                         |
 | APP-007 | Env validation fails fast when `DATABASE_URL` is missing/invalid                           | Passing (covered by web Vitest) |

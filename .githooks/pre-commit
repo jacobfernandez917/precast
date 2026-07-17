@@ -1,7 +1,8 @@
 #!/bin/sh
 # ─── Documentation contract enforcement pre-commit hook ─────────────────────
 # Blocks any commit that touches non-trivial files without also staging
-# HANDOFF.md, PROGRESS.md, and README.md.
+# HANDOFF.md, PROGRESS.md, and README.md. When the commit touches code under
+# apps/ or packages/ (a "new build"), docs/TEST_CASES.md is required too.
 #
 # Bypass: SKIP_DOC_CHECK=1 git commit -m "..."
 #
@@ -17,17 +18,22 @@ fi
 # Files that are considered "non-trivial" — changes to these trigger the check
 TRIGGER_PATTERNS="\.(ts|tsx|jsx|js|mjs|cjs|json|yml|yaml|md|sh|css|env\.example)$"
 
+# Code source under apps/ or packages/ — changes to these are a "new build" and
+# additionally require the testing catalog (docs/TEST_CASES.md) per CLAUDE.md §4.2.
+CODE_PATTERNS="^(apps|packages)/.*\.(ts|tsx|jsx|js|mjs|cjs)$"
+
 REQUIRED_FILES="docs/HANDOFF.md docs/PROGRESS.md README.md"
 
 staged_files=$(git diff --cached --name-only --diff-filter=ACM)
 
 # Check if any staged file matches a trigger pattern
 has_triggers=0
+has_code=0
 for f in $staged_files; do
   if echo "$f" | grep -qE "$TRIGGER_PATTERNS"; then
     # Only trigger for non-doc source files, not for the required docs themselves
     case "$f" in
-      docs/HANDOFF.md|docs/PROGRESS.md|README.md)
+      docs/HANDOFF.md|docs/PROGRESS.md|docs/TEST_CASES.md|README.md)
         # These are the required docs themselves — don't trigger
         ;;
       *)
@@ -35,7 +41,16 @@ for f in $staged_files; do
         ;;
     esac
   fi
+  if echo "$f" | grep -qE "$CODE_PATTERNS"; then
+    has_code=1
+  fi
 done
+
+# A "new build" (code touched under apps/ or packages/) must also stage the
+# testing catalog so tests and their run status stay current.
+if [ "$has_code" = "1" ]; then
+  REQUIRED_FILES="$REQUIRED_FILES docs/TEST_CASES.md"
+fi
 
 if [ "$has_triggers" = "0" ]; then
   exit 0
@@ -67,6 +82,7 @@ if [ -n "$missing" ]; then
   echo "   These docs must be updated and staged in the same commit:"
   echo "     - docs/HANDOFF.md (continuity checkpoint)"
   echo "     - docs/PROGRESS.md (context memory + session log)"
+  echo "     - docs/TEST_CASES.md (test catalog + run status — when code under apps/ or packages/ changed)"
   echo "     - README.md (user-facing overview)"
   echo ""
   echo "   Bypass with: SKIP_DOC_CHECK=1 git commit ..."

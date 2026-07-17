@@ -146,11 +146,30 @@ HANDOFF.md is a snapshot; PROGRESS.md is the long-form ledger. On disagreement a
 - **Design system first** in web apps — build UI from **Astryx** components (`@astryxdesign/core`) and theme tokens. Use **Tailwind** utility classes for layout/spacing (via the Astryx Tailwind bridge). No hand-written CSS beyond `app/globals.css`; reach for StyleX's `xstyle` prop only for one-offs with no Tailwind/token equivalent.
 - **TypeScript strict mode** is required across all packages.
 
-### 4.2 Testing
+### 4.2 Testing — **MANDATORY**
+
+> **Every new build ships with its tests.** A feature, fix, or infra change is **not complete** until the test layers below are updated **in the same change set** as the code. "It builds" is not "it's tested."
+
+#### Test layers (what to touch, and where)
+
+| Layer                       | Tool       | Location                                 | Command         |
+| --------------------------- | ---------- | ---------------------------------------- | --------------- |
+| Unit / integration          | Vitest     | `apps/agents/src/**`, `apps/web/test/**` | `pnpm test`     |
+| Autonomous browser UI (E2E) | Playwright | `apps/web/e2e/**`                        | `pnpm test:e2e` |
+| Test catalog (traceability) | —          | [docs/TEST_CASES.md](docs/TEST_CASES.md) | (manual)        |
+
+#### For every new build you MUST
+
+1. **Author the tests.** Add/extend Vitest specs for new logic and boundaries; add a Playwright spec in `apps/web/e2e/` for any new user-visible flow or route. Extend the fitness guards (`a2a-only.spec.ts`, env validation) when you touch what they protect.
+2. **Register them in the catalog.** Add a row to the correct section of [docs/TEST_CASES.md](docs/TEST_CASES.md) with a new stable ID (`AGT-*`, `WEB-*`, `E2E-*`, `APP-*`, `TOOL-*`, `SMOKE-*`), a description, and a `Status`.
+3. **Run them and record the result.** Run `pnpm test` (and `pnpm test:e2e` if the UI/routes changed); set each affected row's `Status` to the real outcome (`Passing` / `Failing` / `Not Started`). Never mark `Passing` without having run it.
+4. **Update coverage.** Reflect the run in [docs/PROGRESS.md Test Coverage](docs/PROGRESS.md), and list the covered test IDs in the PR description.
+
+#### Rules
 
 - Every implementation must satisfy the relevant test IDs in [docs/TEST_CASES.md](docs/TEST_CASES.md).
-- PR description must list the test IDs it covers.
-- Update [docs/PROGRESS.md Test Coverage](docs/PROGRESS.md) after running tests.
+- New product surface without a corresponding test (or an explicit, justified `Not Started` row) is an **incomplete build** — flag the gap in PROGRESS.md blockers rather than shipping it silently.
+- Keep test IDs stable; never renumber. Retire an ID by marking it removed, don't reuse it.
 
 ### 4.3 Git & Commits
 
@@ -177,8 +196,9 @@ After any non-trivial change to the repo, update these files **in the same commi
 
 1. **`docs/HANDOFF.md`** — update §1 Current state + §2 Next task.
 2. **`docs/PROGRESS.md`** — Session Log entry + Task Tracker updates.
-3. **`README.md`** — if user-facing behaviour, architecture, or quick-start steps changed.
-4. **`.githooks/pre-commit`** blocks commits that touch non-trivial files without staging updates to all required docs (bypass with `SKIP_DOC_CHECK=1`, explain in commit message).
+3. **`docs/TEST_CASES.md`** — add/adjust test rows + run status for any change that adds or alters testable behaviour (see §4.2).
+4. **`README.md`** — if user-facing behaviour, architecture, or quick-start steps changed.
+5. **`.githooks/pre-commit`** blocks commits that touch non-trivial files without staging updates to all required docs (bypass with `SKIP_DOC_CHECK=1`, explain in commit message).
 
 ### 4.7 Tone & UX of your own work
 

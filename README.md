@@ -122,17 +122,17 @@ If you are an agent picking up this repo, read in this exact order **before touc
 
 ## Documentation map
 
-| File                                       | Purpose                                 | Updated when            |
-| ------------------------------------------ | --------------------------------------- | ----------------------- |
-| [CLAUDE.md](CLAUDE.md)                     | Project brief + non-negotiable rules    | On structural changes   |
-| [docs/HANDOFF.md](docs/HANDOFF.md)         | Single-page continuity checkpoint       | Every task closure      |
-| [docs/PROGRESS.md](docs/PROGRESS.md)       | Long-form context memory + task tracker | Every meaningful change |
-| [docs/TECH_STACK.md](docs/TECH_STACK.md)   | Pinned versions + tech inventory        | Every tech-stack change |
-| [docs/SPEC.md](docs/SPEC.md)               | Canonical structure & conventions       | When structure changes  |
-| [docs/ADRS.md](docs/ADRS.md)               | Architectural decision records          | When a decision is made |
-| [docs/STYLE_GUIDE.md](docs/STYLE_GUIDE.md) | Code style + naming                     | When conventions change |
-| [docs/SCRIPTS.md](docs/SCRIPTS.md)         | Operator cheatsheet for `pnpm` scripts  | When scripts change     |
-| [docs/TEST_CASES.md](docs/TEST_CASES.md)   | Test catalog with traceability          | When tests change       |
+| File                                       | Purpose                                 | Updated when                     |
+| ------------------------------------------ | --------------------------------------- | -------------------------------- |
+| [CLAUDE.md](CLAUDE.md)                     | Project brief + non-negotiable rules    | On structural changes            |
+| [docs/HANDOFF.md](docs/HANDOFF.md)         | Single-page continuity checkpoint       | Every task closure               |
+| [docs/PROGRESS.md](docs/PROGRESS.md)       | Long-form context memory + task tracker | Every meaningful change          |
+| [docs/TECH_STACK.md](docs/TECH_STACK.md)   | Pinned versions + tech inventory        | Every tech-stack change          |
+| [docs/SPEC.md](docs/SPEC.md)               | Canonical structure & conventions       | When structure changes           |
+| [docs/ADRS.md](docs/ADRS.md)               | Architectural decision records          | When a decision is made          |
+| [docs/STYLE_GUIDE.md](docs/STYLE_GUIDE.md) | Code style + naming                     | When conventions change          |
+| [docs/SCRIPTS.md](docs/SCRIPTS.md)         | Operator cheatsheet for `pnpm` scripts  | When scripts change              |
+| [docs/TEST_CASES.md](docs/TEST_CASES.md)   | Test catalog with traceability          | Every new build (tests + status) |
 
 ---
 
