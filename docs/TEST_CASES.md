@@ -54,10 +54,11 @@
 
 ## Web Tests (Vitest, `apps/web/test/`)
 
-| ID      | Description                                                                                       | Status  |
-| ------- | ------------------------------------------------------------------------------------------------- | ------- |
-| WEB-001 | `health.spec.ts` — shared `EnvSchema` defaults (`MASTRA_PORT`/`WEB_PORT`/`LOG_LEVEL`)             | Passing |
-| WEB-002 | `a2a-only.spec.ts` — fitness guard: no web source references a non-A2A Mastra agent route (D-013) | Passing |
+| ID      | Description                                                                                                                                           | Status  |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| WEB-001 | `health.spec.ts` — shared `EnvSchema` defaults (`MASTRA_PORT`/`WEB_PORT`/`LOG_LEVEL`)                                                                 | Passing |
+| WEB-002 | `a2a-only.spec.ts` — fitness guard: no web source references a non-A2A Mastra agent route (D-013)                                                     | Passing |
+| WEB-003 | `docker-build.spec.ts` — fitness guard: every app Dockerfile builds via path filters (no rename-fragile `--filter @scope/…`) and asserts its artifact | Passing |
 
 ---
 

@@ -10,7 +10,7 @@ Precast is built to be driven by coding agents (Claude Code, OpenClaw, or any ot
 
 - **Monorepo structure** — pnpm workspaces + Turborepo (`apps/*` deployables, `packages/*` shared libs).
 - **Documentation contract** — a `CLAUDE.md → HANDOFF.md → PROGRESS.md → authoritative docs` chain that keeps context flowing between sessions and agents.
-- **Guardrails** — pre-commit doc-contract enforcement, lint-staged, EditorConfig, zod-based env validation.
+- **Guardrails** — pre-commit doc-contract enforcement, lint-staged, EditorConfig, zod-based env validation, and fitness tests (A2A-only web→agents, rename-proof Docker builds).
 - **Progress automation** — Claude Code hooks auto-journal every edit into `PROGRESS.md`.
 - **Neutral runnable starters** — a **Mastra** agent API (a placeholder example agent + tool + durable memory, served with a Studio playground) and a **Next.js** web app (App Router, styled with the **Astryx** design system) on a shared TypeScript package, plus a full Docker Compose stack — both apps containerized (multi-stage images) alongside Postgres, Redis, and Keycloak. They carry no domain — just enough to prove the wiring, build, type-check, lint, and test green out of the box. You build the real structure from the feed-forward docs + tech stack.
 - **Feed-forward planning templates** — PRD, data model, agent spec, and an Astryx design system guide in `templates/`, each a worked example you copy into `docs/` and fill in before building.

@@ -3,7 +3,7 @@
 > **This file is the ultimate cross-tool context memory.** All coding agents MUST update this file on every meaningful change. If you finish work without updating PROGRESS.md, the work is **not** considered complete.
 
 **Last Updated:** 2026-07-17
-**Updated By:** Claude Code — Made the testing contract enforceable per build (CLAUDE §4.2 + pre-commit hook); removed apps/api leftover
+**Updated By:** Claude Code — Added WEB-003 fitness guard: app Dockerfiles must use rename-proof path filters + artifact assertions
 **Active Branch:** develop
 
 ---
@@ -143,6 +143,23 @@ You MUST update PROGRESS.md when you:
 
 ## 8. Session Log
 
+<auto-journal: 2026-07-17 05:22:55 — file edit>
+
+<auto-journal: 2026-07-17 05:22:34 — file edit>
+
+- **2026-07-17 (later) — Claude Code —** Added a **fitness guard** so the silent Docker-build footgun can't regress. The Dockerfiles + `rename-project.mjs` were already fixed (c34fa84: path filters, `test -f` assertions, `SOURCE_NAMES` covering `Dockerfile`), so new scaffolds are safe — the gap was regression protection. New Vitest guard `apps/web/test/docker-build.spec.ts` (**WEB-003**) scans every `apps/*/Dockerfile` and fails unless it uses a path-based `--filter "./…"`, contains no rename-fragile `--filter @scope/…` (which no-ops with exit 0 after a scope rename), and asserts its artifact via `test -f`. Verified: passes on current agents + web Dockerfiles; a name-filter regression trips it. `pnpm test` green (web 6, agents 1). Registered WEB-003 in TEST_CASES.md. Separately backported the same Dockerfile fix into the external **corfis** repo (older Nuxt/`apps/api` scaffold) — left uncommitted there per the owner.
+
+<auto-journal: 2026-07-17 05:22:18 — file edit>
+
+<auto-journal: 2026-07-17 05:22:14 — file edit>
+
+<auto-journal: 2026-07-17 05:22:02 — file edit>
+
+<auto-journal: 2026-07-17 05:21:27 — file edit>
+
+<auto-journal: 2026-07-17 03:36:59 — file edit>
+
+<auto-journal: 2026-07-17 03:36:50 — file edit>
 <auto-journal: 2026-07-17 01:49:59 — file edit>
 
 <auto-journal: 2026-07-17 01:49:28 — file edit>
