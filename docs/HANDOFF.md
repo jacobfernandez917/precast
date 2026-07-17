@@ -12,64 +12,23 @@
 
 ## 1. Current state (overwrite on each handoff)
 
-**Latest (2026-07-17, later²):** **Removed local Postgres/Redis/Keycloak from Docker Compose — infra is now remote/managed** (D-016 / ADR-010). `docker-compose.yml` runs the apps only (`agents`, `web`): dropped the three infra service blocks + their volumes + the `agents` `depends_on` + the hardcoded `DATABASE_URL`/`REDIS_URL`/`KEYCLOAK_TOKEN_ISSUER_URI` (now sourced from the root `.env`). `.env.example` repointed to remote URL shapes (`?sslmode=require`, `rediss://`, hosted realm) with managed-provider hints; dropped local Keycloak admin creds. Shared env schema reworded to recommend remote but kept dev-fallback defaults (WEB-001 stays green; `DATABASE_URL` still required, fails fast). None of the three vars are consumed by app code, so nothing broke. Swept override examples, TECH_STACK, CLAUDE §1/§4.5, README, SPEC, SCRIPTS, rename-script header, + the external scaffold skill. Verified: `docker compose config` → `agents`+`web` only; build/typecheck green; `pnpm test` 6+1 green. **Not committed yet.**
+**Fresh baseline.** This is a clean Precast checkout — a runnable, agent-native monorepo with neutral placeholders (`example-agent` / `summary-agent` / `example-tool`, a generic landing page + agent-chat demo). No domain logic yet. `pnpm build` / `typecheck` / `lint` / `test` are green out of the box.
 
-**Prior (2026-07-17, later):** Added a **fitness guard against the silent Docker-build footgun** so it can't regress. Both Dockerfiles + `rename-project.mjs` were already fixed (path filters + artifact assertions + `SOURCE_NAMES` handling of `Dockerfile`, per c34fa84), so **new** scaffolds are safe — but nothing stopped a future edit from reverting to a rename-fragile `pnpm --filter @scope/…` (matches nothing after a scope rename → prints "No projects matched" → **exits 0** → empty build → opaque `COPY --from=build` failure). New Vitest guard `apps/web/test/docker-build.spec.ts` (WEB-003) scans every `apps/*/Dockerfile` and fails unless it (a) uses a path-based `--filter "./…"`, (b) contains no name-based `--filter @scope/…`, and (c) asserts its artifact via `test -f`. Verified: passes on the current Dockerfiles (agents + web), and a name-filter regression trips it. Ships into every future scaffold. `pnpm test` green (web 6, agents 1). Context: this session also backported the same Dockerfile fix into the external **corfis** project (older Nuxt/`apps/api` scaffold), left uncommitted there per the owner.
+- The Mastra app (`apps/agents`) and Next app (`apps/web`) are intentionally **neutral placeholders**. Real agents/pages/schema come from the feed-forward docs in `templates/` + TECH_STACK.
+- Infra (Postgres/Redis/Keycloak) is **remote/managed** via the root `.env` — not run in Compose.
 
-**Prior (2026-07-17):** Made the **testing contract enforceable per build** and removed a rename leftover. (a) Deleted the empty, untracked `apps/api/` directory (only a stale `.mastra` build-cache folder remained after the D-012 `apps/api → apps/agents` rename). (b) Fixed two stale current-tense rows in `docs/TEST_CASES.md` (APP-001, APP-004) that still said "api" instead of "agents"; the `/api/health` and `/api/agents` refs are Mastra/Next HTTP routes and were left. (c) Rewrote **CLAUDE.md §4.2 Testing** into a MANDATORY per-build contract — author Vitest + Playwright tests, register a stable test ID in `docs/TEST_CASES.md`, run and record real status, update coverage — and added `docs/TEST_CASES.md` to the §4.6 Documentation Contract list. (d) **Wired the pre-commit hook** to enforce it: when a commit stages code under `apps/` or `packages/` (a "new build", matched by `CODE_PATTERNS`), `docs/TEST_CASES.md` is added to the required-docs set (docs/config-only commits are unaffected). Hook syntax verified; code-pattern matching sanity-checked (`.tsx`/`src/*.ts`/`e2e/*.spec.ts` trigger; `docs/*.md`/`docker-compose.yml` don't). No app code changed, so no test run was needed.
-
-**Prior (2026-07-16):** Fixed a **rename-safety footgun in the Docker builds**. Both `apps/agents/Dockerfile` and `apps/web/Dockerfile` compiled the workspace with **name-based** `pnpm --filter @precast/…` — and a name filter that matches nothing (e.g. after `pnpm rename` rewrites the scope) prints "No projects matched" and **exits 0**, so the build stage produced no artifact and only failed later at the opaque `COPY --from=build …/.mastra/output` / `.next/standalone`. Root origin: `scripts/rename-project.mjs` walked only files with a `SOURCE_EXT` extension, so the extensionless `Dockerfile`s were never rewritten. Two-level fix: (1) both Dockerfiles now filter by **workspace path** (`--filter "./packages/shared"`, `--filter "./apps/agents"|"./apps/web"`) — immune to package renames — and **assert the artifact** right after building (`test -f apps/agents/.mastra/output/index.mjs` / `apps/web/.next/standalone/apps/web/server.js`), turning a silent empty build into a loud, early failure; (2) the rename script now also processes files named `Dockerfile` (via a new `SOURCE_NAMES` set) so the `-t precast-*` image tags rename too. Verified: path filters resolve to the right dirs while a stale name filter reproduces the `exit 0` no-match; a real local build produced exactly the two asserted artifacts; `rename --dry` now lists both Dockerfiles.
-
-**Prior (2026-07-15):** Enforced a **single root `.env`** — no per-app `.env` in `apps/agents`/`apps/web`. Both frameworks default to reading `.env` from their own dir and neither actually loaded the root one, so the dev/start scripts now load it via **`dotenv-cli`** (`dotenv -e ../../.env -- mastra dev` / `next dev`; added `dotenv-cli` as a root devDep). Docker already uses `env_file: ../.env`; production uses the real environment; `.gitignore` ignores `.env` at any depth. Verified with zero inline env: `pnpm dev:agents` boots (DATABASE_URL from root `.env`) and web dev forwards `AGENTBASE_TOKEN` from root `.env`. (An in-code `process.loadEnvFile` attempt was reverted — Mastra's bundling makes `process.cwd()`/`NODE_ENV` unreliable; script-level loading is robust.) `pnpm build`/`typecheck`/`lint`/`test` green. See D-015.
-
-**Prior (2026-07-15):** The **agent card now advertises the bearer auth scheme** when `AGENT_API_TOKEN` is set. Mastra owns the `.well-known/:id/agent-card.json` route (a custom `registerApiRoute` does **not** override it — verified) and exposes no `securitySchemes` hook, so `apps/agents/src/mastra/middleware/auth.ts` augments the card response, typed with the official **`@a2a-js/sdk`** (`AgentCard`/`SecurityScheme`) — added as a direct dep. Result: token set → card `securitySchemes: { bearerAuth: { type:'http', scheme:'bearer' } }` + `security: [{ bearerAuth: [] }]`; token unset → empty (public). Verified on the **built** server (`mastra dev` runs middleware-open): token-set card advertises + `/api/agents` 401/200; token-unset card empty + open. (Note: kept `GOOGLE_GENERATIVE_AI_API_KEY` — a `GEMINI_API_KEY` rename was reverted since Mastra's provider reads the Google var.) See D-014.
-
-**Prior (2026-07-15):** Established the **web → agents A2A-only invariant**: `apps/web` interacts with Mastra agents exclusively over A2A (JSON-RPC 2.0) via `callAgent()` — with or without AgentBase — never Mastra's native REST (`/api/agents/:id/generate`|`/stream`), listing, or Studio. Enforced by a new fitness test `apps/web/test/a2a-only.spec.ts` (scans web source, fails on any non-A2A agent route). Documented in CLAUDE.md §4.1, `a2a-client.ts` header, INTEGRATION §7.7, README, and the skill. Also fixed a stale INTEGRATION §2.1 row (native invocation is `/api/agents/:id/generate|stream`, not the 404 `/agents/:id/messages`). Web tests 3/3 (incl. the new guard); build/typecheck/lint green.
-
-**Prior (2026-07-15):** Renamed the Mastra app **`apps/api` → `apps/agents`** (`@precast/api` → `@precast/agents`) to end the "API" confusion, with an **agents-only scope rule** (no MCP servers, no hand-rolled REST APIs — agents call tools; frontend/BFF lives in `apps/web`). `git mv` preserved history. Swept: root scripts (`dev/build/test:agents`), Docker (service `agents`, container/volume `precast-agents*`, web DNS `http://agents:4111`), Dockerfile, `set-ports.mjs`, Mastra logger name, and structural docs (CLAUDE §4.1 rule + stack label, TECH_STACK, SPEC tree, README, STYLE_GUIDE, INTEGRATION, TEST_CASES, SCRIPTS, AGENT_SPEC template) + ADR-009 / D-012. **Mastra's own `/api/*` HTTP routes are unchanged.** `KEYCLOAK_CLIENT_ID` stays `precast-api` (an OAuth client name, not the app). build 3/3 · typecheck 4/4 · lint 3/3 · test 3/3 green.
-
-**Prior (2026-07-15):** Guard-rail change — **AgentBase is now the DEFAULT transport**. `isAgentBaseEnabled()` returns `process.env.ENABLE_AGENTBASE !== '0'`, so a missing/any-non-`0` value proxies through AgentBase; only an explicit `ENABLE_AGENTBASE=0` uses direct A2A. Added a guard in `callViaAgentBase`: if AgentBase is active but `AGENTBASE_URL` is unset/placeholder, `callAgent()` returns a clear error reply (configure it, or set `=0`). Flipped the env-schema default to `'1'`, `.env.example`, docker-compose comment, and the docs framing (README, INTEGRATION §7). Verified all three paths at runtime (unset→agentbase, `=0`→direct, unconfigured→guard error). Also strengthened the **precast skill** `description` for trigger accuracy + added a "Making sure the skill gets used" section (explicit `/precast`, re-add to sync the app copy). `pnpm build`/`typecheck`/`lint` green.
-
-**Prior (2026-07-14):** Made **AgentBase optional** via `ENABLE_AGENTBASE`. `apps/web/app/lib/a2a-client.ts` `callAgent()` now branches: `ENABLE_AGENTBASE=1` → proxy through AgentBase (`POST $AGENTBASE_URL/a2a`, `tasks/send`, Bearer `AGENTBASE_TOKEN`); otherwise (default) → **direct A2A** to Mastra (`POST $MASTRA_INTERNAL_URL/api/a2a/:agentId`, A2A `message/send`, Bearer `AGENT_API_TOKEN`). Verified against the real Mastra A2A endpoint: it requires `message/send` (rejects `tasks/send`). `callAgent()` returns a normalized `{ ok, text, error?, via, raw }`; the route handler + `AgentChat` consume it (chat shows which transport replied). Added `ENABLE_AGENTBASE` + `MASTRA_INTERNAL_URL` to the shared env schema + `.env.example`; docker-compose web sets `ENABLE_AGENTBASE=0` (in-cluster direct). Updated INTEGRATION §7 (both flows), README, and the external skill repo. Both modes runtime-verified via a capturing echo server (correct method/URL/bearer + normalized reply). `pnpm build`/`typecheck`/`lint` green.
-
-**Prior (2026-07-14):** Public-prep + doc refinements on top of the migration. (a) **Credential/internal-ref scrub** for open-sourcing: internal `*.917v.dev` hosts → `agentbase.example.com`, internal MCP URL genericized, local path → `~/Projects/precast`; `origin/develop` history was squashed to a single clean baseline and force-pushed (no secrets/internal refs in tree or history; author email is the only 917 reference, in commit metadata). (b) **Nuxt-cleanup** of stale functional leftovers the migration missed: comments in `apps/agents/src/mastra/middleware/auth.ts` + `packages/shared/src/env.ts`, and `.githooks/pre-commit` (added `tsx`/`jsx` to `TRIGGER_PATTERNS` — it wasn't triggering the doc-check on React files), `.lintstagedrc.json`, `.dockerignore`, `.prettierignore` (`.nuxt`/`.output` → `.next`). (c) **Direct-A2A clarity**: made explicit in `auth.ts`, `.env.example`, `INTEGRATION_AGENTBASE.md` §2.1, and README that any A2A (JSON-RPC 2.0) client can invoke the agents at `POST /api/a2a/:agentId` with `Authorization: Bearer <token>` matching `AGENT_API_TOKEN` (routes open when unset). Remaining Nuxt mentions are intentional history (ADRs, session log). `pnpm lint`/`typecheck` green.
-
-**Migration (2026-07-14) — Claude Code:** Migrated `apps/web` from Nuxt → Next.js (App Router) and swapped @nuxt/ui for the Astryx design system. Vue SFCs → React components under `apps/web/app/` (`layout.tsx`, `providers.tsx` with Astryx `<Theme>`, `page.tsx`, `AgentChat.tsx`); Nitro routes → Next route handlers (`app/api/health/route.ts`, `app/api/a2a/[agentId]/route.ts`); A2A client → `app/lib/a2a-client.ts` (reads `process.env`, still forwards `params.agentId`). Styling = Astryx components + Tailwind v4 (bridge in `app/globals.css`). **Build runs on webpack** (`next build --webpack`) + a `react/jsx-dev-runtime` shim (`apps/web/jsx-dev-runtime.shim.ts`, wired in `next.config.ts`) because Astryx 0.1.x ships dev-JSX-compiled components; `next dev` uses Turbopack. Swept repo configs (turbo `.next`, root eslint ignores, Dockerfile → Next standalone, compose `MASTRA_INTERNAL_URL`), scripts (set-ports/rename/bootstrap), and all framework-touching docs (TECH_STACK, SPEC, STYLE_GUIDE, INTEGRATION §7, ADR-008, DESIGN_SYSTEM template, TEST_CASES, SCRIPTS, README, CLAUDE.md). Verified: `pnpm --filter @precast/web build` ✓, `pnpm typecheck` 4/4 ✓, `pnpm lint` 3/3 ✓, web vitest 2/2 ✓, Playwright E2E 3/3 ✓ (run on a free port — 3000 was occupied by another local app; use `E2E_PORT=<free>` if 3000 is busy), `next dev` smoke ✓, and the a2a proxy confirmed forwarding `params.agentId` end-to-end. See [ADR-008](ADRS.md).
-
-**Prior (2026-07-14):** Proved the boilerplate is **multi-agent**: added a second neutral placeholder agent (`apps/agents/src/mastra/agents/summary-agent.ts`, id `summary-agent`) registered alongside `exampleAgent` in `apps/agents/src/mastra/index.ts`. Each agent auto-serves its own A2A card at `/api/.well-known/:id/agent-card.json`. Fixed `callAgent()` to forward its `agentId` into JSON-RPC `params.agentId`.
-
-**Prior (2026-07-13):** Wired Nuxt ↔ Mastra communication through the AgentBase A2A proxy with bearer token auth. Added `apps/web/server/utils/a2a-client.ts` (`callAgent()`), `apps/web/server/api/a2a/[agentId].post.ts` (Nitro proxy route), and `apps/agents/src/mastra/middleware/auth.ts` (Hono middleware enforcing `AGENT_API_TOKEN` on `/api/a2a/*` and `/api/agents/*`). Added `AGENTBASE_URL`, `AGENTBASE_TOKEN`, `AGENT_API_TOKEN` to shared env schema and `.env.example`. Added agent chat demo UI to `index.vue`. Updated `docs/INTEGRATION_AGENTBASE.md` §7 with full auth flow and wiring docs. Built and tested — all green.
-
-**Prior (2026-07-07):** Untracked `docker/docker-compose.override.yml` (now gitignored per-developer local overrides); shipped its content as tracked `docker-compose.override.yml.example` template; updated SPEC file tree. Added reference/presentation docs (AgentBase integration guide, Sunset Boulevard workflow write-up, architecture SVG, agentic-workflows deck); clarified the clone → `pnpm bootstrap` flow in the README quick-start.
-
-**Prior (2026-07-06):** Replaced NestJS with **Mastra** (agent API); moved shared + apps to ESM; ports Mastra 4111 / Nuxt 3000; added feed-forward templates (PRD, DATA_MODEL, AGENT_SPEC, DESIGN_SYSTEM / Material 3 Expressive) and bootstrap guidance.
-
-`apps/agents` is now a **Mastra** agent app, kept **neutral**: a placeholder `exampleAgent` + `exampleTool` (`src/mastra/`) that prove the wiring (agent + tool + model gateway + LibSQL memory) with no domain baked in. `mastra dev` serves the agent API + Studio playground on **4111**. `apps/web` (**Next.js** App Router, **Astryx** design system) is likewise a neutral landing page + health card + agent-chat demo on **3000**. The domain (meeting-room reservation) lives **only in `templates/`** as authoring guides — the harness builds real structure from those docs + TECH_STACK. Everything is **ESM** now — `packages/shared` is NodeNext ESM (`.js` import extensions) so Mastra's bundler resolves its named exports (reversed ADR-005; see ADR-007). API tests are Vitest.
-
-**Verified 2026-07-06** (Node 25.2.1 / pnpm 9.15.9): `pnpm build` 3/3 (incl. `mastra build`) · `typecheck` 4/4 · `lint` 3/3 · `test` 3/3 · `test:e2e` 3/3 (chromium) · Mastra API boots and `GET /api/agents` lists `example-agent` · `bootstrap` end-to-end in a temp copy · `deps:update --dry` lists outdated.
-
-**Known carry-forwards:**
-
-- **LLM key:** the example agent needs `GOOGLE_GENERATIVE_AI_API_KEY` in `.env` to actually converse (via Mastra's model gateway, default `google/gemini-2.5-flash`). Tools + build/test work without it.
-- **Storage:** `MASTRA_DB_URL` defaults to a local SQLite file (`file:./mastra.db`, gitignored) — not durable across deploys; point at libsql/Turso or swap `@mastra/pg` for production.
-- Default branch is **`develop`**; CI lives outside this repo (ADR-006).
-- First E2E run needs a browser: `pnpm -F @precast/web test:e2e:install` (chromium). No `postinstall` step anymore (Next needs no `prepare`); `next dev`/`build` generate `next-env.d.ts` + `.next/types`.
-- **Astryx build constraint:** `apps/web` builds with `next build --webpack` + a `react/jsx-dev-runtime` shim because Astryx 0.1.x ships dev-JSX-compiled components (webpack alias reaches the SSR layer; Turbopack production build does not). `next dev` is fine on Turbopack. Revisit when Astryx ships a production build. See ADR-008 / TECH_STACK §3.
-- The Mastra app and Next app are intentionally **neutral placeholders** (`exampleAgent`/`summaryAgent`/`exampleTool`, generic landing page + agent-chat demo). Real agents/pages/schema come from the feed-forward docs in `templates/` + TECH_STACK — do not treat the placeholders as the intended structure.
-- **Multi-agent is code-complete but still needs the operational step per agent.** Each agent auto-exposes its own A2A card, and `callAgent()` now forwards `agentId`, but every agent must still be **registered separately on AgentBase** (`POST /agents` with its `agentCardUrl`) and have its skills approved before the proxy can route to it — see [`INTEGRATION_AGENTBASE.md`](INTEGRATION_AGENTBASE.md) §4.
+_Known carry-forwards:_ none.
 
 ---
 
 ## 2. Next task (overwrite on each handoff)
 
-No scheduled next task — Precast is a runnable, agent-native baseline. To start a real project:
+No scheduled next task — Precast is a runnable baseline. To start a real project:
 
 1. `pnpm install && pnpm bootstrap` (or `pnpm bootstrap my-project`).
-2. **Write the feed-forward docs first:** copy the relevant `templates/*.md` into `docs/`, replace the reservation example with your product.
-3. Fill in `docs/PROGRESS.md` §1 (name + mission) and the README title; set `GOOGLE_GENERATIVE_AI_API_KEY` in `.env`, and point `DATABASE_URL`/`REDIS_URL`/`KEYCLOAK_TOKEN_ISSUER_URI` at your **remote/managed** services (infra is not run in Compose — see [.env.example](../.env.example)).
+2. **Write the feed-forward docs first:** copy the relevant `templates/*.md` into `docs/`, replace the example content with your product.
+3. Fill in `docs/PROGRESS.md` §1 (name + mission) and the README title; set `GOOGLE_GENERATIVE_AI_API_KEY` in `.env`, and point `DATABASE_URL` / `REDIS_URL` / `KEYCLOAK_TOKEN_ISSUER_URI` at your remote/managed services (see [.env.example](../.env.example)).
 4. Build your agents/tools under `apps/agents/src/mastra/` and pages under `apps/web/app/`; extend the env schema in `packages/shared/src/env.ts`.
-
-Boilerplate-improvement priorities (if working on Precast itself): back the reservation tools with a remote Postgres (per DATA_MODEL); add an agent workflow + scorers; wire the web chat UI to the Mastra API using the Material 3 Expressive design system.
 
 ---
 
@@ -114,60 +73,42 @@ pnpm-workspace.yaml         ← workspace configuration
 turbo.json                  ← Turborepo task orchestration
 tsconfig.base.json          ← shared TypeScript config
 eslint.config.js            ← linting rules
-.prettierrc                  ← formatting rules
-.prettierignore             ← formatting exclusion
+.prettierrc                 ← formatting rules
 .editorconfig               ← editor settings
 .nvmrc                      ← Node version pin
-.env.example                ← env var template
-.dockerignore               ← Docker build exclusions
-.lintstagedrc.json          ← lint-staged configuration
+.env.example                ← env var template (remote/managed infra URLs)
+.githooks/pre-commit        ← doc-contract enforcement + lint-staged (native core.hooksPath)
+.claude/settings.json       ← Claude Code hooks (PostToolUse, Stop, SessionStart)
 docs/HANDOFF.md             ← this file (single-page continuity checkpoint)
 docs/PROGRESS.md            ← live session log + task tracker (always update)
 docs/SPEC.md                ← canonical boilerplate specification
 docs/TECH_STACK.md          ← versions, libs, images, ports (authoritative)
-docs/ADRS.md                ← architectural decision records
+docs/ADRS.md                ← architectural decision records (empty template)
 docs/STYLE_GUIDE.md         ← code style + naming conventions
 docs/SCRIPTS.md             ← every pnpm script with descriptions
 docs/TEST_CASES.md          ← test catalog with traceability
-docs/INTEGRATION_AGENTBASE.md      ← AgentBase integration guide (reference)
-docs/WORKFLOW_SUNSET_BOULEVARD.md  ← Sunset Boulevard workflow write-up (reference)
-docs/assets/                ← diagrams/images (sunset-boulevard-architecture.svg)
-docs/presentations/         ← decks (agentic-workflows.html)
+docs/INTEGRATION_AGENTBASE.md ← AgentBase integration guide (reference)
+docs/AGENT_SPINUP_PROMPTS.md ← prompts for building agents on Precast (template)
 docs/plans/                 ← LIVE plans directory (create as needed)
 docs/archive/               ← FROZEN, do-not-parse
-.githooks/pre-commit        ← doc-contract enforcement + lint-staged (native core.hooksPath)
-.claude/settings.json       ← Claude Code hooks (PostToolUse, Stop, SessionStart)
-.claude/settings.local.json ← local overrides (not committed)
-apps/agents/src/mastra/index.ts        ← Mastra instance (agents, storage, logger, server:4111)
-apps/agents/src/mastra/agents/         ← example-agent.ts + summary-agent.ts (neutral placeholders; each auto-serves its own A2A card)
-apps/agents/src/mastra/tools/          ← example-tool.ts (+ .spec.ts) — neutral placeholder
-apps/web/app/layout.tsx     ← root layout (imports globals.css, wraps <Providers>)
-apps/web/app/providers.tsx  ← 'use client' — Astryx <Theme> provider (neutral, mode=system)
-apps/web/app/page.tsx       ← landing page (server component; fetches /api/health)
-apps/web/app/AgentChat.tsx  ← 'use client' agent-chat demo (posts to /api/a2a/:id)
-apps/web/app/globals.css    ← Tailwind v4 + Astryx cascade-layer imports
-apps/web/app/lib/a2a-client.ts ← server-only callAgent() (AgentBase A2A; forwards agentId)
-apps/web/app/api/           ← route handlers: health/route.ts, a2a/[agentId]/route.ts
-apps/web/next.config.ts     ← Next config (standalone output; webpack jsxDEV shim in prod)
-apps/web/jsx-dev-runtime.shim.ts ← maps jsxDEV→jsx for Astryx's dev-JSX build (prod only)
-apps/web/test/              ← Vitest specs (shared env schema)
-apps/web/e2e/               ← Playwright UI specs (home.spec.ts)
-apps/web/vitest.config.ts   ← Vitest config (shared alias)
-apps/web/playwright.config.ts ← autonomous E2E (webServer boots next dev)
-apps/web/eslint.config — none (uses shared root eslint.config.js)
-packages/shared/src/        ← env parser (zod, ESM) + shared types
-templates/PRD.md            ← feed-forward: product requirements (reservation example)
-templates/DATA_MODEL.md     ← feed-forward: entities + invariants
-templates/AGENT_SPEC.md     ← feed-forward: Mastra agent/tools/guardrails
-templates/DESIGN_SYSTEM.md  ← feed-forward: Astryx design language
-apps/agents/Dockerfile         ← multi-stage build of the Mastra .mastra/output bundle (node:24-alpine)
-apps/web/Dockerfile         ← multi-stage build of the Next standalone server (node:24-alpine)
-docker/                     ← Docker Compose infra + app services (docker-compose.yml + .override.yml.example template; real .override.yml is gitignored)
-scripts/bootstrap.mjs       ← new-project bootstrap (rename + set-ports + deps + blank git + doc guidance)
-scripts/set-ports.mjs       ← retarget Mastra/Next dev ports across env/configs/scripts/compose/docs
-scripts/rename-project.mjs  ← one-shot placeholder rename (walks all source)
-scripts/update-deps.mjs     ← update deps to latest compatible + verify
-scripts/progress-stamp.mjs  ← PROGRESS.md auto-journal
+apps/agents/src/mastra/index.ts   ← Mastra instance (agents, storage, logger, server:4111)
+apps/agents/src/mastra/agents/    ← example-agent.ts + summary-agent.ts (neutral placeholders; each auto-serves its own A2A card)
+apps/agents/src/mastra/tools/     ← example-tool.ts (+ .spec.ts) — neutral placeholder
+apps/agents/Dockerfile            ← multi-stage build of the Mastra .mastra/output bundle
+apps/web/app/                ← layout.tsx, providers.tsx, page.tsx, AgentChat.tsx, globals.css
+apps/web/app/lib/a2a-client.ts ← server-only callAgent() (A2A; forwards agentId)
+apps/web/app/api/            ← route handlers: health/route.ts, a2a/[agentId]/route.ts
+apps/web/test/               ← Vitest specs (env schema + fitness guards: a2a-only, docker-build)
+apps/web/e2e/                ← Playwright UI specs (home.spec.ts)
+apps/web/Dockerfile          ← multi-stage build of the Next standalone server
+packages/shared/src/         ← env parser (zod, ESM) + shared types
+templates/                   ← feed-forward planning docs (PRD, DATA_MODEL, AGENT_SPEC, DESIGN_SYSTEM)
+docker/                      ← Docker Compose (apps only; infra is remote via .env)
+scripts/bootstrap.mjs        ← new-project bootstrap (rename + set-ports + deps + reset docs + blank git)
+scripts/set-ports.mjs        ← retarget Mastra/Next dev ports across env/configs/scripts/compose/docs
+scripts/rename-project.mjs   ← one-shot placeholder rename (walks all source)
+scripts/update-deps.mjs      ← update deps to latest compatible + verify
+scripts/progress-stamp.mjs   ← PROGRESS.md auto-journal
 ```
 
 ## 5. Lifecycle — when this file gets updated

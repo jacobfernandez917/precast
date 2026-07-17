@@ -22,8 +22,14 @@ const rootDir = join(__dirname, '..');
 const eventType = process.argv.find((a) => a.startsWith('--event='))?.split('=')[1] || 'unknown';
 const timestamp = new Date().toISOString().replace('T', ' ').split('.')[0];
 
-const journalPath = join(rootDir, 'docs', '.progress-journal.jsonl');
-const progressPath = join(rootDir, 'docs', 'PROGRESS.md');
+// Where progress memory lives. Defaults to this repo's docs/. Set
+// PRECAST_MEMORY_DIR to redirect journaling to an external memory dir — used when
+// developing Precast itself (an out-of-tree "ground zero") so the shipped repo
+// stays clean. Clones leave it unset and journal into docs/ as normal.
+const memDir = process.env.PRECAST_MEMORY_DIR;
+const baseDir = memDir && existsSync(memDir) ? memDir : join(rootDir, 'docs');
+const journalPath = join(baseDir, '.progress-journal.jsonl');
+const progressPath = join(baseDir, 'PROGRESS.md');
 
 // Append to journal file
 const journalDir = dirname(journalPath);

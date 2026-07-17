@@ -25,7 +25,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { dirname, join } from 'node:path';
@@ -161,7 +161,8 @@ async function main() {
   console.log(
     `  3. Install${skipDeps ? '' : ' + update'} dependencies${skipDeps ? '' : ' to latest compatible'}`,
   );
-  console.log(`  4. DELETE Precast's git history and start a blank repo on "${DEFAULT_BRANCH}"`);
+  console.log(`  4. Reset progress docs (PROGRESS/HANDOFF/journal) to a clean slate`);
+  console.log(`  5. DELETE Precast's git history and start a blank repo on "${DEFAULT_BRANCH}"`);
 
   if (!(await confirm('\nProceed?'))) {
     console.log('Aborted — nothing changed.');
@@ -181,7 +182,10 @@ async function main() {
     run('node', ['scripts/update-deps.mjs', '--no-verify']);
   }
 
-  // 4. Reset git history → blank repo on develop.
+  // 4. Reset progress memory so the new project starts with a clean slate.
+  resetDocs();
+
+  // 5. Reset git history → blank repo on develop.
   resetGit(name);
 
   console.log(`\n✅ ${name} is ready.`);
@@ -212,6 +216,26 @@ function printFeedForwardGuidance() {
   );
   console.log('   Copy the ones you need into docs/, replace the example content, then build.');
   console.log('   The example content walks a chat-based meeting-room reservation app end to end.');
+}
+
+/**
+ * Wipe any accumulated progress memory so the new project starts clean:
+ * drop the auto-journal file and strip stray <auto-journal> markers from
+ * PROGRESS.md's Session Log. PROGRESS.md/HANDOFF.md ship as empty templates,
+ * so no full rewrite is needed here.
+ */
+function resetDocs() {
+  const journal = join(rootDir, 'docs', '.progress-journal.jsonl');
+  if (existsSync(journal)) rmSync(journal, { force: true });
+
+  const progress = join(rootDir, 'docs', 'PROGRESS.md');
+  if (existsSync(progress)) {
+    const cleaned = readFileSync(progress, 'utf-8')
+      .split('\n')
+      .filter((line) => !line.startsWith('<auto-journal:'))
+      .join('\n');
+    writeFileSync(progress, cleaned, 'utf-8');
+  }
 }
 
 function resetGit(name) {
