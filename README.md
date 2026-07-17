@@ -12,7 +12,7 @@ Precast is built to be driven by coding agents (Claude Code, OpenClaw, or any ot
 - **Documentation contract** — a `CLAUDE.md → HANDOFF.md → PROGRESS.md → authoritative docs` chain that keeps context flowing between sessions and agents.
 - **Guardrails** — pre-commit doc-contract enforcement, lint-staged, EditorConfig, zod-based env validation, and fitness tests (A2A-only web→agents, rename-proof Docker builds).
 - **Progress automation** — Claude Code hooks auto-journal every edit into `PROGRESS.md`.
-- **Neutral runnable starters** — a **Mastra** agent API (a placeholder example agent + tool + durable memory, served with a Studio playground) and a **Next.js** web app (App Router, styled with the **Astryx** design system) on a shared TypeScript package, plus a full Docker Compose stack — both apps containerized (multi-stage images) alongside Postgres, Redis, and Keycloak. They carry no domain — just enough to prove the wiring, build, type-check, lint, and test green out of the box. You build the real structure from the feed-forward docs + tech stack.
+- **Neutral runnable starters** — a **Mastra** agent API (a placeholder example agent + tool + durable memory, served with a Studio playground) and a **Next.js** web app (App Router, styled with the **Astryx** design system) on a shared TypeScript package, plus a Docker Compose stack for the apps (multi-stage images), with Postgres, Redis, and Keycloak used as **remote/managed** services via `.env` rather than run locally. They carry no domain — just enough to prove the wiring, build, type-check, lint, and test green out of the box. You build the real structure from the feed-forward docs + tech stack.
 - **Feed-forward planning templates** — PRD, data model, agent spec, and an Astryx design system guide in `templates/`, each a worked example you copy into `docs/` and fill in before building.
 
 See [docs/TECH_STACK.md](docs/TECH_STACK.md) for the pinned versions of everything.
@@ -85,15 +85,17 @@ Any **A2A client can also invoke the agents directly** (JSON-RPC 2.0) at `POST /
 
 To move to non-default ports at any time, run `pnpm set-ports --mastra=4200 --web=3100` (either flag optional) — it rewrites env, config, pnpm scripts, Docker, and the port-stating docs in one pass.
 
-The `precast` placeholder spans package scopes (`@precast/*`), the Postgres database, the Keycloak realm/client, Docker container names, tsconfig path aliases, and env defaults. Renaming rewrites only functional config — the docs keep describing the boilerplate. Afterwards, set your project's name and mission in [docs/PROGRESS.md](docs/PROGRESS.md) §1 and update this README's title.
+The `precast` placeholder spans package scopes (`@precast/*`), Docker container names, tsconfig path aliases, and env defaults (including the Keycloak client id and the database name in your `DATABASE_URL`). Renaming rewrites only functional config — the docs keep describing the boilerplate. Afterwards, set your project's name and mission in [docs/PROGRESS.md](docs/PROGRESS.md) §1 and update this README's title.
 
-### Run in Docker (full stack)
+### Run in Docker (apps only)
 
 ```bash
-pnpm docker:up      # agents + web + Postgres + Redis + Keycloak (builds app images on first run)
+pnpm docker:up      # agents + web (builds app images on first run)
 ```
 
-Both apps are containerized (`apps/agents/Dockerfile`, `apps/web/Dockerfile`, multi-stage on `node:24-alpine`). The web container reaches the API over the Docker network (`http://agents:4111`). App ports follow your `pnpm set-ports` / `pnpm bootstrap` choices. To run only infra, target those services: `pnpm docker:up postgres redis keycloak`.
+Both apps are containerized (`apps/agents/Dockerfile`, `apps/web/Dockerfile`, multi-stage on `node:24-alpine`). The web container reaches the API over the Docker network (`http://agents:4111`). App ports follow your `pnpm set-ports` / `pnpm bootstrap` choices.
+
+**Infra is remote, not in Compose.** Precast does not run Postgres, Redis, or Keycloak locally — point the apps at your own **remote/managed** services by setting `DATABASE_URL`, `REDIS_URL`, and `KEYCLOAK_TOKEN_ISSUER_URI` in the root `.env` (see [.env.example](.env.example) for the recommended URL shapes). Managed options include Neon/Supabase/RDS (Postgres), Upstash/Redis Cloud (Redis), and any hosted Keycloak/OIDC issuer.
 
 ### Keeping dependencies current
 
@@ -165,7 +167,7 @@ If you are an agent picking up this repo, read in this exact order **before touc
 | `pnpm test:e2e`      | Run autonomous Playwright UI tests                               |
 | `pnpm lint`          | Lint all packages                                                |
 | `pnpm format`        | Format all files                                                 |
-| `pnpm docker:up`     | Start infra services (Postgres, Redis, Keycloak)                 |
+| `pnpm docker:up`     | Start the app containers (agents + web); infra is remote via `.env` |
 
 Full list: [docs/SCRIPTS.md](docs/SCRIPTS.md).
 

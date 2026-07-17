@@ -25,10 +25,10 @@ This is a **monorepo boilerplate** — a curated, opinionated starting point for
 | Web (template)        | **Next.js** (App Router) with route handlers          |
 | Design system         | **Astryx** (`@astryxdesign/core`, web UI)             |
 | Shared                | **TypeScript** packages with zod validation           |
-| Database              | **Postgres** + optional pgvector                      |
-| Identity              | **Keycloak** (external or Docker Compose)             |
-| Cache                 | **Redis**                                             |
-| Containers            | **Docker Compose**                                    |
+| Database              | **Postgres** + optional pgvector — **remote/managed** |
+| Identity              | **Keycloak** / OIDC — **remote/managed**              |
+| Cache                 | **Redis** — **remote/managed**                        |
+| Containers            | **Docker Compose** (apps only; infra is remote)       |
 | Testing               | **Vitest** + **Playwright**                           |
 | Linting               | **ESLint** + **Prettier**                             |
 
@@ -188,7 +188,8 @@ HANDOFF.md is a snapshot; PROGRESS.md is the long-form ledger. On disagreement a
 ### 4.5 Ports & Compose
 
 - Document assigned ports in [docs/TECH_STACK.md](docs/TECH_STACK.md).
-- Use Docker DNS names for inter-service URLs, not `localhost`.
+- Use Docker DNS names for inter-**app** URLs, not `localhost` (e.g. `http://agents:4111`).
+- **Infra is remote, not in Compose.** Postgres, Redis, and Keycloak are **not** run in `docker-compose.yml` — the apps reach remote/managed services via the root `.env` (`DATABASE_URL`, `REDIS_URL`, `KEYCLOAK_TOKEN_ISSUER_URI`). Do not re-add local infra services to Compose.
 
 ### 4.6 Documentation Contract — **MANDATORY**
 

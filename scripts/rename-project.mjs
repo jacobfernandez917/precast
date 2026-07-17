@@ -3,8 +3,9 @@
  * rename-project.mjs — Replace the `precast` placeholder with your project name.
  *
  * Precast ships with `precast` as the placeholder namespace across all functional
- * config: package scopes (@precast/*), Docker container/volume names, the Postgres
- * database, the Keycloak realm/client, tsconfig path aliases, and env defaults.
+ * config: package scopes (@precast/*), Docker container/volume names, the Keycloak
+ * client id, tsconfig path aliases, and env defaults. (Postgres/Redis/Keycloak are
+ * remote/managed — their URLs live in your `.env`, not in this repo.)
  *
  * Run this ONCE, first thing, after cloning Precast for a new project:
  *

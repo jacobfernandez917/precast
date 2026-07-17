@@ -95,7 +95,7 @@ It provides:
 │       └── tsconfig.json
 │
 ├── docker/
-│   ├── docker-compose.yml     ← Infra services (Postgres, Redis, Keycloak)
+│   ├── docker-compose.yml     ← App containers (agents + web); infra is remote via .env
 │   └── docker-compose.override.yml.example ← Template; copy to docker-compose.override.yml (gitignored local overrides)
 │
 ├── scripts/

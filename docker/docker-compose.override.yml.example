@@ -5,11 +5,11 @@
 # The real override is gitignored — add local-only tweaks (port conflicts,
 # volume paths) there, not here. Never put secrets in it.
 
-# Example: uncomment to use different ports on macOS (avoid AirPlay receiver conflict on 5000)
+# Example: uncomment to remap a published host port without touching the container.
 # services:
-#   keycloak:
+#   web:
 #     ports:
-#       - "8081:8080"
+#       - "3001:3000"   # host 3001 → container 3000
 
 # Note: to change the Mastra/web app ports, use `pnpm set-ports` (it rewrites the
 # base compose + config + scripts together). Use this override only to remap the

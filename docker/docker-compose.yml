@@ -1,5 +1,8 @@
-# ─── Full Stack ─────────────────────────────────────────────────────────────
-# Apps: Mastra agents (agents), Next web (web). Infra: Postgres, Redis, Keycloak.
+# ─── App Stack ──────────────────────────────────────────────────────────────
+# Apps: Mastra agents (agents), Next web (web).
+# Infra (Postgres, Redis, Keycloak) is NOT run here — point the app at your
+# own remote/managed services via the root .env (DATABASE_URL, REDIS_URL,
+# KEYCLOAK_TOKEN_ISSUER_URI). See .env.example.
 # Run with: docker compose -f docker/docker-compose.yml up -d
 # Override with: docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d
 # App ports are set by `pnpm set-ports` / `pnpm bootstrap` — change them there,
@@ -12,8 +15,9 @@ services:
       dockerfile: apps/agents/Dockerfile
     container_name: precast-agents
     restart: unless-stopped
-    # Load the user's root .env if present (API keys etc.); optional so the
-    # stack still boots without one. Values below override for the Docker network.
+    # Load the user's root .env — this is where the remote DATABASE_URL /
+    # REDIS_URL / KEYCLOAK_TOKEN_ISSUER_URI live. Optional so the stack still
+    # boots without one; the app fails fast if a required var is missing.
     env_file:
       - path: ../.env
         required: false
@@ -21,19 +25,11 @@ services:
       MASTRA_HOST: 0.0.0.0
       MASTRA_PORT: 4111
       MASTRA_DB_URL: file:/data/mastra.db
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/precast_dev
-      REDIS_URL: redis://redis:6379
-      KEYCLOAK_TOKEN_ISSUER_URI: http://keycloak:8080/realms/precast
       LOG_LEVEL: info
     ports:
       - '4111:4111'
     volumes:
       - precast-agents-data:/data
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     healthcheck:
       test:
         - CMD
@@ -80,62 +76,5 @@ services:
       retries: 10
       start_period: 20s
 
-  postgres:
-    image: postgres:17-alpine
-    container_name: precast-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: precast_dev
-    ports:
-      - '5432:5432'
-    volumes:
-      - precast-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: precast-redis
-    restart: unless-stopped
-    ports:
-      - '6379:6379'
-    volumes:
-      - precast-redis-data:/data
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:latest
-    container_name: precast-keycloak
-    restart: unless-stopped
-    environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 8080
-      KC_HTTP_ENABLED: 'true'
-      KC_HEALTH_ENABLED: 'true'
-    ports:
-      - '8080:8080'
-    volumes:
-      - precast-keycloak-data:/opt/keycloak/data
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:8080/health']
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-
 volumes:
   precast-agents-data:
-  precast-postgres-data:
-  precast-redis-data:
-  precast-keycloak-data:

@@ -199,3 +199,26 @@
 - +: Consistent identifiers across scripts, Docker service/DNS, logger name, and docs.
 - -: A one-time churn across config + docs; historical PROGRESS/ADR entries still reference `apps/api` as the name at the time (intentionally left as history).
 - Neutral: `KEYCLOAK_CLIENT_ID` stays `precast-api` — it names an OAuth client tier, not the workspace app.
+
+---
+
+## ADR-010: Infra (Postgres, Redis, Keycloak) is remote/managed, not run in Compose
+
+**Date:** 2026-07-17
+**Status:** Accepted
+
+**Context:** `docker-compose.yml` shipped local `postgres`, `redis`, and `keycloak` services (with volumes, healthchecks, and hardcoded in-cluster URLs on the `agents` service). For a boilerplate that targets real deployments, running stateful infra locally in Compose is misleading: teams use managed services (Neon/Supabase/RDS, Upstash/Redis Cloud, hosted Keycloak) in every environment that matters, and the local containers drift from that reality (default credentials, no TLS, data in throwaway volumes). None of these vars are consumed by the neutral app code today — they are configuration the forked project wires up.
+
+**Decision:**
+
+- Remove the `postgres`, `redis`, and `keycloak` services + their volumes from `docker-compose.yml`. Compose now runs the **apps only** (`agents`, `web`).
+- Drop the hardcoded `DATABASE_URL`/`REDIS_URL`/`KEYCLOAK_TOKEN_ISSUER_URI` from the `agents` service `environment:` block and the `depends_on` on postgres/redis — these now come from the root `.env`.
+- Recommend **remote/managed** services: `.env.example` ships remote URL shapes (`?sslmode=require`, `rediss://`, `https://…/realms/…`) with provider suggestions; the shared env schema keeps `DATABASE_URL` required and retains localhost dev-fallback defaults for `REDIS_URL`/`KEYCLOAK_TOKEN_ISSUER_URI` (so env validation and WEB-001 stay green) with comments pointing to managed providers.
+- Drop the local Keycloak admin credentials (`KEYCLOAK_ADMIN`/`KEYCLOAK_ADMIN_PASSWORD`) from `.env.example` — a remote Keycloak is administered on its own server.
+
+**Consequences:**
+
+- +: The boilerplate reflects how these services are actually run; no throwaway local data/credentials to mistake for real config.
+- +: Smaller, faster `docker:up` (apps only); no local ports 5432/6379/8080 to conflict with.
+- -: `pnpm docker:up` no longer gives you a database out of the box — you must point `.env` at a real/managed Postgres (and Redis/Keycloak if used) first.
+- Neutral: the env vars and schema are unchanged in shape; only their source (remote) and documentation changed. `KEYCLOAK_CLIENT_ID` still defaults to `precast-api`.

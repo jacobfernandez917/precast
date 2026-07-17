@@ -3,7 +3,7 @@
 > **This file is the ultimate cross-tool context memory.** All coding agents MUST update this file on every meaningful change. If you finish work without updating PROGRESS.md, the work is **not** considered complete.
 
 **Last Updated:** 2026-07-17
-**Updated By:** Claude Code — Added WEB-003 fitness guard: app Dockerfiles must use rename-proof path filters + artifact assertions
+**Updated By:** Claude Code — Removed local Postgres/Redis/Keycloak from Compose; infra is now remote/managed via `.env` (D-016 / ADR-010)
 **Active Branch:** develop
 
 ---
@@ -47,7 +47,7 @@ You MUST update PROGRESS.md when you:
 | ---------------- | ---------------------------------------------------------------------------------------------------------- |
 | **Project**      | Precast v0.1.0 (boilerplate — rename on fork via `pnpm rename <name>`)                                     |
 | **Mission**      | A precast, agent-ready TypeScript monorepo foundation with built-in documentation contracts and guardrails |
-| **Stacks**       | pnpm + Turborepo · Mastra (agents) · Next.js + Astryx (web) · zod · Postgres/Redis/Keycloak (Docker)       |
+| **Stacks**       | pnpm + Turborepo · Mastra (agents) · Next.js + Astryx (web) · zod · Postgres/Redis/Keycloak (remote/managed) |
 | **Repo Root**    | `~/Projects/precast`                                                                                       |
 | **Primary Docs** | [SPEC.md](SPEC.md), [TECH_STACK.md](TECH_STACK.md), [STYLE_GUIDE.md](STYLE_GUIDE.md)                       |
 
@@ -99,6 +99,7 @@ You MUST update PROGRESS.md when you:
 | D-007 | Web on **Next.js (App Router) + Astryx**; style with Astryx + Tailwind                 | 2026-07-14 | Chosen web tier + design system. Astryx components for the DS, Tailwind for layout. See ADR-008                                                                                                                                                |
 | D-008 | Web builds with **webpack** + a `jsx-dev-runtime` shim; dev on Turbopack               | 2026-07-14 | Astryx 0.1.x ships dev-JSX components; only webpack's alias reaches SSR. Revisit on Astryx prod build. ADR-008                                                                                                                                 |
 | D-015 | **Single root `.env`** — no per-app `.env`; dev/start scripts load it via `dotenv-cli` | 2026-07-15 | Frameworks default to per-app `.env` and neither loaded the root one; in-code `loadEnvFile` was unreliable under Mastra bundling, so load at script level. Docker uses `env_file`; prod uses real env                                          |
+| D-016 | **Infra is remote/managed, not in Compose** — Postgres/Redis/Keycloak removed from `docker-compose.yml`; apps read remote URLs from `.env` | 2026-07-17 | Local infra containers drift from how these are really run (managed providers, TLS, real credentials) and none of the vars are consumed by neutral app code. `.env.example` ships remote URL shapes; schema keeps dev-fallback defaults. See ADR-010 |
 | D-014 | Agent card advertises the bearer scheme (SDK-typed) via middleware, not a route        | 2026-07-15 | Mastra owns `.well-known` (no route override, no securitySchemes hook — verified), so the server middleware augments the card using `@a2a-js/sdk` types when `AGENT_API_TOKEN` is set. Kept `GOOGLE_GENERATIVE_AI_API_KEY` (provider reads it) |
 | D-013 | **Web → agents is A2A-only** (JSON-RPC 2.0), with or without AgentBase                 | 2026-07-15 | The web app must never use Mastra's native REST/listing/Studio — only A2A via `callAgent()`. Enforced by `apps/web/test/a2a-only.spec.ts`                                                                                                      |
 | D-012 | Rename `apps/api` → `apps/agents` (`@precast/agents`); **agents-only** scope           | 2026-07-15 | "API" was misleading — the app defines Mastra agents + tools only (no MCPs, no REST APIs). Mastra's own `/api/*` routes are unchanged. See ADR-009                                                                                             |
@@ -143,6 +144,62 @@ You MUST update PROGRESS.md when you:
 
 ## 8. Session Log
 
+
+<auto-journal: 2026-07-17 06:00:07 — file edit>
+
+<auto-journal: 2026-07-17 05:59:52 — file edit>
+
+<auto-journal: 2026-07-17 05:59:45 — file edit>
+
+<auto-journal: 2026-07-17 05:59:37 — file edit>
+- **2026-07-17 (later) — Claude Code —** **Removed local Postgres/Redis/Keycloak from Docker Compose; infra is now remote/managed** (D-016 / ADR-010). `docker-compose.yml` runs the apps only (`agents`, `web`) — dropped the three service blocks, their volumes, the `depends_on` on postgres/redis, and the hardcoded `DATABASE_URL`/`REDIS_URL`/`KEYCLOAK_TOKEN_ISSUER_URI` on the `agents` service (they now come from the root `.env`). `.env.example` repointed to remote URL shapes (`?sslmode=require`, `rediss://`, `https://…/realms/…`) with managed-provider suggestions; dropped local `KEYCLOAK_ADMIN`/`KEYCLOAK_ADMIN_PASSWORD`. Shared env schema reworded to recommend remote (kept dev-fallback defaults so WEB-001 stays green; `DATABASE_URL` still required). Swept the override examples, TECH_STACK (§5 service table + §6 ports + inventory), CLAUDE §1 table + §4.5, README, SPEC tree, SCRIPTS, rename-script header. None of the three vars are consumed by app code, so nothing broke. Verified: `docker compose config` → only `agents`+`web`; `pnpm build`/`typecheck` green; `pnpm test` 6+1 green. Updated the external precast-plugin scaffold skill (tech table, tree, docker:up, intro) to match.
+
+
+<auto-journal: 2026-07-17 05:59:21 — file edit>
+
+<auto-journal: 2026-07-17 05:59:15 — file edit>
+
+<auto-journal: 2026-07-17 05:58:27 — file edit>
+
+<auto-journal: 2026-07-17 05:58:22 — file edit>
+
+<auto-journal: 2026-07-17 05:58:15 — file edit>
+
+<auto-journal: 2026-07-17 05:58:11 — file edit>
+
+<auto-journal: 2026-07-17 05:55:28 — file edit>
+
+<auto-journal: 2026-07-17 05:54:53 — file edit>
+
+<auto-journal: 2026-07-17 05:54:46 — file edit>
+
+<auto-journal: 2026-07-17 05:54:40 — file edit>
+
+<auto-journal: 2026-07-17 05:54:31 — file edit>
+
+<auto-journal: 2026-07-17 05:54:27 — file edit>
+
+<auto-journal: 2026-07-17 05:54:22 — file edit>
+
+<auto-journal: 2026-07-17 05:53:57 — file edit>
+
+<auto-journal: 2026-07-17 05:53:51 — file edit>
+
+<auto-journal: 2026-07-17 05:53:42 — file edit>
+
+<auto-journal: 2026-07-17 05:53:34 — file edit>
+
+<auto-journal: 2026-07-17 05:53:19 — file edit>
+
+<auto-journal: 2026-07-17 05:53:08 — file edit>
+
+<auto-journal: 2026-07-17 05:52:57 — file edit>
+
+<auto-journal: 2026-07-17 05:52:47 — file edit>
+
+<auto-journal: 2026-07-17 05:52:38 — file edit>
+
+<auto-journal: 2026-07-17 05:52:31 — file edit>
 <auto-journal: 2026-07-17 05:22:55 — file edit>
 
 <auto-journal: 2026-07-17 05:22:34 — file edit>

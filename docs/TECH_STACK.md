@@ -24,10 +24,10 @@
 | CSS utilities         | Tailwind CSS         | ^4      | Layout/spacing via Astryx Tailwind bridge             |
 | Validation            | zod                  | ^3      | All external boundaries                               |
 | Logging               | pino                 | ^9      | Via @mastra/loggers PinoLogger                        |
-| Database              | PostgreSQL           | 17      | Docker Compose                                        |
-| Vector                | pgvector             | ^0.8    | Optional                                              |
-| Identity              | Keycloak             | latest  | Docker Compose                                        |
-| Cache                 | Redis                | 7       | Docker Compose                                        |
+| Database              | PostgreSQL           | 17      | **Remote/managed** (Neon, Supabase, RDS) — `DATABASE_URL` |
+| Vector                | pgvector             | ^0.8    | Optional (on the remote Postgres)                     |
+| Identity              | Keycloak / OIDC      | latest  | **Remote/managed** — `KEYCLOAK_TOKEN_ISSUER_URI`      |
+| Cache                 | Redis                | 7       | **Remote/managed** (Upstash, Redis Cloud) — `REDIS_URL`   |
 | Linting               | ESLint               | ^10     | Flat config                                           |
 | Formatting            | Prettier             | ^3      |                                                       |
 | Testing (agents)      | Vitest               | ^2      | `apps/agents` — no config (defaults)                  |
@@ -108,18 +108,19 @@ lives in `src/mastra/` (`index.ts` instance, `agents/`, `tools/`). ESM, no decor
 
 ## 5. Docker Compose Services
 
-| Service  | Image                            | Port (host) | Purpose                               |
-| -------- | -------------------------------- | ----------- | ------------------------------------- |
-| agents   | built — `apps/agents/Dockerfile` | 4111        | Mastra agents app (multi-stage build) |
-| web      | built — `apps/web/Dockerfile`    | 3000        | Next.js web app (multi-stage build)   |
-| postgres | postgres:17-alpine               | 5432        | Primary database                      |
-| redis    | redis:7-alpine                   | 6379        | Cache                                 |
-| keycloak | quay.io/keycloak/keycloak:latest | 8080        | Identity provider                     |
+Compose runs the **apps only**. Postgres, Redis, and Keycloak are **not** run in
+Compose — point the apps at your own remote/managed services via the root `.env`
+(`DATABASE_URL`, `REDIS_URL`, `KEYCLOAK_TOKEN_ISSUER_URI`).
+
+| Service | Image                            | Port (host) | Purpose                               |
+| ------- | -------------------------------- | ----------- | ------------------------------------- |
+| agents  | built — `apps/agents/Dockerfile` | 4111        | Mastra agents app (multi-stage build) |
+| web     | built — `apps/web/Dockerfile`    | 3000        | Next.js web app (multi-stage build)   |
 
 - **agents** / **web** images build from the repo root on **node:24-alpine** (multi-stage: pnpm workspace install + build → self-contained runtime bundle — `.mastra/output` for agents, Next `.next/standalone` for web).
-- Inter-service URLs use Docker DNS names (`postgres`, `redis`, `keycloak`, `api`), never `localhost`. `web` reaches the API via `MASTRA_INTERNAL_URL=http://agents:4111`.
-- `api` persists agent memory to the `precast-agents-data` volume (`MASTRA_DB_URL=file:/data/mastra.db`).
-- Both load the root `.env` if present (`env_file` optional); the compose `environment:` block overrides network-specific values.
+- Inter-service URLs use Docker DNS names, never `localhost`: `web` reaches the API via `MASTRA_INTERNAL_URL=http://agents:4111`. Remote infra is reached over the public network via its `.env` URL.
+- `agents` persists agent memory to the `precast-agents-data` volume (`MASTRA_DB_URL=file:/data/mastra.db`).
+- Both load the root `.env` (`env_file` optional) — that is where the remote infra URLs come from; the compose `environment:` block overrides only network-specific app values.
 
 ---
 
@@ -129,11 +130,8 @@ lives in `src/mastra/` (`index.ts` instance, `agents/`, `tools/`). ESM, no decor
 | ----------------- | ---- | --------------------------------- |
 | Web (host dev)    | 3000 | Next dev server                   |
 | Mastra (host dev) | 4111 | `mastra dev` — agent API + Studio |
-| Postgres (host)   | 5432 | Docker mapped                     |
-| Redis (host)      | 6379 | Docker mapped                     |
-| Keycloak (host)   | 8080 | Docker mapped                     |
 
-The **Web** and **Mastra** dev ports above are the defaults; they are chosen at `pnpm bootstrap` and can be changed any time with `pnpm set-ports --mastra=<port> --web=<port>`, which rewrites env, config, pnpm scripts, Docker, and this table in one pass. Infra ports (Postgres/Redis/Keycloak) are reserved and rejected as app ports.
+The **Web** and **Mastra** dev ports above are the defaults; they are chosen at `pnpm bootstrap` and can be changed any time with `pnpm set-ports --mastra=<port> --web=<port>`, which rewrites env, config, pnpm scripts, Docker, and this table in one pass. Postgres/Redis/Keycloak run on your remote/managed provider — their ports are part of the `.env` URLs, not local host ports.
 
 ---
 

@@ -23,13 +23,19 @@ export const EnvSchema = z.object({
   // one matching the agent's `provider/model` string (default: google/*).
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
 
-  // ── Database ─────────────────────────────────────────────────────────────
+  // ── Database (remote / managed Postgres) ───────────────────────────────────
+  // Precast does not run Postgres locally — point this at a managed service
+  // (Neon, Supabase, RDS, …). Required; no default, so it fails fast if unset.
   DATABASE_URL: z.string().url(),
 
-  // ── Redis ────────────────────────────────────────────────────────────────
+  // ── Redis (remote / managed) ───────────────────────────────────────────────
+  // Point at a managed Redis (Upstash, Redis Cloud, …). The localhost default is
+  // a dev fallback only; set your `rediss://` URL in `.env` for real use.
   REDIS_URL: z.string().url().default('redis://localhost:6379'),
 
-  // ── Keycloak ─────────────────────────────────────────────────────────────
+  // ── Keycloak / OIDC (remote) ───────────────────────────────────────────────
+  // Point at your hosted Keycloak (or any OIDC issuer). The localhost default is
+  // a dev fallback only; set your issuer URL in `.env` for real use.
   KEYCLOAK_TOKEN_ISSUER_URI: z.string().url().default('http://localhost:8080/realms/precast'),
   KEYCLOAK_CLIENT_ID: z.string().default('precast-api'),
   KEYCLOAK_CLIENT_SECRET: z.string().optional(),
