@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "dotenv -e ../../.env -- mastra dev",
+    "dev": "pnpm --filter @precast/shared build && dotenv -e ../../.env -- mastra dev",
     "build": "mastra build",
     "start": "dotenv -e ../../.env -- mastra start",
     "test": "vitest run",

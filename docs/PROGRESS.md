@@ -2,8 +2,8 @@
 
 > **This file is the ultimate cross-tool context memory.** All coding agents MUST update this file on every meaningful change. If you finish work without updating PROGRESS.md, the work is **not** considered complete.
 
-**Last Updated:** —
-**Updated By:** — (fill in on your first change)
+**Last Updated:** 2026-07-20
+**Updated By:** Claude Code (fixed `apps/agents`/`apps/web` dev scripts not building `@precast/shared` first — see Session Log)
 **Active Branch:** develop
 
 ---
@@ -43,13 +43,13 @@ You MUST update PROGRESS.md when you:
 
 > Fill this in for your project after `pnpm bootstrap`.
 
-| Field            | Value                                     |
-| ---------------- | ----------------------------------------- |
-| **Project**      | <your project name>                       |
-| **Mission**      | <one-line mission>                        |
+| Field            | Value                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Project**      | <your project name>                                                                                          |
+| **Mission**      | <one-line mission>                                                                                           |
 | **Stacks**       | pnpm + Turborepo · Mastra (agents) · Next.js + Astryx (web) · zod · Postgres/Redis/Keycloak (remote/managed) |
-| **Repo Root**    | <path>                                     |
-| **Primary Docs** | [SPEC.md](SPEC.md), [TECH_STACK.md](TECH_STACK.md), [STYLE_GUIDE.md](STYLE_GUIDE.md) |
+| **Repo Root**    | <path>                                                                                                       |
+| **Primary Docs** | [SPEC.md](SPEC.md), [TECH_STACK.md](TECH_STACK.md), [STYLE_GUIDE.md](STYLE_GUIDE.md)                         |
 
 ---
 
@@ -108,11 +108,7 @@ You MUST update PROGRESS.md when you:
 
 ## 8. Session Log
 
-
-
-
-
-
+- **2026-07-20 · Claude Code · build — fixed `apps/agents`/`apps/web` dev scripts not building `@precast/shared` first ·** Discovered while scaffolding an external project: a fresh `pnpm dev`/`dev:agents`/`dev:web` on a clean scaffold failed with `Cannot find module '.../shared/dist/index.js'` because both apps depend on `@precast/shared` (workspace package) but neither their own `dev` script nor the root `dev:agents`/`dev:web` shortcuts (which call `pnpm --filter` directly, bypassing Turbo) ever built it first. Fix: `apps/agents/package.json` and `apps/web/package.json` `dev` scripts now run `pnpm --filter @precast/shared build` before starting their dev server (covers every invocation path); `turbo.json`'s `dev` task gained `dependsOn: ["^build"]` for turbo-native flows (`pnpm dev` / `turbo run dev`). No test added — this is a monorepo wiring fix, not app behavior. `apps/agents/package.json`, `apps/web/package.json`, `turbo.json`.
 
 <!-- Newest first. The progress-stamp hook appends <auto-journal> markers here. -->
 

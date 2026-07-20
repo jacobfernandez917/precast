@@ -6,6 +6,7 @@
       "outputs": ["dist/**", ".next/**", "!.next/cache/**", ".mastra/output/**"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     },

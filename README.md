@@ -10,7 +10,7 @@ Precast is built to be driven by coding agents (Claude Code, OpenClaw, or any ot
 
 - **Monorepo structure** — pnpm workspaces + Turborepo (`apps/*` deployables, `packages/*` shared libs).
 - **Documentation contract** — a `CLAUDE.md → HANDOFF.md → PROGRESS.md → authoritative docs` chain that keeps context flowing between sessions and agents.
-- **Guardrails** — pre-commit doc-contract enforcement, lint-staged, EditorConfig, zod-based env validation, and fitness tests (A2A-only web→agents, rename-proof Docker builds).
+- **Guardrails** — pre-commit doc-contract enforcement, lint-staged, EditorConfig, zod-based env validation, and fitness tests (A2A-only web→agents, rename-proof Docker builds). Both apps' `dev` scripts build `@precast/shared` first, so a fresh scaffold's first `pnpm dev` never trips a missing-`dist` error.
 - **Progress automation** — Claude Code hooks auto-journal every edit into `PROGRESS.md`.
 - **Neutral runnable starters** — a **Mastra** agent API (a placeholder example agent + tool + durable memory, served with a Studio playground) and a **Next.js** web app (App Router, styled with the **Astryx** design system) on a shared TypeScript package, plus a Docker Compose stack for the apps (multi-stage images), with Postgres, Redis, and Keycloak used as **remote/managed** services via `.env` rather than run locally. They carry no domain — just enough to prove the wiring, build, type-check, lint, and test green out of the box. You build the real structure from the feed-forward docs + tech stack.
 - **Feed-forward planning templates** — PRD, data model, agent spec, and an Astryx design system guide in `templates/`, each a worked example you copy into `docs/` and fill in before building.
@@ -156,17 +156,17 @@ If you are an agent picking up this repo, read in this exact order **before touc
 
 ## Common scripts
 
-| Command              | Description                                                      |
-| -------------------- | ---------------------------------------------------------------- |
-| `pnpm bootstrap`     | Rename + update deps + blank git repo on `develop` (new project) |
-| `pnpm rename <name>` | Replace the `precast` placeholder with your project name         |
-| `pnpm deps:update`   | Update dependencies to latest compatible, then verify            |
-| `pnpm dev`           | Start all apps in dev mode                                       |
-| `pnpm build`         | Build all packages and apps                                      |
-| `pnpm test`          | Run all unit/integration tests                                   |
-| `pnpm test:e2e`      | Run autonomous Playwright UI tests                               |
-| `pnpm lint`          | Lint all packages                                                |
-| `pnpm format`        | Format all files                                                 |
+| Command              | Description                                                         |
+| -------------------- | ------------------------------------------------------------------- |
+| `pnpm bootstrap`     | Rename + update deps + blank git repo on `develop` (new project)    |
+| `pnpm rename <name>` | Replace the `precast` placeholder with your project name            |
+| `pnpm deps:update`   | Update dependencies to latest compatible, then verify               |
+| `pnpm dev`           | Start all apps in dev mode                                          |
+| `pnpm build`         | Build all packages and apps                                         |
+| `pnpm test`          | Run all unit/integration tests                                      |
+| `pnpm test:e2e`      | Run autonomous Playwright UI tests                                  |
+| `pnpm lint`          | Lint all packages                                                   |
+| `pnpm format`        | Format all files                                                    |
 | `pnpm docker:up`     | Start the app containers (agents + web); infra is remote via `.env` |
 
 Full list: [docs/SCRIPTS.md](docs/SCRIPTS.md).
