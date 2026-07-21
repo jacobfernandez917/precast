@@ -16,7 +16,6 @@
 
 - The Mastra app (`apps/agents`) and Next app (`apps/web`) are intentionally **neutral placeholders**. Real agents/pages/schema come from the feed-forward docs in `templates/` + TECH_STACK.
 - Infra (Postgres/Redis/Keycloak) is **remote/managed** via the root `.env` — not run in Compose.
-- **Fixed (2026-07-20):** `apps/agents`/`apps/web` import `@precast/shared` but their `dev` scripts never built it first, so a fresh scaffold's first `pnpm dev`/`dev:agents`/`dev:web` failed with `Cannot find module '.../shared/dist/index.js'`. Each app's `dev` script now builds `@precast/shared` first (covers every invocation path, including the direct `pnpm --filter` commands `dev:agents`/`dev:web` use, which bypass Turbo); `turbo.json`'s `dev` task also gained `dependsOn: ["^build"]` for turbo-native flows. Found while scaffolding an external project (`slack-daily-digest`).
 
 _Known carry-forwards:_ none.
 

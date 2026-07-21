@@ -2,8 +2,8 @@
 
 > **This file is the ultimate cross-tool context memory.** All coding agents MUST update this file on every meaningful change. If you finish work without updating PROGRESS.md, the work is **not** considered complete.
 
-**Last Updated:** 2026-07-20
-**Updated By:** Claude Code (fixed `apps/agents`/`apps/web` dev scripts not building `@precast/shared` first — see Session Log)
+**Last Updated:** —
+**Updated By:** — (fill in on your first change)
 **Active Branch:** develop
 
 ---
@@ -107,8 +107,6 @@ You MUST update PROGRESS.md when you:
 ---
 
 ## 8. Session Log
-
-- **2026-07-20 · Claude Code · build — fixed `apps/agents`/`apps/web` dev scripts not building `@precast/shared` first ·** Discovered while scaffolding an external project: a fresh `pnpm dev`/`dev:agents`/`dev:web` on a clean scaffold failed with `Cannot find module '.../shared/dist/index.js'` because both apps depend on `@precast/shared` (workspace package) but neither their own `dev` script nor the root `dev:agents`/`dev:web` shortcuts (which call `pnpm --filter` directly, bypassing Turbo) ever built it first. Fix: `apps/agents/package.json` and `apps/web/package.json` `dev` scripts now run `pnpm --filter @precast/shared build` before starting their dev server (covers every invocation path); `turbo.json`'s `dev` task gained `dependsOn: ["^build"]` for turbo-native flows (`pnpm dev` / `turbo run dev`). No test added — this is a monorepo wiring fix, not app behavior. `apps/agents/package.json`, `apps/web/package.json`, `turbo.json`.
 
 <!-- Newest first. The progress-stamp hook appends <auto-journal> markers here. -->
 
