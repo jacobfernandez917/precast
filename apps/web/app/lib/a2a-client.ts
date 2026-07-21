@@ -23,6 +23,8 @@
  * `apps/web/test/a2a-only.spec.ts`.
  */
 
+import { log } from './logger';
+
 export type A2aTransport = 'agentbase' | 'direct';
 
 /**
@@ -152,13 +154,25 @@ async function postJsonRpc(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (bearer) headers['Authorization'] = `Bearer ${bearer}`;
 
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-    signal,
-  });
-  return res.json();
+  // Debug-level so the full A2A wire traffic shows under `dev:verbose` /
+  // LOG_LEVEL=debug, without noising up the default `info` terminal. Auth
+  // header is intentionally not logged.
+  log.debug({ endpoint, authenticated: Boolean(bearer) }, 'A2A → outbound request');
+  const startedAt = performance.now();
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal,
+    });
+    const ms = Math.round(performance.now() - startedAt);
+    log.debug({ endpoint, status: res.status, ms }, 'A2A ← response');
+    return res.json();
+  } catch (err) {
+    log.error({ endpoint, err: (err as Error).message }, 'A2A × request threw');
+    throw err;
+  }
 }
 
 // ── Response parsing ─────────────────────────────────────────────────────────

@@ -23,7 +23,8 @@
 | Design system         | Astryx               | ^0.1    | `@astryxdesign/core` (see templates/DESIGN_SYSTEM.md) |
 | CSS utilities         | Tailwind CSS         | ^4      | Layout/spacing via Astryx Tailwind bridge             |
 | Validation            | zod                  | ^3      | All external boundaries                               |
-| Logging               | pino                 | ^9      | Via @mastra/loggers PinoLogger                        |
+| Logging               | pino                 | ^9      | Agents: @mastra/loggers PinoLogger. Web: own pino logger (`apps/web/app/lib/logger.ts`). Both keyed off `LOG_LEVEL` |
+| Log pretty-print (dev) | pino-pretty          | ^13     | Web dev-only; colorized terminal output (prod = JSON)  |
 | Database              | PostgreSQL           | 17      | **Remote/managed** (Neon, Supabase, RDS) — `DATABASE_URL` |
 | Vector                | pgvector             | ^0.8    | Optional (on the remote Postgres)                     |
 | Identity              | Keycloak / OIDC      | latest  | **Remote/managed** — `KEYCLOAK_TOKEN_ISSUER_URI`      |

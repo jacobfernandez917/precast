@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { callAgent, type AgentReply } from '../../../lib/a2a-client';
+import { log } from '../../../lib/logger';
 
 /**
  * POST /api/a2a/:agentId
@@ -18,8 +19,10 @@ export async function POST(
   { params }: { params: Promise<{ agentId: string }> },
 ): Promise<NextResponse<AgentReply | { error: string }>> {
   const { agentId } = await params;
+  log.info({ agentId }, 'POST /api/a2a — incoming agent call');
 
   if (!agentId) {
+    log.warn('POST /api/a2a rejected — missing agentId');
     return NextResponse.json({ error: 'Missing agentId' }, { status: 400 });
   }
 
@@ -30,6 +33,7 @@ export async function POST(
   } | null;
 
   if (!body || typeof body.text !== 'string' || body.text.trim().length === 0) {
+    log.warn({ agentId }, 'POST /api/a2a rejected — missing or invalid text field');
     return NextResponse.json({ error: 'Missing or invalid text field' }, { status: 400 });
   }
 
@@ -37,6 +41,12 @@ export async function POST(
     sessionId: body.sessionId,
     skillId: body.skillId,
   });
+
+  if (reply.ok) {
+    log.info({ agentId, via: reply.via }, 'POST /api/a2a — agent replied');
+  } else {
+    log.error({ agentId, via: reply.via, error: reply.error }, 'POST /api/a2a — agent call failed');
+  }
 
   return NextResponse.json(reply);
 }

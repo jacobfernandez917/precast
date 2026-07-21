@@ -21,6 +21,9 @@ const nextConfig: NextConfig = {
   // .next/standalone + .next/static instead of the whole workspace).
   output: 'standalone',
   outputFileTracingRoot: workspaceRoot,
+  // pino / pino-pretty use dynamic requires that webpack shouldn't bundle;
+  // keep them external so they're required from node_modules at runtime.
+  serverExternalPackages: ['pino', 'pino-pretty'],
   turbopack: {
     root: workspaceRoot,
   },

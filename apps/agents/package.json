@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter @precast/shared build && dotenv -e ../../.env -- mastra dev",
+    "dev:verbose": "pnpm --filter @precast/shared build && dotenv -v LOG_LEVEL=debug -e ../../.env -- mastra dev",
     "build": "mastra build",
     "start": "dotenv -e ../../.env -- mastra start",
     "test": "vitest run",

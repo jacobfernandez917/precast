@@ -19,9 +19,12 @@
 
 | Script            | Command                       | Description                |
 | ----------------- | ----------------------------- | -------------------------- |
-| `pnpm dev`        | `turbo run dev`               | Start all apps in dev mode |
-| `pnpm dev:agents` | `pnpm -F @precast/agents dev` | Start API dev server       |
-| `pnpm dev:web`    | `pnpm -F @precast/web dev`    | Start web dev server       |
+| `pnpm dev`                | `turbo run dev`                       | Start all apps in dev mode                              |
+| `pnpm dev:agents`         | `pnpm -F @precast/agents dev`         | Start agents dev server                                 |
+| `pnpm dev:web`            | `pnpm -F @precast/web dev`            | Start web dev server                                    |
+| `pnpm dev:verbose`        | `turbo run dev:verbose`               | Start all apps with `LOG_LEVEL=debug` (verbose logging) |
+| `pnpm dev:agents:verbose` | `pnpm -F @precast/agents dev:verbose` | Agents only, verbose (`LOG_LEVEL=debug`)                |
+| `pnpm dev:web:verbose`    | `pnpm -F @precast/web dev:verbose`    | Web only, verbose (`LOG_LEVEL=debug`)                   |
 
 ## Build
 
