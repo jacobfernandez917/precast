@@ -1,20 +1,19 @@
-# ─── Local Overrides for Infra Services (template) ──────────────────────────
+# ─── Local Overrides (template) ─────────────────────────────────────────────
 # Copy this file to `docker-compose.override.yml` (same directory) to use it:
 #   cp docker-compose.override.yml.example docker-compose.override.yml
 # Compose auto-merges docker-compose.override.yml on top of docker-compose.yml.
-# The real override is gitignored — add local-only tweaks (port conflicts,
-# volume paths) there, not here. Never put secrets in it.
+# The real override is gitignored — add local-only tweaks (volume paths, extra
+# services) there, not here. Never put secrets in it.
 
-# Example: uncomment to remap a published host port without touching the container.
+# Published host ports: prefer the env vars — set AGENTS_HOST_PORT / WEB_HOST_PORT
+# in the root .env (e.g. 60000 / 60001). No override file needed for that.
+
+# App (container) ports: use `pnpm set-ports` (it rewrites the base compose +
+# config + scripts together) — don't edit them here.
+
+# Use this override for anything the env vars don't cover, e.g. an extra local
+# volume mount:
 # services:
 #   web:
-#     ports:
-#       - "3001:3000"   # host 3001 → container 3000
-
-# Note: to change the Mastra/web app ports, use `pnpm set-ports` (it rewrites the
-# base compose + config + scripts together). Use this override only to remap the
-# published *host* port without touching the container, e.g.:
-# services:
-#   web:
-#     ports:
-#       - "3001:3000"   # host 3001 → container 3000
+#     volumes:
+#       - ./local-cache:/app/.cache

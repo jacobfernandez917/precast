@@ -134,6 +134,8 @@ Compose — point the apps at your own remote/managed services via the root `.en
 
 The **Web** and **Mastra** dev ports above are the defaults; they are chosen at `pnpm bootstrap` and can be changed any time with `pnpm set-ports --mastra=<port> --web=<port>`, which rewrites env, config, pnpm scripts, Docker, and this table in one pass. Postgres/Redis/Keycloak run on your remote/managed provider — their ports are part of the `.env` URLs, not local host ports.
 
+**Docker published host ports** are separate from the container/app ports: `docker-compose.yml` publishes `${AGENTS_HOST_PORT:-4111}:4111` and `${WEB_HOST_PORT:-3000}:3000`. Set `AGENTS_HOST_PORT` / `WEB_HOST_PORT` in the root `.env` to remap the host side (e.g. `60000`/`60001`) without changing the container ports; they default to the container port and only affect `pnpm docker:up`.
+
 ---
 
 ## 7. Testing Tools

@@ -5,8 +5,11 @@
 # KEYCLOAK_TOKEN_ISSUER_URI). See .env.example.
 # Run with: docker compose -f docker/docker-compose.yml up -d
 # Override with: docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d
-# App ports are set by `pnpm set-ports` / `pnpm bootstrap` — change them there,
-# not by hand, so every config, script, and doc stays in sync.
+# App (container) ports are set by `pnpm set-ports` / `pnpm bootstrap` — change
+# them there, not by hand, so every config, script, and doc stays in sync.
+# PUBLISHED HOST PORTS are separate: set AGENTS_HOST_PORT / WEB_HOST_PORT in the
+# root .env to map the containers to different host ports (they default to the
+# container port). Example: AGENTS_HOST_PORT=60000, WEB_HOST_PORT=60001.
 
 services:
   agents:
@@ -27,7 +30,8 @@ services:
       MASTRA_DB_URL: file:/data/mastra.db
       LOG_LEVEL: info
     ports:
-      - '4111:4111'
+      # host (AGENTS_HOST_PORT, default 4111) → container 4111
+      - '${AGENTS_HOST_PORT:-4111}:4111'
     volumes:
       - precast-agents-data:/data
     healthcheck:
@@ -61,7 +65,8 @@ services:
       # AGENTBASE_URL/AGENTBASE_TOKEN) to proxy through AgentBase instead.
       ENABLE_AGENTBASE: '0'
     ports:
-      - '3000:3000'
+      # host (WEB_HOST_PORT, default 3000) → container 3000
+      - '${WEB_HOST_PORT:-3000}:3000'
     depends_on:
       agents:
         condition: service_healthy

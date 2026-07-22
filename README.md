@@ -96,7 +96,9 @@ See [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) for both flow
 
 Any **A2A client can also invoke the agents directly** (JSON-RPC 2.0) at `POST /api/a2a/:agentId` by sending `Authorization: Bearer <AGENT_API_TOKEN>` — the bearer must match the server's `AGENT_API_TOKEN` (routes are open when it's unset). The "route through AgentBase" rule above applies to the **web frontend**; external clients authenticate directly with the token.
 
-To move to non-default ports at any time, run `pnpm set-ports --mastra=4200 --web=3100` (either flag optional) — it rewrites env, config, pnpm scripts, Docker, and the port-stating docs in one pass.
+To move to non-default **app** ports at any time, run `pnpm set-ports --mastra=4200 --web=3100` (either flag optional) — it rewrites env, config, pnpm scripts, Docker, and the port-stating docs in one pass.
+
+To publish the Docker containers on **different host ports** (without changing the app/container ports), set `AGENTS_HOST_PORT` / `WEB_HOST_PORT` in the root `.env` — e.g. `AGENTS_HOST_PORT=60000` and `WEB_HOST_PORT=60001` map host `60000→` agents `4111` and host `60001→` web `3000`. They default to the container port, and only affect `pnpm docker:up`.
 
 The `precast` placeholder spans package scopes (`@precast/*`), Docker container names, tsconfig path aliases, and env defaults (including the Keycloak client id and the database name in your `DATABASE_URL`). Renaming rewrites only functional config — the docs keep describing the boilerplate. Afterwards, set your project's name and mission in [docs/PROGRESS.md](docs/PROGRESS.md) §1 and update this README's title.
 
