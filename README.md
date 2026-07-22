@@ -12,7 +12,7 @@ Precast is built to be driven by coding agents (Claude Code, OpenClaw, or any ot
 - **Documentation contract** — a `CLAUDE.md → HANDOFF.md → PROGRESS.md → authoritative docs` chain that keeps context flowing between sessions and agents.
 - **Guardrails** — pre-commit doc-contract enforcement, lint-staged, EditorConfig, zod-based env validation, and fitness tests (A2A-only web→agents, rename-proof Docker builds). Both apps' `dev` scripts build `@precast/shared` first, so a fresh scaffold's first `pnpm dev` never trips a missing-`dist` error.
 - **Progress automation** — Claude Code hooks auto-journal every edit into `PROGRESS.md`.
-- **Neutral runnable starters** — a **Mastra** agent API (a placeholder example agent + tool + durable memory, served with a Studio playground) and a **Next.js** web app (App Router, styled with the **Astryx** design system) on a shared TypeScript package, plus a Docker Compose stack for the apps (multi-stage images), with Postgres, Redis, and Keycloak used as **remote/managed** services via `.env` rather than run locally. They carry no domain — just enough to prove the wiring, build, type-check, lint, and test green out of the box. You build the real structure from the feed-forward docs + tech stack.
+- **Neutral runnable starters** — a **Mastra** agent API (a placeholder example agent + tool + durable memory, served with a Studio playground) and a **Next.js** web app (App Router, styled with the **Astryx** design system) on a shared TypeScript package, plus a Docker Compose stack for the apps (multi-stage images) with a local **Keycloak** for dev auth, while **Postgres and Redis** are used as **remote/managed** services via `.env`. They carry no domain — just enough to prove the wiring, build, type-check, lint, and test green out of the box. You build the real structure from the feed-forward docs + tech stack.
 - **Feed-forward planning templates** — PRD, data model, agent spec, and an Astryx design system guide in `templates/`, each a worked example you copy into `docs/` and fill in before building.
 - **PRD-driven scaffolding** — already have a PRD? Hand it to your coding agent ("scaffold from this PRD") and it expands the PRD into the feed-forward docs and stubs the agents/UI, asking about anything vague. Drop the PRD at `docs/PRD.md`. (Delivered via the Precast scaffold skill; see `templates/PRD.md` for the shape — a loose PRD works too.)
 - **Mocks for missing dependencies** — when an external REST API, MCP server, or A2A agent is referenced but you haven't supplied the real one, the scaffold generates a **standards-conforming mock** (real service interface, realistic payloads, swappable by config) so the MVP runs end-to-end. Real config in `.env` → the real dependency is used instead. Never mocks over something you provided.
@@ -98,19 +98,19 @@ Any **A2A client can also invoke the agents directly** (JSON-RPC 2.0) at `POST /
 
 To move to non-default **app** ports at any time, run `pnpm set-ports --mastra=4200 --web=3100` (either flag optional) — it rewrites env, config, pnpm scripts, Docker, and the port-stating docs in one pass.
 
-To publish the Docker containers on **different host ports** (without changing the app/container ports), set `AGENTS_HOST_PORT` / `WEB_HOST_PORT` in the root `.env` — e.g. `AGENTS_HOST_PORT=60000` and `WEB_HOST_PORT=60001` map host `60000→` agents `4111` and host `60001→` web `3000`. They default to the container port, and only affect `pnpm docker:up`.
+To publish the Docker containers on **different host ports** (without changing the app/container ports), set `AGENTS_HOST_PORT` / `WEB_HOST_PORT` / `KEYCLOAK_HOST_PORT` in the root `.env` — e.g. `AGENTS_HOST_PORT=60000`, `WEB_HOST_PORT=60001`, `KEYCLOAK_HOST_PORT=60002` map host `60000→`agents`4111`, `60001→`web`3000`, `60002→`keycloak`8080`. They default to the container port, and only affect `pnpm docker:up`.
 
 The `precast` placeholder spans package scopes (`@precast/*`), Docker container names, tsconfig path aliases, and env defaults (including the Keycloak client id and the database name in your `DATABASE_URL`). Renaming rewrites only functional config — the docs keep describing the boilerplate. Afterwards, set your project's name and mission in [docs/PROGRESS.md](docs/PROGRESS.md) §1 and update this README's title.
 
-### Run in Docker (apps only)
+### Run in Docker (apps + Keycloak)
 
 ```bash
-pnpm docker:up      # agents + web (builds app images on first run)
+pnpm docker:up      # agents + web + Keycloak (builds app images on first run)
 ```
 
 Both apps are containerized (`apps/agents/Dockerfile`, `apps/web/Dockerfile`, multi-stage on `node:24-alpine`). The web container reaches the API over the Docker network (`http://agents:4111`). App ports follow your `pnpm set-ports` / `pnpm bootstrap` choices.
 
-**Infra is remote, not in Compose.** Precast does not run Postgres, Redis, or Keycloak locally — point the apps at your own **remote/managed** services by setting `DATABASE_URL`, `REDIS_URL`, and `KEYCLOAK_TOKEN_ISSUER_URI` in the root `.env` (see [.env.example](.env.example) for the recommended URL shapes). Managed options include Neon/Supabase/RDS (Postgres), Upstash/Redis Cloud (Redis), and any hosted Keycloak/OIDC issuer.
+**Postgres and Redis are remote, not in Compose.** Precast does not run them locally — point the apps at your own **remote/managed** services by setting `DATABASE_URL` and `REDIS_URL` in the root `.env` (see [.env.example](.env.example)). Managed options include Neon/Supabase/RDS (Postgres) and Upstash/Redis Cloud (Redis). **Keycloak runs locally** in Compose for dev auth (admin console at `http://localhost:${KEYCLOAK_HOST_PORT:-8080}`, `admin`/`admin` by default); in production set `KEYCLOAK_TOKEN_ISSUER_URI` to a managed Keycloak instead.
 
 ### Keeping dependencies current
 
@@ -182,7 +182,7 @@ If you are an agent picking up this repo, read in this exact order **before touc
 | `pnpm test:e2e`      | Run autonomous Playwright UI tests                                  |
 | `pnpm lint`          | Lint all packages                                                   |
 | `pnpm format`        | Format all files                                                    |
-| `pnpm docker:up`     | Start the app containers (agents + web); infra is remote via `.env` |
+| `pnpm docker:up`     | Start agents + web + Keycloak; Postgres/Redis are remote via `.env` |
 
 Full list: [docs/SCRIPTS.md](docs/SCRIPTS.md).
 

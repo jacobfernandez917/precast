@@ -26,9 +26,9 @@ This is a **monorepo boilerplate** — a curated, opinionated starting point for
 | Design system         | **Astryx** (`@astryxdesign/core`, web UI)             |
 | Shared                | **TypeScript** packages with zod validation           |
 | Database              | **Postgres** + optional pgvector — **remote/managed** |
-| Identity              | **Keycloak** / OIDC — **remote/managed**              |
+| Identity              | **Keycloak** / OIDC — **Docker Compose (dev)** or remote |
 | Cache                 | **Redis** — **remote/managed**                        |
-| Containers            | **Docker Compose** (apps only; infra is remote)       |
+| Containers            | **Docker Compose** (apps + Keycloak; Postgres/Redis remote) |
 | Testing               | **Vitest** + **Playwright**                           |
 | Linting               | **ESLint** + **Prettier**                             |
 
@@ -189,7 +189,9 @@ HANDOFF.md is a snapshot; PROGRESS.md is the long-form ledger. On disagreement a
 
 - Document assigned ports in [docs/TECH_STACK.md](docs/TECH_STACK.md).
 - Use Docker DNS names for inter-**app** URLs, not `localhost` (e.g. `http://agents:4111`).
-- **Infra is remote, not in Compose.** Postgres, Redis, and Keycloak are **not** run in `docker-compose.yml` — the apps reach remote/managed services via the root `.env` (`DATABASE_URL`, `REDIS_URL`, `KEYCLOAK_TOKEN_ISSUER_URI`). Do not re-add local infra services to Compose.
+- **Postgres + Redis are remote/managed, not in Compose** — the apps reach them via the root `.env` (`DATABASE_URL`, `REDIS_URL`). Do not add local Postgres/Redis services to Compose.
+- **Keycloak runs in Compose for local dev** (`start-dev`), published on `KEYCLOAK_HOST_PORT` (default 8080). In production, point `KEYCLOAK_TOKEN_ISSUER_URI` at a managed Keycloak instead of the container. See ADR (Keycloak returned to Compose; Postgres/Redis stay remote).
+- **Published host ports** are configurable via `AGENTS_HOST_PORT` / `WEB_HOST_PORT` / `KEYCLOAK_HOST_PORT` in `.env` (container ports unchanged).
 
 ### 4.6 Documentation Contract — **MANDATORY**
 

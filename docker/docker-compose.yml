@@ -1,8 +1,9 @@
 # ─── App Stack ──────────────────────────────────────────────────────────────
-# Apps: Mastra agents (agents), Next web (web).
-# Infra (Postgres, Redis, Keycloak) is NOT run here — point the app at your
-# own remote/managed services via the root .env (DATABASE_URL, REDIS_URL,
-# KEYCLOAK_TOKEN_ISSUER_URI). See .env.example.
+# Apps: Mastra agents (agents), Next web (web). Identity: Keycloak (local dev).
+# Postgres + Redis are NOT run here — point the app at your own remote/managed
+# services via the root .env (DATABASE_URL, REDIS_URL). Keycloak runs locally
+# for convenient dev auth; in production point KEYCLOAK_TOKEN_ISSUER_URI at a
+# managed Keycloak instead of this container. See .env.example.
 # Run with: docker compose -f docker/docker-compose.yml up -d
 # Override with: docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d
 # App (container) ports are set by `pnpm set-ports` / `pnpm bootstrap` — change
@@ -81,5 +82,25 @@ services:
       retries: 10
       start_period: 20s
 
+  # Keycloak (OIDC) for local development. Runs in dev mode (HTTP, no TLS).
+  # Admin console at http://localhost:${KEYCLOAK_HOST_PORT:-8080} (admin/admin by
+  # default). Nothing depends on it, so no healthcheck. In production, use a
+  # managed Keycloak and set KEYCLOAK_TOKEN_ISSUER_URI accordingly.
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: precast-keycloak
+    restart: unless-stopped
+    command: ['start-dev']
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: 'true'
+    ports:
+      # host (KEYCLOAK_HOST_PORT, default 8080) → container 8080
+      - '${KEYCLOAK_HOST_PORT:-8080}:8080'
+    volumes:
+      - precast-keycloak-data:/opt/keycloak/data
+
 volumes:
   precast-agents-data:
+  precast-keycloak-data:

@@ -58,7 +58,7 @@
 
 | Script                | Command                                                        | Description                                                                             |
 | --------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `pnpm docker:up`      | `docker compose -f docker/docker-compose.yml up -d`            | Start the app containers — agents + web (builds app images on first run). Postgres/Redis/Keycloak are remote/managed via `.env`, not run here. Set `AGENTS_HOST_PORT`/`WEB_HOST_PORT` in `.env` to publish on different host ports |
+| `pnpm docker:up`      | `docker compose -f docker/docker-compose.yml up -d`            | Start agents + web + Keycloak (builds app images on first run). Postgres/Redis are remote/managed via `.env`, not run here. Set `AGENTS_HOST_PORT`/`WEB_HOST_PORT`/`KEYCLOAK_HOST_PORT` in `.env` to publish on different host ports |
 | `pnpm docker:down`    | `docker compose -f docker/docker-compose.yml down`             | Stop the stack                                                                          |
 | `pnpm docker:logs`    | `docker compose -f docker/docker-compose.yml logs -f`          | Follow logs                                                                             |
 | `pnpm docker:ps`      | `docker compose -f docker/docker-compose.yml ps`               | List services                                                                           |

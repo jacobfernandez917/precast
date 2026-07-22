@@ -39,7 +39,8 @@
 | APP-005 | Mastra API boots; `GET /api/agents` lists the example agent                                | Passing                         |
 | APP-006 | Web builds; `GET /api/health` (Next.js route handler) returns `{status:"ok"}`; `/` renders | Passing                         |
 | APP-007 | Env validation fails fast when `DATABASE_URL` is missing/invalid                           | Passing (covered by web Vitest) |
-| APP-008 | Compose publishes host ports from `AGENTS_HOST_PORT`/`WEB_HOST_PORT` (default = container port; override remaps host side only) | Passing (verified via `docker compose config`: default 4111/3000; `AGENTS_HOST_PORT=60000 WEB_HOST_PORT=60001` → 60000→4111, 60001→3000) |
+| APP-008 | Compose publishes host ports from `AGENTS_HOST_PORT`/`WEB_HOST_PORT`/`KEYCLOAK_HOST_PORT` (default = container port; override remaps host side only) | Passing (verified via `docker compose config`: defaults 4111/3000/8080; `AGENTS_HOST_PORT=60000 WEB_HOST_PORT=60001` → 60000→4111, 60001→3000; `KEYCLOAK_HOST_PORT=60002` → 60002→8080) |
+| APP-009 | Compose includes a `keycloak` service (dev `start-dev`, published on `KEYCLOAK_HOST_PORT`); Postgres/Redis remain remote | Passing (verified via `docker compose config`: services = agents, keycloak, web; compose valid) |
 
 ---
 

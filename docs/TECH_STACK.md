@@ -27,7 +27,7 @@
 | Log pretty-print (dev) | pino-pretty          | ^13     | Web dev-only; colorized terminal output (prod = JSON)  |
 | Database              | PostgreSQL           | 17      | **Remote/managed** (Neon, Supabase, RDS) — `DATABASE_URL` |
 | Vector                | pgvector             | ^0.8    | Optional (on the remote Postgres)                     |
-| Identity              | Keycloak / OIDC      | latest  | **Remote/managed** — `KEYCLOAK_TOKEN_ISSUER_URI`      |
+| Identity              | Keycloak / OIDC      | latest  | **Docker Compose (dev)** or remote — `KEYCLOAK_TOKEN_ISSUER_URI` |
 | Cache                 | Redis                | 7       | **Remote/managed** (Upstash, Redis Cloud) — `REDIS_URL`   |
 | Linting               | ESLint               | ^10     | Flat config                                           |
 | Formatting            | Prettier             | ^3      |                                                       |
@@ -109,14 +109,16 @@ lives in `src/mastra/` (`index.ts` instance, `agents/`, `tools/`). ESM, no decor
 
 ## 5. Docker Compose Services
 
-Compose runs the **apps only**. Postgres, Redis, and Keycloak are **not** run in
+Compose runs the **apps + Keycloak**. **Postgres and Redis** are **not** run in
 Compose — point the apps at your own remote/managed services via the root `.env`
-(`DATABASE_URL`, `REDIS_URL`, `KEYCLOAK_TOKEN_ISSUER_URI`).
+(`DATABASE_URL`, `REDIS_URL`). **Keycloak** runs locally for dev auth; in production
+point `KEYCLOAK_TOKEN_ISSUER_URI` at a managed Keycloak instead.
 
-| Service | Image                            | Port (host) | Purpose                               |
-| ------- | -------------------------------- | ----------- | ------------------------------------- |
-| agents  | built — `apps/agents/Dockerfile` | 4111        | Mastra agents app (multi-stage build) |
-| web     | built — `apps/web/Dockerfile`    | 3000        | Next.js web app (multi-stage build)   |
+| Service  | Image                            | Port (host)                    | Purpose                               |
+| -------- | -------------------------------- | ------------------------------ | ------------------------------------- |
+| agents   | built — `apps/agents/Dockerfile` | `${AGENTS_HOST_PORT:-4111}`    | Mastra agents app (multi-stage build) |
+| web      | built — `apps/web/Dockerfile`    | `${WEB_HOST_PORT:-3000}`       | Next.js web app (multi-stage build)   |
+| keycloak | `quay.io/keycloak/keycloak:latest` | `${KEYCLOAK_HOST_PORT:-8080}` | OIDC identity provider (dev; `start-dev`) |
 
 - **agents** / **web** images build from the repo root on **node:24-alpine** (multi-stage: pnpm workspace install + build → self-contained runtime bundle — `.mastra/output` for agents, Next `.next/standalone` for web).
 - Inter-service URLs use Docker DNS names, never `localhost`: `web` reaches the API via `MASTRA_INTERNAL_URL=http://agents:4111`. Remote infra is reached over the public network via its `.env` URL.
@@ -127,14 +129,15 @@ Compose — point the apps at your own remote/managed services via the root `.en
 
 ## 6. Port Assignments
 
-| Service           | Port | Notes                             |
-| ----------------- | ---- | --------------------------------- |
-| Web (host dev)    | 3000 | Next dev server                   |
-| Mastra (host dev) | 4111 | `mastra dev` — agent API + Studio |
+| Service            | Port | Notes                             |
+| ------------------ | ---- | --------------------------------- |
+| Web (host dev)     | 3000 | Next dev server                   |
+| Mastra (host dev)  | 4111 | `mastra dev` — agent API + Studio |
+| Keycloak (Compose) | 8080 | local dev OIDC (`KEYCLOAK_HOST_PORT`) |
 
-The **Web** and **Mastra** dev ports above are the defaults; they are chosen at `pnpm bootstrap` and can be changed any time with `pnpm set-ports --mastra=<port> --web=<port>`, which rewrites env, config, pnpm scripts, Docker, and this table in one pass. Postgres/Redis/Keycloak run on your remote/managed provider — their ports are part of the `.env` URLs, not local host ports.
+The **Web** and **Mastra** dev ports above are the defaults; they are chosen at `pnpm bootstrap` and can be changed any time with `pnpm set-ports --mastra=<port> --web=<port>`, which rewrites env, config, pnpm scripts, Docker, and this table in one pass. Postgres/Redis run on your remote/managed provider — their ports are part of the `.env` URLs, not local host ports.
 
-**Docker published host ports** are separate from the container/app ports: `docker-compose.yml` publishes `${AGENTS_HOST_PORT:-4111}:4111` and `${WEB_HOST_PORT:-3000}:3000`. Set `AGENTS_HOST_PORT` / `WEB_HOST_PORT` in the root `.env` to remap the host side (e.g. `60000`/`60001`) without changing the container ports; they default to the container port and only affect `pnpm docker:up`.
+**Docker published host ports** are separate from the container/app ports: `docker-compose.yml` publishes `${AGENTS_HOST_PORT:-4111}:4111`, `${WEB_HOST_PORT:-3000}:3000`, and `${KEYCLOAK_HOST_PORT:-8080}:8080`. Set `AGENTS_HOST_PORT` / `WEB_HOST_PORT` / `KEYCLOAK_HOST_PORT` in the root `.env` to remap the host side (e.g. `60000`/`60001`/`60002`) without changing the container ports; they default to the container port and only affect `pnpm docker:up`.
 
 ---
 
