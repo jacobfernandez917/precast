@@ -1,0 +1,6 @@
+{
+  "$comment": "AgentBase import contract — see docs/INTEGRATION_AGENTBASE.md. AgentBase clones this repo, builds the Dockerfile below (repo root as build context), hosts the container, mints the inbound bearer into `authEnv`, and registers each Mastra agent it serves. `agents` is intentionally omitted: AgentBase discovers the hosted agents post-boot via GET /api/agents, so this file never goes stale when you replace the placeholder agents. To pin specific agents, add e.g. \"agents\": [{ \"id\": \"my-agent\", \"name\": \"My Agent\" }].",
+  "dockerfile": "apps/agents/Dockerfile",
+  "port": 4111,
+  "authEnv": "AGENT_API_TOKEN"
+}
