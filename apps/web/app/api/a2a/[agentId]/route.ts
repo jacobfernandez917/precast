@@ -11,7 +11,7 @@ import { log } from '../../../lib/logger';
  * ONLY route the client should use to talk to agents — never call Mastra
  * directly from client code.
  *
- * Request body: { text: string; sessionId?: string; skillId?: string }
+ * Request body: { text: string; sessionId?: string }
  * Returns a normalized { ok, text, error?, via, raw } reply.
  */
 export async function POST(
@@ -29,7 +29,6 @@ export async function POST(
   const body = (await request.json().catch(() => null)) as {
     text?: unknown;
     sessionId?: string;
-    skillId?: string;
   } | null;
 
   if (!body || typeof body.text !== 'string' || body.text.trim().length === 0) {
@@ -39,7 +38,6 @@ export async function POST(
 
   const reply = await callAgent(agentId, body.text, {
     sessionId: body.sessionId,
-    skillId: body.skillId,
   });
 
   if (reply.ok) {

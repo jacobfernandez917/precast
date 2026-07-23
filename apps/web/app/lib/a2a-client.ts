@@ -8,35 +8,40 @@
  *                          POST ${MASTRA_INTERNAL_URL}/api/a2a/:agentId
  *                          (auth: Bearer AGENT_API_TOKEN — must match the
  *                          Mastra server's token; omitted when unset)
- *   anything else / unset → proxy through AgentBase's internal A2A endpoint
- *                          (DEFAULT): POST ${AGENTBASE_URL}/a2a
- *                          body: { agent_slug, skill_id, arguments }
+ *   anything else / unset → proxy through AgentBase's per-agent proxy URL
+ *                          (DEFAULT): POST ${AGENTBASE_AGENT_URL_<AGENT_ID>}
+ *                          body: the same A2A message/send envelope direct
+ *                          mode sends — AgentBase forwards it verbatim
  *                          auth:  Bearer <JWT minted via client_credentials>
  *
  * Defaulting to AgentBase is a guard rail: forgetting the flag routes through
  * the audited, zero-trust proxy rather than silently exposing Mastra directly.
  *
- * PROXY AUTH: AgentBase's `/a2a` accepts a **developer Application** identity —
- * an OAuth2 `client_credentials` bearer, never a long-lived static token. See
+ * PROXY URL: each agent gets its own full AgentBase proxy URL — copy the
+ * "Invocation Endpoint" straight from the agent's listing page in AgentBase
+ * Studio into `AGENTBASE_AGENT_URL_<AGENT_ID>` (see .env.example). No slug or
+ * skill id to resolve separately — the URL already encodes the org + agent,
+ * and this endpoint routes purely by that path (skill selection is the
+ * agent's own job once the message arrives).
+ *
+ * PROXY AUTH: still a **developer Application** identity (OAuth2
+ * `client_credentials` bearer, never a long-lived static token) — see
  * `agentbase-auth.ts` for how the token is minted/cached, and
  * `docs/INTEGRATION_AGENTBASE.md` for how to create the Application and
  * subscribe it to each agent's listing (required even for your own agents).
  *
- * MULTI-AGENT: AgentBase assigns each imported agent its own registry `slug`
- * (always `<derived-name>-<random8>` — never your Mastra agent id) and each
- * agent has one or more `skill` ids. There's no per-agent URL on this internal
- * path — one shared endpoint, with the target selected per request via
- * `agent_slug` + `skill_id`. `AGENTBASE_AGENTS` (JSON) maps each local Mastra
- * agent id to its real AgentBase slug/skill — copy these from the agent's
- * listing in Studio after import; they can't be predicted ahead of time.
+ * MULTI-AGENT: one env var per agent (`AGENTBASE_AGENT_URL_<AGENT_ID>`,
+ * uppercased/underscored). Add one line per agent as you register more of
+ * them on the Mastra instance — no shared endpoint or JSON mapping to keep
+ * in sync.
  *
  * INVARIANT: the web app talks to agents **only over A2A** (JSON-RPC 2.0),
  * always through this util — with or without AgentBase. Both branches target an
- * A2A endpoint (`/api/a2a/:id` direct, or AgentBase `/a2a`); neither ever calls
- * Mastra's native REST (`/api/agents/:id/generate|stream`), listing, or Studio.
- * All Next → Mastra traffic goes through here (via the route handler) — never
- * call Mastra or AgentBase directly from client components. Enforced by
- * `apps/web/test/a2a-only.spec.ts`.
+ * A2A endpoint (`/api/a2a/:id` direct, or the agent's AgentBase proxy URL);
+ * neither ever calls Mastra's native REST (`/api/agents/:id/generate|stream`),
+ * listing, or Studio. All Next → Mastra traffic goes through here (via the
+ * route handler) — never call Mastra or AgentBase directly from client
+ * components. Enforced by `apps/web/test/a2a-only.spec.ts`.
  */
 
 import { log } from './logger';
@@ -46,7 +51,7 @@ export type A2aTransport = 'agentbase' | 'direct';
 
 /**
  * Normalized reply so callers and the UI don't depend on each transport's wire
- * format. AgentBase's `/a2a` relays the upstream Mastra A2A response verbatim,
+ * format. AgentBase's proxy relays the upstream Mastra A2A response verbatim,
  * so both transports actually share the same response shape today — this type
  * (and `normalize()`) stay transport-agnostic on purpose.
  */
@@ -64,8 +69,6 @@ export interface AgentReply {
 
 interface CallOptions {
   sessionId?: string;
-  /** Override the skill id resolved from AGENTBASE_AGENTS (proxy mode only). */
-  skillId?: string;
   signal?: AbortSignal;
 }
 
@@ -92,61 +95,9 @@ export async function callAgent(
     : callDirect(agentId, text, options);
 }
 
-// ── AGENTBASE_AGENTS: local agent id → AgentBase (slug, skillId) ────────────
-
-interface AgentBaseAgentEntry {
-  slug: string;
-  skillId: string;
-}
-
-let parsedAgentsConfig: Record<string, AgentBaseAgentEntry> | null | undefined;
-
-/** Test-only: clear the memoized AGENTBASE_AGENTS parse between test cases. */
-export function resetAgentBaseAgentsConfigForTests(): void {
-  parsedAgentsConfig = undefined;
-}
-
-/** Parse+cache AGENTBASE_AGENTS once. `undefined` = not parsed yet, `null` = invalid JSON. */
-function agentBaseAgentsConfig(): Record<string, AgentBaseAgentEntry> | null {
-  if (parsedAgentsConfig !== undefined) return parsedAgentsConfig;
-  const raw = process.env.AGENTBASE_AGENTS ?? '';
-  if (!raw) {
-    parsedAgentsConfig = {};
-    return parsedAgentsConfig;
-  }
-  try {
-    const obj = JSON.parse(raw) as unknown;
-    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-      parsedAgentsConfig = obj as Record<string, AgentBaseAgentEntry>;
-    } else {
-      parsedAgentsConfig = null;
-    }
-  } catch {
-    parsedAgentsConfig = null;
-  }
-  return parsedAgentsConfig;
-}
-
-function resolveAgentBaseTarget(
-  agentId: string,
-  skillIdOverride?: string,
-): { slug: string; skillId: string } | { error: string } {
-  const config = agentBaseAgentsConfig();
-  if (config === null) {
-    return { error: 'AGENTBASE_AGENTS is not valid JSON — see .env.example for the expected shape.' };
-  }
-  const entry = config[agentId];
-  const slug = entry?.slug;
-  const skillId = skillIdOverride ?? entry?.skillId;
-  if (!slug || !skillId) {
-    return {
-      error:
-        `No AgentBase mapping for agent "${agentId}" in AGENTBASE_AGENTS. Add its real ` +
-        `AgentBase-assigned slug + a skill id (copy both from the agent's listing in Studio — ` +
-        `the slug is never the same as the Mastra agent id).`,
-    };
-  }
-  return { slug, skillId };
+/** `example-agent` → `AGENTBASE_AGENT_URL_EXAMPLE_AGENT`. */
+function envVarNameForAgent(agentId: string): string {
+  return `AGENTBASE_AGENT_URL_${agentId.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`;
 }
 
 // ── A2A envelope (shared by both transports — AgentBase relays it unchanged) ─
@@ -173,26 +124,22 @@ async function callViaAgentBase(
   text: string,
   options?: CallOptions,
 ): Promise<AgentReply> {
-  const url = process.env.AGENTBASE_URL ?? '';
+  const envVar = envVarNameForAgent(agentId);
+  const url = process.env[envVar] ?? '';
 
   // Guard rail: AgentBase is the default transport, so fail loudly (with a fix)
-  // rather than silently POST to an unset/placeholder host.
-  if (!url || url.includes('example.com')) {
+  // rather than silently POST to an unset endpoint.
+  if (!url) {
     return {
       ok: false,
       text: null,
       via: 'agentbase',
       raw: null,
       error:
-        'AgentBase is enabled (the default) but AGENTBASE_URL is not configured. ' +
-        'Set AGENTBASE_URL (+ the Application credentials), or set ENABLE_AGENTBASE=0 ' +
-        'to call Mastra directly over A2A.',
+        `AgentBase is enabled (the default) but ${envVar} is not set. Copy the ` +
+        `"Invocation Endpoint" from agent "${agentId}"'s listing in AgentBase Studio into ` +
+        `${envVar}, or set ENABLE_AGENTBASE=0 to call Mastra directly over A2A.`,
     };
-  }
-
-  const target = resolveAgentBaseTarget(agentId, options?.skillId);
-  if ('error' in target) {
-    return { ok: false, text: null, via: 'agentbase', raw: null, error: target.error };
   }
 
   const tokenResult = await getAgentBaseAccessToken();
@@ -200,16 +147,11 @@ async function callViaAgentBase(
     return { ok: false, text: null, via: 'agentbase', raw: null, error: tokenResult.error };
   }
 
-  // AgentBase's internal /a2a proxy: caller selects the target per request via
-  // agent_slug + skill_id; `arguments` is relayed to Mastra's real A2A endpoint
-  // verbatim, so it must already be a valid A2A JSON-RPC envelope.
-  const body = {
-    agent_slug: target.slug,
-    skill_id: target.skillId,
-    arguments: buildA2aMessageEnvelope(text, options?.sessionId),
-  };
+  // AgentBase's per-agent proxy takes the raw A2A envelope as the body (org +
+  // agent are already in the URL) — the same one direct mode sends to Mastra.
+  const body = buildA2aMessageEnvelope(text, options?.sessionId);
 
-  const raw = await postJsonRpc(`${url}/a2a`, body, tokenResult.accessToken, options?.signal);
+  const raw = await postJsonRpc(url, body, tokenResult.accessToken, options?.signal);
   return normalize(raw, 'agentbase');
 }
 

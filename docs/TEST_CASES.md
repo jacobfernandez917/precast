@@ -66,7 +66,7 @@
 | WEB-005 | `import-manifest.spec.ts` — `agentbase.import.json` `requiredEnv` matches the required set derived from the env schema (drift guard) + never gates reserved names | Passing |
 | WEB-006 | `docker-compose-profiles.spec.ts` — every `pnpm docker:*` script routes through `scripts/docker-compose.mjs` (so root `.env` is read); agents/web/keycloak each declare a matching `profiles:` entry; web's `depends_on.agents` is `required: false` | Passing |
 | WEB-007 | `agentbase-auth.spec.ts` — mints an AgentBase access token via OAuth2 `client_credentials` (correct `grant_type`/`client_id`/`client_secret`); caches + auto-refreshes before expiry; clear errors on missing config, non-2xx response, or a thrown request | Passing |
-| WEB-008 | `a2a-client.spec.ts` — proxy mode POSTs `{agent_slug, skill_id, arguments}` (a full A2A `message/send` envelope) with the minted bearer to `$AGENTBASE_URL/a2a`; resolves the target from `AGENTBASE_AGENTS`; guard-rails on unset `AGENTBASE_URL`, missing agent mapping, invalid `AGENTBASE_AGENTS` JSON, or a token-mint failure (no fetch call in any case); direct mode unaffected (still `message/send` straight to Mastra) | Passing |
+| WEB-008 | `a2a-client.spec.ts` — proxy mode POSTs the plain A2A `message/send` envelope (no wrapper) with the minted bearer to the agent's `AGENTBASE_AGENT_URL_<AGENT_ID>`; derives the env var name from the agent id; guard-rails on a missing per-agent URL or a token-mint failure (no fetch call in either case); direct mode unaffected (still `message/send` straight to Mastra) | Passing |
 
 ---
 

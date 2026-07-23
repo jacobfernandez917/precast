@@ -4,23 +4,17 @@ vi.mock('../app/lib/agentbase-auth', () => ({
   getAgentBaseAccessToken: vi.fn(),
 }));
 
-import { callAgent, resetAgentBaseAgentsConfigForTests } from '../app/lib/a2a-client';
+import { callAgent } from '../app/lib/a2a-client';
 import { getAgentBaseAccessToken } from '../app/lib/agentbase-auth';
 
 const mockedGetToken = vi.mocked(getAgentBaseAccessToken);
 
-const ENV_KEYS = [
-  'ENABLE_AGENTBASE',
-  'AGENTBASE_URL',
-  'AGENTBASE_AGENTS',
-  'MASTRA_INTERNAL_URL',
-  'AGENT_API_TOKEN',
-] as const;
+const AGENT_URL_VAR = 'AGENTBASE_AGENT_URL_EXAMPLE_AGENT';
+const ENV_KEYS = ['ENABLE_AGENTBASE', AGENT_URL_VAR, 'MASTRA_INTERNAL_URL', 'AGENT_API_TOKEN'] as const;
 const originalEnv: Record<string, string | undefined> = {};
 
 beforeEach(() => {
   for (const k of ENV_KEYS) originalEnv[k] = process.env[k];
-  resetAgentBaseAgentsConfigForTests();
   mockedGetToken.mockReset();
 });
 
@@ -41,14 +35,11 @@ const A2A_MESSAGE_RESPONSE = {
 describe('callAgent — proxy mode (AgentBase)', () => {
   beforeEach(() => {
     process.env.ENABLE_AGENTBASE = '1';
-    process.env.AGENTBASE_URL = 'https://agentbase.acme.dev';
-    process.env.AGENTBASE_AGENTS = JSON.stringify({
-      'example-agent': { slug: 'example-agent-a1b2c3d4', skillId: 'chat' },
-    });
+    process.env[AGENT_URL_VAR] = 'https://agentbase.acme.dev/proxy/a2a/acme/example-agent-a1b2c3d4';
   });
 
-  it('guard-rails when AGENTBASE_URL is unset or still the placeholder', async () => {
-    process.env.AGENTBASE_URL = 'https://agentbase.example.com';
+  it('guard-rails when the agent has no AGENTBASE_AGENT_URL_* var set', async () => {
+    delete process.env[AGENT_URL_VAR];
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
 
@@ -56,30 +47,23 @@ describe('callAgent — proxy mode (AgentBase)', () => {
 
     expect(reply.ok).toBe(false);
     expect(reply.via).toBe('agentbase');
-    expect(reply.error).toMatch(/AGENTBASE_URL/);
+    expect(reply.error).toMatch(/AGENTBASE_AGENT_URL_EXAMPLE_AGENT/);
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(mockedGetToken).not.toHaveBeenCalled();
+    expect(mockedGetToken).not.toHaveBeenCalled(); // no point minting without a target URL
   });
 
-  it('returns a clear error when AGENTBASE_AGENTS has no entry for the target agent', async () => {
-    process.env.AGENTBASE_AGENTS = JSON.stringify({ 'other-agent': { slug: 'x', skillId: 'y' } });
-    const fetchSpy = vi.fn();
+  it('derives the env var name from the agent id (uppercase, non-alphanumeric -> _)', async () => {
+    process.env.AGENTBASE_AGENT_URL_SLACK_DAILY_DIGEST =
+      'https://agentbase.acme.dev/proxy/a2a/acme/slack-daily-digest-73a6577a';
+    mockedGetToken.mockResolvedValue({ ok: true, accessToken: 'jwt' });
+    const fetchSpy = vi.fn(async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }));
     vi.stubGlobal('fetch', fetchSpy);
 
-    const reply = await callAgent('example-agent', 'hi');
+    await callAgent('slack-daily-digest', 'hi');
 
-    expect(reply.ok).toBe(false);
-    expect(reply.error).toMatch(/No AgentBase mapping/);
-    expect(reply.error).toMatch(/example-agent/);
-    expect(fetchSpy).not.toHaveBeenCalled();
-    expect(mockedGetToken).not.toHaveBeenCalled(); // no point minting without a valid target
-  });
-
-  it('returns a clear error when AGENTBASE_AGENTS is invalid JSON', async () => {
-    process.env.AGENTBASE_AGENTS = '{not json';
-    const reply = await callAgent('example-agent', 'hi');
-    expect(reply.ok).toBe(false);
-    expect(reply.error).toMatch(/not valid JSON/);
+    const [url] = fetchSpy.mock.calls[0] as unknown as [string];
+    expect(url).toBe('https://agentbase.acme.dev/proxy/a2a/acme/slack-daily-digest-73a6577a');
+    delete process.env.AGENTBASE_AGENT_URL_SLACK_DAILY_DIGEST;
   });
 
   it('surfaces a token-mint failure without calling fetch', async () => {
@@ -94,42 +78,27 @@ describe('callAgent — proxy mode (AgentBase)', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('POSTs {agent_slug, skill_id, arguments} with the minted bearer, and normalizes the reply', async () => {
+  it('POSTs the plain A2A message/send envelope (no slug/skill wrapper) with the minted bearer', async () => {
     mockedGetToken.mockResolvedValue({ ok: true, accessToken: 'minted-jwt' });
-    const fetchSpy = vi.fn(
-      async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }),
-    );
+    const fetchSpy = vi.fn(async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }));
     vi.stubGlobal('fetch', fetchSpy);
 
     const reply = await callAgent('example-agent', 'hi there', { sessionId: 'sess-1' });
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const [url, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe('https://agentbase.acme.dev/a2a');
+    expect(url).toBe('https://agentbase.acme.dev/proxy/a2a/acme/example-agent-a1b2c3d4');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer minted-jwt');
 
     const body = JSON.parse(String(init.body));
-    expect(body.agent_slug).toBe('example-agent-a1b2c3d4');
-    expect(body.skill_id).toBe('chat');
-    // `arguments` must be a full A2A message/send envelope — AgentBase relays it verbatim.
-    expect(body.arguments.method).toBe('message/send');
-    expect(body.arguments.params.message.parts[0].text).toBe('hi there');
-    expect(body.arguments.params.message.contextId).toBe('sess-1');
+    // No agent_slug/skill_id wrapper — the URL already encodes the target.
+    expect(body.agent_slug).toBeUndefined();
+    expect(body.skill_id).toBeUndefined();
+    expect(body.method).toBe('message/send');
+    expect(body.params.message.parts[0].text).toBe('hi there');
+    expect(body.params.message.contextId).toBe('sess-1');
 
     expect(reply).toMatchObject({ ok: true, via: 'agentbase', text: 'hello back' });
-  });
-
-  it('lets a per-call skillId override the AGENTBASE_AGENTS default', async () => {
-    mockedGetToken.mockResolvedValue({ ok: true, accessToken: 'minted-jwt' });
-    const fetchSpy = vi.fn(
-      async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }),
-    );
-    vi.stubGlobal('fetch', fetchSpy);
-
-    await callAgent('example-agent', 'hi', { skillId: 'summarize' });
-
-    const [, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
-    expect(JSON.parse(String(init.body)).skill_id).toBe('summarize');
   });
 });
 
@@ -138,9 +107,7 @@ describe('callAgent — direct mode (ENABLE_AGENTBASE=0)', () => {
     process.env.ENABLE_AGENTBASE = '0';
     process.env.MASTRA_INTERNAL_URL = 'http://localhost:4111';
     process.env.AGENT_API_TOKEN = 'mastra-token';
-    const fetchSpy = vi.fn(
-      async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }),
-    );
+    const fetchSpy = vi.fn(async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }));
     vi.stubGlobal('fetch', fetchSpy);
 
     const reply = await callAgent('example-agent', 'hi');
