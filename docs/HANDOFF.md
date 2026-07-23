@@ -93,6 +93,7 @@ docs/plans/                 ← LIVE plans directory (create as needed)
 docs/archive/               ← FROZEN, do-not-parse
 apps/agents/src/mastra/index.ts   ← Mastra instance (agents, storage, logger, server:4111)
 apps/agents/src/mastra/agents/    ← example-agent.ts + summary-agent.ts (neutral placeholders; each auto-serves its own A2A card)
+apps/agents/src/mastra/lib/agentbase-model.ts ← resolveAgentModel() — org-admin-configured LLM per imported agent, else the agent's own fallback string
 apps/agents/src/mastra/tools/     ← example-tool.ts (+ .spec.ts) — neutral placeholder
 apps/agents/Dockerfile            ← multi-stage build of the Mastra .mastra/output bundle
 apps/web/app/                ← layout.tsx, providers.tsx, page.tsx, AgentChat.tsx, globals.css

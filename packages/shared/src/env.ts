@@ -61,6 +61,18 @@ export const EnvSchema = z.object({
   // process.env by a2a-client.ts), since the set of agents isn't known at
   // schema-definition time. See .env.example.
 
+  // ── AgentBase LLM gateway (org-admin-configured model per imported agent) ──
+  // AgentBase injects these into the `apps/agents` container ONLY once the org
+  // admin has set a model for a given agent in Studio (see
+  // docs/INTEGRATION_AGENTBASE.md); never present in Standalone/External
+  // deployment mode or plain local dev. AGENTBASE_LLM_BASE_URL/_TOKEN_URL are
+  // shared per container; AGENTBASE_LLM_CLIENT_ID_<AGENT_ID>/_CLIENT_SECRET_<AGENT_ID>/
+  // _MODEL_<AGENT_ID> are one set per Mastra agent id (mirrors
+  // AGENTBASE_AGENT_URL_<AGENT_ID> above) — read directly from process.env by
+  // apps/agents/src/mastra/lib/agentbase-model.ts, not enumerated here.
+  AGENTBASE_LLM_BASE_URL: z.string().url().optional(),
+  AGENTBASE_LLM_TOKEN_URL: z.string().url().optional(),
+
   // ── Mastra API auth ────────────────────────────────────────────────────────
   // Static bearer token required for all inbound agent API requests (A2A and
   // Mastra-native). All Mastra agents require this token.

@@ -96,7 +96,7 @@ No deploy, no `POST /agents`, no reachable URL to stand up — AgentBase does it
 
 1. **Push this repo** to a git host (GitHub, or any HTTPS git remote).
 2. In AgentBase Studio → **Agents → Import from Repo**:
-   - **GitHub:** add a GitHub App connection for your org (the org registers its *own* App from the UI via GitHub's App Manifest flow — no platform-wide secret; multiple GitHub orgs supported), install it on the repo, then pick the repo.
+   - **GitHub:** add a GitHub App connection from the UI via GitHub's App Manifest flow — on your **personal account** or an **organization** (you own the App; multiple connections supported) — install it on the repo, then pick the repo.
    - **Any git URL:** paste the HTTPS clone URL; for a private repo attach a **VCS Deploy Token** credential.
    - Attach **Variables namespaces** (see §4B), choose an **environment** (Development / Staging / Production or a custom one, from the attached namespaces; default Production), and set a branch/tag.
 3. AgentBase reads **`agentbase.import.json`** (§5b), clones the repo, builds `apps/agents/Dockerfile` (repo root as build context), **hosts** the container, injects the chosen environment's values, mints a random inbound bearer into `AGENT_API_TOKEN`, and registers each Mastra agent the container serves. Skills land **`DRAFT`** (approve them, §4C step 4).
@@ -366,6 +366,30 @@ AGENTBASE_AGENT_URL_EXAMPLE_AGENT=https://agentbase.example.com/proxy/a2a/your-o
 
 The second integration axis — registering the Mastra agent itself on AgentBase so it's discoverable and invocable — is independent of the Next wiring and follows the flow in §4.
 
+### 7.9 Org-admin LLM configuration for imported agents
+
+This is a **third, separate integration axis** from §7 (which covers Next ↔ Mastra) — it's about **which model each imported Mastra agent itself calls**, and who controls that choice.
+
+By default an agent's model is whatever its own code hardcodes (e.g. `model: 'google/gemini-2.5-flash'` in `example-agent.ts`), with the provider key read from this repo's own `.env` (`GOOGLE_GENERATIVE_AI_API_KEY`). That's fine for local dev, Standalone, and External deployment mode — but once an agent is **imported** into AgentBase, an org admin can instead pick the model (and key) from Studio's **"LLM configuration"** card on the agent's detail page, without ever touching this repo's `.env`:
+
+1. Import the repo (§4A). On the **first** deploy, before any model is chosen, the agent keeps using its own fallback string + `.env` key exactly as before.
+2. In Studio, open the agent → **LLM configuration** → pick one of the org's already-onboarded models (from the **Models** page — that's where the org's own provider key lives) → **Save**.
+3. **Redeploy** ("Pull latest & redeploy"). AgentBase mints this agent a fresh service Application and injects its gateway env into the container (reserved, never read from this repo's `.env`/Variables):
+
+   ```
+   AGENTBASE_LLM_BASE_URL                      shared gateway base URL
+   AGENTBASE_LLM_TOKEN_URL                     shared Keycloak token endpoint
+   AGENTBASE_LLM_CLIENT_ID_<AGENT_ID>           this agent's own service Application
+   AGENTBASE_LLM_CLIENT_SECRET_<AGENT_ID>
+   AGENTBASE_LLM_MODEL_<AGENT_ID>               "<provider>/<model>", admin-chosen
+   ```
+
+   `<AGENT_ID>` is the agent's own Mastra `id` (uppercased/underscored — same convention as `AGENTBASE_AGENT_URL_<AGENT_ID>` in §7), since one container can host several agents, each with its own choice.
+
+4. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel(agentId, fallback)` picks this up automatically: when both `AGENTBASE_LLM_BASE_URL` and this agent's `AGENTBASE_LLM_MODEL_<AGENT_ID>` are set, it builds an OpenAI-compatible model (`@ai-sdk/openai-compatible`) pointed at the gateway, minting/caching its own client_credentials bearer per call (mirrors `agentbase-auth.ts`'s pattern) — the org's real provider key never reaches the container. Otherwise it returns `fallback` unchanged.
+
+**Note the one-deploy lag:** a brand-new agent's own Mastra `id` isn't knowable to AgentBase until its first container boots and gets probed (for manifest-less repos) — so gateway wiring only takes effect starting from the deploy *after* the agent is first known to the registry, once an admin has configured it. This is a one-time bootstrapping gap, not an ongoing one.
+
 ---
 
 ## 8. Source references
@@ -374,6 +398,7 @@ The second integration axis — registering the Mastra agent itself on AgentBase
 
 - `apps/agents/src/mastra/index.ts` — Mastra instance + server config (host/port)
 - `apps/agents/src/mastra/agents/example-agent.ts` — agent definition (`id`, tools)
+- `apps/agents/src/mastra/lib/agentbase-model.ts` — `resolveAgentModel()` (§7.9: org-admin LLM config per imported agent, else fallback)
 - `apps/agents/Dockerfile` — the image AgentBase builds on import (repo root as context)
 - `agentbase.import.json` — the import contract manifest (repo root; see §5b)
 - A2A routes come from `@mastra/server` (`/api/a2a/:agentId`, `/api/.well-known/:agentId/agent-card.json`)
@@ -388,3 +413,6 @@ The second integration axis — registering the Mastra agent itself on AgentBase
 - `src/env-groups/*` — Environments (reusable org-scoped env var groups injected at build/deploy)
 - `packages/mcp/src/a2a/agentCard.schema.ts` — `a2aAgentCardSchema`
 - `src/proxy/*` — `POST /a2a` invocation proxy (credential injection, zero-trust, audit)
+- `src/agent-llm-config/*` — §7.9: `GET/PUT /agents/:id/llm-config` (org admin picks a model for an imported agent)
+- `src/llm-gateway/llm-gateway.service.ts` `resolveTarget()` — resolves both COMPOSED (`agent_definitions`) and IMPORTED (`agent_llm_configs`) callers
+- `src/source-imports/source-imports.service.ts` `injectLlmGatewayEnv()` — mints the per-agent service Application + injects its gateway env on (re)deploy

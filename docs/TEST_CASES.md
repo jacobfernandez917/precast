@@ -52,6 +52,7 @@
 | ID      | Description                      | Status  |
 | ------- | -------------------------------- | ------- |
 | AGT-001 | `echo` returns its input message | Passing |
+| AGT-002 | `agentbase-model.spec.ts` — `resolveAgentModel()` falls back to the plain router string when AgentBase's LLM gateway isn't configured for that agent id (unset, or another agent's vars only); builds a gateway-backed model (keyed to `AGENTBASE_LLM_MODEL_<AGENT_ID>`) once both the base URL and this agent's model are set; `getAgentBaseLlmToken()` mints via OAuth2 `client_credentials`, caches, auto-refreshes near expiry, and errors clearly on missing config / non-2xx | Passing |
 
 ---
 

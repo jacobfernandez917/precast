@@ -97,6 +97,8 @@ See [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) for both flow
 
 Any **A2A client can also invoke the agents directly** (JSON-RPC 2.0) at `POST /api/a2a/:agentId` by sending `Authorization: Bearer <AGENT_API_TOKEN>` — the bearer must match the server's `AGENT_API_TOKEN` (routes are open when it's unset). The "route through AgentBase" rule above applies to the **web frontend**; external clients authenticate directly with the token.
 
+**Which LLM an imported agent uses is also org-admin-configurable** — once imported, an admin picks a model (and key) per agent from AgentBase Studio's "LLM configuration" card, not this repo's `.env`. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel()` routes through AgentBase's LLM gateway when configured, else falls back to the agent's own hardcoded model + `GOOGLE_GENERATIVE_AI_API_KEY` exactly as before. See [docs/INTEGRATION_AGENTBASE.md §7.9](docs/INTEGRATION_AGENTBASE.md#79-org-admin-llm-configuration-for-imported-agents).
+
 To move to non-default **app** ports at any time, run `pnpm set-ports --mastra=4200 --web=3100` (either flag optional) — it rewrites env, config, pnpm scripts, Docker, and the port-stating docs in one pass.
 
 To publish the Docker containers on **different host ports** (without changing the app/container ports), set `AGENTS_HOST_PORT` / `WEB_HOST_PORT` / `KEYCLOAK_HOST_PORT` in the root `.env` — e.g. `AGENTS_HOST_PORT=60000`, `WEB_HOST_PORT=60001`, `KEYCLOAK_HOST_PORT=60002` map host `60000→`agents`4111`, `60001→`web`3000`, `60002→`keycloak`8080`. They default to the container port, and only affect `pnpm docker:up`.

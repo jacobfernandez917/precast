@@ -1,5 +1,8 @@
 import { Agent } from '@mastra/core/agent';
 import { exampleTool } from '../tools/example-tool';
+import { resolveAgentModel } from '../lib/agentbase-model';
+
+const AGENT_ID = 'summary-agent';
 
 /**
  * Second placeholder agent — exists only to prove the boilerplate is
@@ -11,11 +14,11 @@ import { exampleTool } from '../tools/example-tool';
  * real agents, designed from your feed-forward docs (templates/AGENT_SPEC.md).
  */
 export const summaryAgent = new Agent({
-  id: 'summary-agent',
+  id: AGENT_ID,
   name: 'Summary Agent',
   instructions:
     'You are a placeholder assistant used to verify multi-agent wiring. ' +
     'Summarize whatever text you are given in one short sentence.',
-  model: 'google/gemini-2.5-flash',
+  model: resolveAgentModel(AGENT_ID, 'google/gemini-2.5-flash'),
   tools: { exampleTool },
 });

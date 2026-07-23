@@ -1,5 +1,8 @@
 import { Agent } from '@mastra/core/agent';
 import { exampleTool } from '../tools/example-tool';
+import { resolveAgentModel } from '../lib/agentbase-model';
+
+const AGENT_ID = 'example-agent';
 
 /**
  * Placeholder agent — proves the Mastra wiring (agent + tool + model gateway)
@@ -9,11 +12,14 @@ import { exampleTool } from '../tools/example-tool';
  * docs (see templates/AGENT_SPEC.md) and the tech stack — not from this example.
  */
 export const exampleAgent = new Agent({
-  id: 'example-agent',
+  id: AGENT_ID,
   name: 'Example Agent',
   instructions:
     'You are a placeholder assistant used to verify the boilerplate. ' +
     'Answer briefly. Use the example tool when asked to echo text.',
-  model: 'google/gemini-2.5-flash',
+  // Uses AgentBase's LLM gateway when imported + org-admin-configured
+  // (see docs/INTEGRATION_AGENTBASE.md); otherwise this fallback string,
+  // resolved via Mastra's built-in model router + this repo's own `.env`.
+  model: resolveAgentModel(AGENT_ID, 'google/gemini-2.5-flash'),
   tools: { exampleTool },
 });
