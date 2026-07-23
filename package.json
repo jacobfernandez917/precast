@@ -11,6 +11,7 @@
     "bootstrap": "node scripts/bootstrap.mjs",
     "rename": "node scripts/rename-project.mjs",
     "set-ports": "node scripts/set-ports.mjs",
+    "emit:import-manifest": "node scripts/emit-import-manifest.mjs",
     "deps:update": "node scripts/update-deps.mjs",
     "setup": "pnpm install && pnpm build",
     "dev": "turbo run dev",

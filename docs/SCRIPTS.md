@@ -12,6 +12,7 @@
 | `pnpm rename <name>` | `node scripts/rename-project.mjs <name>` | Replace the `precast` placeholder with your project name only                                                       |
 | `pnpm set-ports`     | `node scripts/set-ports.mjs`             | Set Mastra/web dev ports (`--mastra=4200 --web=3100`, each optional) across env, config, pnpm scripts, Docker, docs |
 | `pnpm deps:update`   | `node scripts/update-deps.mjs`           | Update deps to latest compatible (`--latest` / `--dry` / `--no-verify`), verify                                     |
+| `pnpm emit:import-manifest` | `node scripts/emit-import-manifest.mjs` | Re-derive `agentbase.import.json` `requiredEnv` from the env schema (run after changing `packages/shared/src/env.ts`; WEB-005 guards it) |
 | `pnpm install`       | `pnpm install`                           | Install all workspace dependencies                                                                                  |
 | `pnpm setup`         | `pnpm install && pnpm build`             | Full setup from clean checkout                                                                                      |
 

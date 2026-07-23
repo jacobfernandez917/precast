@@ -187,7 +187,8 @@ Path A (§4A) reads a manifest at the **repo root**. Precast ships one:
 {
   "dockerfile": "apps/agents/Dockerfile", // built with the repo ROOT as context
   "port": 4111,                            // the container's listen port
-  "authEnv": "AGENT_API_TOKEN"             // env var AgentBase mints the inbound bearer into
+  "authEnv": "AGENT_API_TOKEN",            // env var AgentBase mints the inbound bearer into
+  "requiredEnv": ["DATABASE_URL"]          // must be settled before build (derived; see below)
   // "agents": [...] intentionally omitted — see below
 }
 ```
@@ -207,6 +208,16 @@ What a repo must satisfy to import cleanly (provider-independent):
 post-boot via `GET /api/agents`, so the manifest never goes stale when you replace
 the placeholder agents in `apps/agents/src/mastra/index.ts`. Pin an explicit
 `agents: [{ id, name }]` list only if you want fixed display names.
+
+**`requiredEnv` — settle env before build.** These are the env var **names** (no
+values) that must have a value in the selected AgentBase namespace/environment
+**before** AgentBase builds; if any is missing, the import is refused with
+`import_env_unsettled` (listing the missing names + environment) rather than
+crashing the container at boot. The list is **derived** from the zod env schema
+in `packages/shared/src/env.ts` (a var is required iff it has no default and
+isn't optional), minus AgentBase-managed names — run `pnpm emit:import-manifest`
+after changing the schema; the **WEB-005** test guards that the committed manifest
+matches. Don't hand-edit `requiredEnv`.
 
 **Fallback:** a repo with **no** `agentbase.import.json` still imports via
 Precast conventions (Dockerfile discovered at `./Dockerfile` then
