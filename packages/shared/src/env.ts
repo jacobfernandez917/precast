@@ -51,8 +51,17 @@ export const EnvSchema = z.object({
   ENABLE_AGENTBASE: z.enum(['0', '1']).default('1'),
   // Base URL for the AgentBase service (used only when ENABLE_AGENTBASE=1).
   AGENTBASE_URL: z.string().url().default('https://agentbase.example.com'),
-  // Bearer token for AgentBase authentication (optional; off when unset).
-  AGENTBASE_TOKEN: z.string().optional(),
+  // AgentBase auth is a developer "Application" (OAuth2 client_credentials) —
+  // NOT a static token. The web app mints its own short-lived JWT from these
+  // (see apps/web/app/lib/agentbase-auth.ts); create the Application in
+  // AgentBase Studio and copy its clientId/clientSecret/tokenUrl.
+  AGENTBASE_CLIENT_ID: z.string().optional(),
+  AGENTBASE_CLIENT_SECRET: z.string().optional(),
+  AGENTBASE_TOKEN_URL: z.string().url().optional(),
+  // JSON map: local Mastra agent id -> the AgentBase-assigned {slug, skillId}
+  // needed to call it via AgentBase's /a2a proxy (slug is never the same as
+  // the Mastra agent id — AgentBase always appends a random suffix).
+  AGENTBASE_AGENTS: z.string().optional(),
 
   // ── Mastra API auth ────────────────────────────────────────────────────────
   // Static bearer token required for all inbound agent API requests (A2A and

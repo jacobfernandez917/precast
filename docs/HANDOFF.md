@@ -96,7 +96,8 @@ apps/agents/src/mastra/agents/    ← example-agent.ts + summary-agent.ts (neutr
 apps/agents/src/mastra/tools/     ← example-tool.ts (+ .spec.ts) — neutral placeholder
 apps/agents/Dockerfile            ← multi-stage build of the Mastra .mastra/output bundle
 apps/web/app/                ← layout.tsx, providers.tsx, page.tsx, AgentChat.tsx, globals.css
-apps/web/app/lib/a2a-client.ts ← server-only callAgent() (A2A; forwards agentId)
+apps/web/app/lib/a2a-client.ts ← server-only callAgent() (A2A; agent_slug+skill_id via AGENTBASE_AGENTS)
+apps/web/app/lib/agentbase-auth.ts ← mints/caches the AgentBase Application's OAuth2 client_credentials JWT
 apps/web/app/api/            ← route handlers: health/route.ts, a2a/[agentId]/route.ts
 apps/web/test/               ← Vitest specs (env schema + fitness guards: a2a-only, docker-build)
 apps/web/e2e/                ← Playwright UI specs (home.spec.ts)

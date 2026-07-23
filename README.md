@@ -90,7 +90,7 @@ In dev the output is pretty-printed and colorized; in production it's structured
 
 **Important:** the web app talks to Mastra agents **only over A2A** (JSON-RPC 2.0), always through its server-side `callAgent()` util — never Mastra's native REST, and never from client code. This holds with or without AgentBase; the transport is selected by `ENABLE_AGENTBASE`, and **AgentBase is the default** (guard rail — you must explicitly opt out):
 
-- `ENABLE_AGENTBASE=1` or **unset (default)** → route A2A calls through the **AgentBase proxy** (`AGENTBASE_URL`/`AGENTBASE_TOKEN`); AgentBase handles auth, audit, and zero-trust forwarding. If AgentBase is enabled but `AGENTBASE_URL` is unset/placeholder, the call fails loudly with a fix-it message.
+- `ENABLE_AGENTBASE=1` or **unset (default)** → route A2A calls through the **AgentBase proxy** (`AGENTBASE_URL`). Auth is a developer **Application** (OAuth2 `client_credentials`) — the app mints its own short-lived JWT from `AGENTBASE_CLIENT_ID`/`AGENTBASE_CLIENT_SECRET`/`AGENTBASE_TOKEN_URL`, never a pasted static token. Each Mastra agent id maps to its AgentBase-assigned `slug` + `skillId` via `AGENTBASE_AGENTS` (JSON) — AgentBase always appends a random suffix to slugs, so they're never the same as your Mastra agent id. Your Application must also be **subscribed** to each agent's listing (even your own). If AgentBase is enabled but misconfigured, the call fails loudly with a fix-it message.
 - `ENABLE_AGENTBASE=0` → talk to Mastra **directly over A2A** at `POST $MASTRA_INTERNAL_URL/api/a2a/:agentId` with `Authorization: Bearer $AGENT_API_TOKEN`.
 
 See [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) for both flows.

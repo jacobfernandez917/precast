@@ -242,10 +242,16 @@ Precast ships a **Next.js** app (`apps/web`) that talks to Mastra agents **only 
 
 ```
 ENABLE_AGENTBASE=1 or unset  (proxy mode — DEFAULT)
-┌─────────┐  POST /api/a2a/:id   ┌────────────┐  POST /a2a (tasks/send)   ┌──────────┐
-│  Next   │ ────────────────────▶│  AgentBase  │ ─────────────────────────▶│  Mastra  │
-│ (React) │  (route handler)     │  (proxy)    │  Bearer AGENTBASE→AGENT   │ (agents) │
-└─────────┘                      └────────────┘                           └──────────┘
+┌─────────┐  POST /api/a2a/:id   ┌──────────────┐  POST /a2a                ┌──────────┐
+│  Next   │ ────────────────────▶│  AgentBase   │  {agent_slug, skill_id,   │  Mastra  │
+│ (React) │  (route handler)     │  (proxy)     │   arguments}              │ (agents) │
+└─────────┘                      └──────────────┘  Bearer <Application JWT>└──────────┘
+                                        │ mints its own JWT via                 ▲
+                                        │ client_credentials, then       injects
+                                        │ injects the agent's declared   AGENT_API_TOKEN
+                                        ▼ credential
+                              Keycloak /realms/agentbase/protocol/openid-connect/token
+                              (grant_type=client_credentials, AGENTBASE_CLIENT_ID/_SECRET)
 
 ENABLE_AGENTBASE=0  (direct mode — explicit opt-out)
 ┌─────────┐  POST /api/a2a/:id   ┌──────────────────────────────────────────────────┐
@@ -261,26 +267,30 @@ ENABLE_AGENTBASE=0  (direct mode — explicit opt-out)
 | **Client component**         | `POST /api/a2a/:agentId`                     | Client sends message → route handler                               |
 | **Next.js route handler**    | `POST /api/a2a/:agentId`                     | Validates input, calls `callAgent()`, returns a normalized reply   |
 | **Server util**              | `callAgent()`                                | Branches on `ENABLE_AGENTBASE` (see modes below)                   |
-| **Proxy mode** (default, ≠0) | `POST $AGENTBASE_URL/a2a`                    | JSON-RPC `tasks/send` + `params.agentId`; `Bearer AGENTBASE_TOKEN` |
+| **Proxy mode** (default, ≠0) | `POST $AGENTBASE_URL/a2a`                    | Flat body `{ agent_slug, skill_id, arguments }`; `Bearer <Application JWT>` |
 | **Direct mode** (`=0`)       | `POST $MASTRA_INTERNAL_URL/api/a2a/:agentId` | A2A `message/send`; `Bearer AGENT_API_TOKEN`                       |
 
-`callAgent()` returns a normalized `{ ok, text, error?, via, raw }` so the UI is independent of each mode's wire format (AgentBase and Mastra return different response shapes). Direct mode speaks A2A 0.3.0 (`message/send` with a `Message` envelope — Mastra rejects the older `tasks/send`); proxy mode uses AgentBase's `tasks/send` contract. **Guard rail:** if AgentBase mode is active but `AGENTBASE_URL` is unset or still the `example.com` placeholder, `callAgent()` returns an error reply telling you to configure it or set `ENABLE_AGENTBASE=0`.
+`callAgent()` returns a normalized `{ ok, text, error?, via, raw }`. Both modes actually share the same response shape today: AgentBase's `/a2a` **relays Mastra's real A2A response verbatim** (no re-wrapping), so `arguments` in the proxy-mode body must already be a valid A2A `message/send` JSON-RPC envelope — the same one direct mode sends straight to Mastra (`buildA2aMessageEnvelope()` in `a2a-client.ts` is shared by both). **Guard rails:** if AgentBase mode is active but `AGENTBASE_URL` is unset/placeholder, or the Application credentials (`AGENTBASE_CLIENT_ID`/`_SECRET`/`AGENTBASE_TOKEN_URL`) aren't fully set, or `AGENTBASE_AGENTS` has no entry for the target agent, `callAgent()` returns a clear error reply instead of a broken request.
 
-> **Multi-agent routing.** `POST /api/a2a/:agentId` is per-agent: the route handler reads `:agentId`. In direct mode it's the Mastra URL path; in proxy mode `callAgent()` forwards it into `params.agentId`. Registering more agents on the Mastra instance (`agents: { … }` in `apps/agents/src/mastra/index.ts`) is all the API-side work — each one auto-serves its own card at `/api/.well-known/:id/agent-card.json`. In proxy mode, every agent must also be registered separately on AgentBase (§4) with its own `agentCardUrl`.
+> **Multi-agent routing.** AgentBase assigns **each imported agent its own registry row** — its own `slug` (always `<derived-name>-<random8>`, **never** the same as your Mastra `agentId`) and its own `skill` id(s) (one A2A skill per Mastra tool). There is **no per-agent URL** on this internal proxy path — one shared `POST $AGENTBASE_URL/a2a` endpoint, with the target selected **per request** via `agent_slug` + `skill_id` in the body. (Contrast with AgentBase's *public marketplace* proxy, `GET/POST /proxy/a2a/:orgSlug/:agentSlug`, which *does* mint one full URL per agent — that surface is for external third-party consumers of a published listing, metered per call; it is **not** what this web app uses for its own agents.) `AGENTBASE_AGENTS` (a JSON env var) maps each local Mastra agent id to its real `{slug, skillId}` — copy both from the agent's listing in AgentBase Studio after import; they can't be predicted ahead of time. Registering more agents on the Mastra instance (`agents: { … }` in `apps/agents/src/mastra/index.ts`) is all the API-side work — each one auto-serves its own card at `/api/.well-known/:id/agent-card.json` and gets discovered/registered on import (§4A).
 
 ### 7.2 Files
 
-- `apps/web/app/lib/a2a-client.ts` — `callAgent()` util; branches on `ENABLE_AGENTBASE` (proxy vs direct) and normalizes the reply
+- `apps/web/app/lib/a2a-client.ts` — `callAgent()` util; branches on `ENABLE_AGENTBASE` (proxy vs direct), resolves the target agent via `AGENTBASE_AGENTS`, and normalizes the reply
+- `apps/web/app/lib/agentbase-auth.ts` — mints + caches the Application's OAuth2 `client_credentials` access token (RS256 JWT, ~30 min TTL, auto-refreshed)
 - `apps/web/app/api/a2a/[agentId]/route.ts` — Next.js route handler exposed to the frontend
 - `apps/web/app/AgentChat.tsx` — client component with an agent chat input (shows which transport handled the reply)
-- Env: `ENABLE_AGENTBASE` (toggle), `MASTRA_INTERNAL_URL` (direct base), `AGENTBASE_URL`/`AGENTBASE_TOKEN` (proxy), `AGENT_API_TOKEN` (Mastra bearer)
+- Env: `ENABLE_AGENTBASE` (toggle), `MASTRA_INTERNAL_URL` (direct base), `AGENTBASE_URL` + `AGENTBASE_CLIENT_ID`/`AGENTBASE_CLIENT_SECRET`/`AGENTBASE_TOKEN_URL` + `AGENTBASE_AGENTS` (proxy), `AGENT_API_TOKEN` (Mastra bearer)
 
 ### 7.3 Configuration
 
 ```bash
 # .env (or environment)
 AGENTBASE_URL=https://agentbase.example.com
-AGENTBASE_TOKEN=          # optional; off when unset
+AGENTBASE_CLIENT_ID=
+AGENTBASE_CLIENT_SECRET=
+AGENTBASE_TOKEN_URL=https://keycloak.example.com/realms/agentbase/protocol/openid-connect/token
+AGENTBASE_AGENTS={"example-agent":{"slug":"example-agent-a1b2c3d4","skillId":"chat"}}
 ```
 
 ### 7.4 Usage from a client component
@@ -298,17 +308,22 @@ const data = await res.json();
 
 Mastra protects its A2A/agent routes with a static bearer (`AGENT_API_TOKEN`) — enforced when set, open when unset (local dev). Studio (`/`) and card discovery stay open. The token that reaches Mastra depends on the mode:
 
-**Proxy mode (`ENABLE_AGENTBASE=1`):**
+**Proxy mode (`ENABLE_AGENTBASE=1`):** the web app is a **developer Application** on AgentBase — an OAuth2 `client_credentials` client, not a static-token holder.
 
 ```
-Next route handler → POST $AGENTBASE_URL/a2a
-  ↓  (sends AGENTBASE_TOKEN)
+Next server (a2a-client.ts)
+  ↓  POST $AGENTBASE_TOKEN_URL  (grant_type=client_credentials, AGENTBASE_CLIENT_ID/_SECRET)
+Keycloak (AgentBase's realm)  →  RS256 JWT, ~30 min TTL  (cached + auto-refreshed in-memory)
+  ↓
+Next server → POST $AGENTBASE_URL/a2a   { agent_slug, skill_id, arguments }
+  ↓  Authorization: Bearer <minted JWT>
 AgentBase proxy
-  ↓  (validates caller, strips inbound auth, injects AGENT_API_TOKEN)
+  ↓  (checks the Application is SUBSCRIBED to that agent's listing, then
+  ↓   validates caller, strips inbound auth, injects the agent's declared credential)
 Mastra agent → POST /api/a2a/:agentId  (verifies Bearer <AGENT_API_TOKEN>)
 ```
 
-**Direct mode (default):**
+**Direct mode (`ENABLE_AGENTBASE=0`):**
 
 ```
 Next route handler → POST $MASTRA_INTERNAL_URL/api/a2a/:agentId
@@ -316,13 +331,15 @@ Next route handler → POST $MASTRA_INTERNAL_URL/api/a2a/:agentId
 Mastra agent  (verifies Bearer <AGENT_API_TOKEN>)
 ```
 
-| Mode   | Token the web app sends                | Reaches Mastra as                   |
-| ------ | -------------------------------------- | ----------------------------------- |
-| Proxy  | `AGENTBASE_TOKEN` (to AgentBase)       | AgentBase injects `AGENT_API_TOKEN` |
-| Direct | `AGENT_API_TOKEN` (straight to Mastra) | `AGENT_API_TOKEN`                   |
+| Mode   | Token the web app sends                        | Reaches Mastra as                   |
+| ------ | ----------------------------------------------- | ----------------------------------- |
+| Proxy  | Application JWT it minted itself (to AgentBase) | AgentBase injects `AGENT_API_TOKEN` |
+| Direct | `AGENT_API_TOKEN` (straight to Mastra)          | `AGENT_API_TOKEN`                   |
 
 **Key points:**
 
+- **Set up once, in AgentBase Studio:** create a developer **Application**; copy its `clientId`/`clientSecret`/`tokenUrl` (the secret is shown once) into `.env`. **Subscribe that Application to each agent's registry listing** — this is required even to call your *own* imported agent; there's no same-org exemption.
+- The web app **mints its own token** on demand (`agentbase-auth.ts`) and caches it in memory per server process, refreshing ~30s before expiry. **Never** paste a copied/static JWT into `.env` — it would go stale in ~30 minutes.
 - In **proxy** mode the web app never knows `AGENT_API_TOKEN` — AgentBase strips inbound auth (zero-trust) and injects the agent's declared credential.
 - In **direct** mode the web app holds `AGENT_API_TOKEN` and sends it as the bearer itself.
 - When `AGENT_API_TOKEN` is unset in the Mastra environment, auth is off (open for local dev).
@@ -334,15 +351,18 @@ Mastra agent  (verifies Bearer <AGENT_API_TOKEN>)
 AGENT_API_TOKEN=your-secret-token
 
 # .env (or environment) — Next side
-ENABLE_AGENTBASE=1                              # default (proxy); set 0 for direct A2A
-MASTRA_INTERNAL_URL=http://localhost:4111       # direct-mode Mastra base URL
-AGENTBASE_URL=https://agentbase.example.com     # proxy mode (required when enabled)
-AGENTBASE_TOKEN=your-agentbase-token            # proxy mode only
+ENABLE_AGENTBASE=1                                # default (proxy); set 0 for direct A2A
+MASTRA_INTERNAL_URL=http://localhost:4111         # direct-mode Mastra base URL
+AGENTBASE_URL=https://agentbase.example.com       # proxy mode (required when enabled)
+AGENTBASE_CLIENT_ID=your-application-client-id    # from AgentBase Studio → Applications
+AGENTBASE_CLIENT_SECRET=your-application-secret   # shown once at creation/rotation
+AGENTBASE_TOKEN_URL=https://keycloak.example.com/realms/agentbase/protocol/openid-connect/token
+AGENTBASE_AGENTS={"example-agent":{"slug":"example-agent-a1b2c3d4","skillId":"chat"}}
 ```
 
 ### 7.7 Design rule
 
-> **The web app talks to agents only over A2A, only through `callAgent()`.** `apps/web` interacts with Mastra agents **exclusively via the A2A protocol** (JSON-RPC 2.0) — with or without AgentBase — and always through the server-side `callAgent()` util (never from client code). `callAgent()` is the single switch point: `ENABLE_AGENTBASE=1` (default) proxies through AgentBase (auth, audit, zero-trust forwarding); `=0` calls Mastra directly at `POST /api/a2a/:id` (A2A `message/send`) with the `AGENT_API_TOKEN` bearer. The web app must **never** use Mastra's non-A2A surfaces — native REST (`POST /api/agents/:id/generate` | `/stream`), agent listing (`GET /api/agents`), or Studio. This is enforced by `apps/web/test/a2a-only.spec.ts` (fails the build on any non-A2A agent route in web source).
+> **The web app talks to agents only over A2A, only through `callAgent()`.** `apps/web` interacts with Mastra agents **exclusively via the A2A protocol** (JSON-RPC 2.0) — with or without AgentBase — and always through the server-side `callAgent()` util (never from client code). `callAgent()` is the single switch point: `ENABLE_AGENTBASE=1` (default) proxies through AgentBase as a developer Application (OAuth2 `client_credentials` JWT, `agent_slug`+`skill_id` target selection, audit + zero-trust forwarding); `=0` calls Mastra directly at `POST /api/a2a/:id` (A2A `message/send`) with the `AGENT_API_TOKEN` bearer. The web app must **never** use Mastra's non-A2A surfaces — native REST (`POST /api/agents/:id/generate` | `/stream`), agent listing (`GET /api/agents`), or Studio. This is enforced by `apps/web/test/a2a-only.spec.ts` (fails the build on any non-A2A agent route in web source).
 
 ### 7.8 Related: Mastra → AgentBase registration
 

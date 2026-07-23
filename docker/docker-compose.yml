@@ -74,7 +74,8 @@ services:
       MASTRA_INTERNAL_URL: http://agents:4111
       # AgentBase is the default transport, but this self-contained stack has no
       # AgentBase service — so opt into direct in-cluster A2A. Set to "1" (with
-      # AGENTBASE_URL/AGENTBASE_TOKEN) to proxy through AgentBase instead.
+      # AGENTBASE_URL + the Application credentials — see .env.example) to
+      # proxy through AgentBase instead.
       ENABLE_AGENTBASE: '0'
     ports:
       # host (WEB_HOST_PORT, default 3000) → container 3000
