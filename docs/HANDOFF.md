@@ -103,12 +103,14 @@ apps/web/e2e/                ← Playwright UI specs (home.spec.ts)
 apps/web/Dockerfile          ← multi-stage build of the Next standalone server
 packages/shared/src/         ← env parser (zod, ESM) + shared types
 templates/                   ← feed-forward planning docs (PRD, DATA_MODEL, AGENT_SPEC, DESIGN_SYSTEM)
-docker/                      ← Docker Compose (apps only; infra is remote via .env)
+docker/                      ← Docker Compose (agents + web + Keycloak; Postgres/Redis remote via .env; COMPOSE_PROFILES selects services)
 scripts/bootstrap.mjs        ← new-project bootstrap (rename + set-ports + deps + reset docs + blank git)
 scripts/set-ports.mjs        ← retarget Mastra/Next dev ports across env/configs/scripts/compose/docs
 scripts/rename-project.mjs   ← one-shot placeholder rename (walks all source)
 scripts/update-deps.mjs      ← update deps to latest compatible + verify
 scripts/progress-stamp.mjs   ← PROGRESS.md auto-journal
+scripts/emit-import-manifest.mjs ← derive agentbase.import.json requiredEnv from the env schema
+scripts/docker-compose.mjs   ← wrapper: passes --env-file .env to every `pnpm docker:*` (fails fast if .env is missing)
 ```
 
 ## 5. Lifecycle — when this file gets updated

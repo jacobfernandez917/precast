@@ -192,6 +192,8 @@ HANDOFF.md is a snapshot; PROGRESS.md is the long-form ledger. On disagreement a
 - **Postgres + Redis are remote/managed, not in Compose** — the apps reach them via the root `.env` (`DATABASE_URL`, `REDIS_URL`). Do not add local Postgres/Redis services to Compose.
 - **Keycloak runs in Compose for local dev** (`start-dev`), published on `KEYCLOAK_HOST_PORT` (default 8080). In production, point `KEYCLOAK_TOKEN_ISSUER_URI` at a managed Keycloak instead of the container. See ADR (Keycloak returned to Compose; Postgres/Redis stay remote).
 - **Published host ports** are configurable via `AGENTS_HOST_PORT` / `WEB_HOST_PORT` / `KEYCLOAK_HOST_PORT` in `.env` (container ports unchanged).
+- **Service selection is configurable via `COMPOSE_PROFILES`** in `.env` (Compose's own mechanism) — a comma-separated subset of `agents,web,keycloak` (default: all three). Each service declares `profiles: ['<own name>']`; `web`'s `depends_on.agents` is `required: false` so excluding `agents` doesn't break Compose. Use this once services are deployed to different places (e.g. agents hosted by an AgentBase import; only `web`+`keycloak` need to run in this stack).
+- **Always invoke Compose through `scripts/docker-compose.mjs`** (all `pnpm docker:*` scripts already do) — never call `docker compose -f docker/docker-compose.yml …` directly. Compose does not read the repo-root `.env` by default for that invocation shape; the wrapper passes `--env-file .env` and fails fast if `.env` is missing.
 
 ### 4.6 Documentation Contract — **MANDATORY**
 

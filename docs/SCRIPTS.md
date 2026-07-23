@@ -59,11 +59,13 @@
 
 | Script                | Command                                                        | Description                                                                             |
 | --------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `pnpm docker:up`      | `docker compose -f docker/docker-compose.yml up -d`            | Start agents + web + Keycloak (builds app images on first run). Postgres/Redis are remote/managed via `.env`, not run here. Set `AGENTS_HOST_PORT`/`WEB_HOST_PORT`/`KEYCLOAK_HOST_PORT` in `.env` to publish on different host ports |
-| `pnpm docker:down`    | `docker compose -f docker/docker-compose.yml down`             | Stop the stack                                                                          |
-| `pnpm docker:logs`    | `docker compose -f docker/docker-compose.yml logs -f`          | Follow logs                                                                             |
-| `pnpm docker:ps`      | `docker compose -f docker/docker-compose.yml ps`               | List services                                                                           |
-| `pnpm docker:rebuild` | `docker compose -f docker/docker-compose.yml build --no-cache` | Rebuild app images (api, web)                                                           |
+| `pnpm docker:up`      | `node scripts/docker-compose.mjs -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d` | Start the services selected by `COMPOSE_PROFILES` in `.env` (default agents+web+keycloak; builds app images on first run). Postgres/Redis are remote/managed via `.env`, not run here. `AGENTS_HOST_PORT`/`WEB_HOST_PORT`/`KEYCLOAK_HOST_PORT` publish on different host ports |
+| `pnpm docker:down`    | `node scripts/docker-compose.mjs -f docker/docker-compose.yml down` | Stop the stack |
+| `pnpm docker:logs`    | `node scripts/docker-compose.mjs -f docker/docker-compose.yml logs -f` | Follow logs |
+| `pnpm docker:ps`      | `node scripts/docker-compose.mjs -f docker/docker-compose.yml ps` | List services |
+| `pnpm docker:rebuild` | `node scripts/docker-compose.mjs -f docker/docker-compose.yml build --no-cache` | Rebuild app images |
+
+All `docker:*` scripts route through **`scripts/docker-compose.mjs`**, which fails fast (clear message, exit 1) if the root `.env` is missing, then passes `--env-file .env` — required because Compose does not read the repo-root `.env` by default for `-f docker/docker-compose.yml` invocations.
 
 ## Utility
 

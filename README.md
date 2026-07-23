@@ -101,6 +101,10 @@ To move to non-default **app** ports at any time, run `pnpm set-ports --mastra=4
 
 To publish the Docker containers on **different host ports** (without changing the app/container ports), set `AGENTS_HOST_PORT` / `WEB_HOST_PORT` / `KEYCLOAK_HOST_PORT` in the root `.env` — e.g. `AGENTS_HOST_PORT=60000`, `WEB_HOST_PORT=60001`, `KEYCLOAK_HOST_PORT=60002` map host `60000→`agents`4111`, `60001→`web`3000`, `60002→`keycloak`8080`. They default to the container port, and only affect `pnpm docker:up`.
 
+**Choosing which services to build/run:** set `COMPOSE_PROFILES` in the root `.env` (Compose's own mechanism) to a comma-separated subset of `agents,web,keycloak` — default is all three. Useful once the pieces are deployed to different places, e.g. Mastra agents hosted elsewhere (an AgentBase import) but you still need this stack's Next.js web app + Keycloak running somewhere: `COMPOSE_PROFILES=web,keycloak` builds/starts only those two. If you exclude `agents`, also point the web app's transport at the real agents endpoint (`ENABLE_AGENTBASE=1` + `AGENTBASE_URL`, or `MASTRA_INTERNAL_URL`) — it can no longer reach a local `agents` container.
+
+All `pnpm docker:*` scripts route through `scripts/docker-compose.mjs`, which fails fast with a clear message if the root `.env` is missing — Compose itself does **not** read the repo-root `.env` by default when invoked with `-f docker/docker-compose.yml`, so this wrapper is what makes `AGENTS_HOST_PORT`/`COMPOSE_PROFILES`/etc. actually take effect.
+
 The `precast` placeholder spans package scopes (`@precast/*`), Docker container names, tsconfig path aliases, and env defaults (including the Keycloak client id and the database name in your `DATABASE_URL`). Renaming rewrites only functional config — the docs keep describing the boilerplate. Afterwards, set your project's name and mission in [docs/PROGRESS.md](docs/PROGRESS.md) §1 and update this README's title.
 
 ### Run in Docker (apps + Keycloak)

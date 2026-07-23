@@ -124,6 +124,8 @@ point `KEYCLOAK_TOKEN_ISSUER_URI` at a managed Keycloak instead.
 - Inter-service URLs use Docker DNS names, never `localhost`: `web` reaches the API via `MASTRA_INTERNAL_URL=http://agents:4111`. Remote infra is reached over the public network via its `.env` URL.
 - `agents` persists agent memory to the `precast-agents-data` volume (`MASTRA_DB_URL=file:/data/mastra.db`).
 - Both load the root `.env` (`env_file` optional) — that is where the remote infra URLs come from; the compose `environment:` block overrides only network-specific app values.
+- **Each service declares `profiles: ['<own name>']`.** `COMPOSE_PROFILES` in the root `.env` (Compose's own variable) selects which build/run — default `agents,web,keycloak`. This lets you build only a subset once the pieces are deployed separately (e.g. agents hosted by an AgentBase import; only `web`+`keycloak` need to run here). `web`'s `depends_on.agents` is `required: false` so excluding `agents` doesn't fail Compose validation.
+- **Compose does NOT read the repo-root `.env` by default** when invoked with `-f docker/docker-compose.yml` from the repo root (it looks in the compose file's own directory unless told otherwise) — so every `pnpm docker:*` script routes through `scripts/docker-compose.mjs`, which passes `--env-file .env` (failing fast with a clear message if `.env` is missing). Without this, `AGENTS_HOST_PORT`/`WEB_HOST_PORT`/`KEYCLOAK_HOST_PORT`/`COMPOSE_PROFILES`/`KEYCLOAK_ADMIN` all silently fall back to their YAML defaults.
 
 ---
 

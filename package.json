@@ -32,11 +32,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "turbo run clean",
-    "docker:up": "docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d",
-    "docker:down": "docker compose -f docker/docker-compose.yml down",
-    "docker:logs": "docker compose -f docker/docker-compose.yml logs -f",
-    "docker:ps": "docker compose -f docker/docker-compose.yml ps",
-    "docker:rebuild": "docker compose -f docker/docker-compose.yml build --no-cache"
+    "docker:up": "node scripts/docker-compose.mjs -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d",
+    "docker:down": "node scripts/docker-compose.mjs -f docker/docker-compose.yml down",
+    "docker:logs": "node scripts/docker-compose.mjs -f docker/docker-compose.yml logs -f",
+    "docker:ps": "node scripts/docker-compose.mjs -f docker/docker-compose.yml ps",
+    "docker:rebuild": "node scripts/docker-compose.mjs -f docker/docker-compose.yml build --no-cache"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

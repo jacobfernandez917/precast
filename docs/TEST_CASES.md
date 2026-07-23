@@ -39,8 +39,9 @@
 | APP-005 | Mastra API boots; `GET /api/agents` lists the example agent                                | Passing                         |
 | APP-006 | Web builds; `GET /api/health` (Next.js route handler) returns `{status:"ok"}`; `/` renders | Passing                         |
 | APP-007 | Env validation fails fast when `DATABASE_URL` is missing/invalid                           | Passing (covered by web Vitest) |
-| APP-008 | Compose publishes host ports from `AGENTS_HOST_PORT`/`WEB_HOST_PORT`/`KEYCLOAK_HOST_PORT` (default = container port; override remaps host side only) | Passing (verified via `docker compose config`: defaults 4111/3000/8080; `AGENTS_HOST_PORT=60000 WEB_HOST_PORT=60001` → 60000→4111, 60001→3000; `KEYCLOAK_HOST_PORT=60002` → 60002→8080) |
+| APP-008 | Compose publishes host ports from `AGENTS_HOST_PORT`/`WEB_HOST_PORT`/`KEYCLOAK_HOST_PORT` (default = container port; override remaps host side only) | Passing (verified via `node scripts/docker-compose.mjs -f docker/docker-compose.yml config` against a real root `.env` — the actual `pnpm docker:up` path: defaults 4111/3000/8080; overriding in `.env` → 60000/60001/8080 correctly) |
 | APP-009 | Compose includes a `keycloak` service (dev `start-dev`, published on `KEYCLOAK_HOST_PORT`); Postgres/Redis remain remote | Passing (verified via `docker compose config`: services = agents, keycloak, web; compose valid) |
+| APP-010 | `pnpm docker:*` reads the root `.env` for Compose interpolation (fails fast with a clear message if `.env` is missing, via `scripts/docker-compose.mjs`); `COMPOSE_PROFILES` in `.env` selects which of agents/web/keycloak build+run (default = all three; e.g. `web,keycloak` excludes agents with no Compose error) | Passing (verified end-to-end: missing `.env` → exit 1 + message; default profiles → all 3 services; `COMPOSE_PROFILES=web,keycloak` → agents excluded cleanly; full config incl. override validates) |
 
 ---
 
@@ -63,6 +64,7 @@
 | WEB-003 | `docker-build.spec.ts` — fitness guard: every app Dockerfile builds via path filters (no rename-fragile `--filter @scope/…`) and asserts its artifact | Passing |
 | WEB-004 | `logger.spec.ts` — web logger factory returns a usable logger, honors `LOG_LEVEL`, defaults to `info` on unset/invalid | Passing |
 | WEB-005 | `import-manifest.spec.ts` — `agentbase.import.json` `requiredEnv` matches the required set derived from the env schema (drift guard) + never gates reserved names | Passing |
+| WEB-006 | `docker-compose-profiles.spec.ts` — every `pnpm docker:*` script routes through `scripts/docker-compose.mjs` (so root `.env` is read); agents/web/keycloak each declare a matching `profiles:` entry; web's `depends_on.agents` is `required: false` | Passing |
 
 ---
 

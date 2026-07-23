@@ -11,9 +11,19 @@
 # PUBLISHED HOST PORTS are separate: set AGENTS_HOST_PORT / WEB_HOST_PORT in the
 # root .env to map the containers to different host ports (they default to the
 # container port). Example: AGENTS_HOST_PORT=60000, WEB_HOST_PORT=60001.
+# SERVICE SELECTION: each service declares a `profiles:` entry matching its own
+# name, and COMPOSE_PROFILES in the root .env picks which run (Compose's own
+# mechanism — docs.docker.com/compose/how-tos/profiles). Default (see
+# .env.example) is all three; e.g. COMPOSE_PROFILES=web,keycloak skips
+# building/running `agents` here (agents hosted elsewhere, e.g. an AgentBase
+# import). `pnpm docker:up`/`down`/`logs`/`ps`/`rebuild` all pass `--env-file
+# .env` so this file's vars (ports, profiles, Keycloak admin) actually apply —
+# Compose does NOT read the repo-root .env by default when invoked with
+# `-f docker/docker-compose.yml` from the repo root.
 
 services:
   agents:
+    profiles: ['agents']
     build:
       context: ..
       dockerfile: apps/agents/Dockerfile
@@ -47,6 +57,7 @@ services:
       start_period: 25s
 
   web:
+    profiles: ['web']
     build:
       context: ..
       dockerfile: apps/web/Dockerfile
@@ -71,6 +82,10 @@ services:
     depends_on:
       agents:
         condition: service_healthy
+        # Optional: don't fail Compose validation when `agents` is excluded via
+        # COMPOSE_PROFILES (agents hosted elsewhere). Still waited on for health
+        # when `agents` IS in the active profile set.
+        required: false
     healthcheck:
       test:
         - CMD
@@ -87,6 +102,7 @@ services:
   # default). Nothing depends on it, so no healthcheck. In production, use a
   # managed Keycloak and set KEYCLOAK_TOKEN_ISSUER_URI accordingly.
   keycloak:
+    profiles: ['keycloak']
     image: quay.io/keycloak/keycloak:latest
     container_name: precast-keycloak
     restart: unless-stopped
