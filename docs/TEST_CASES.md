@@ -52,7 +52,7 @@
 | ID      | Description                      | Status  |
 | ------- | -------------------------------- | ------- |
 | AGT-001 | `echo` returns its input message | Passing |
-| AGT-002 | `agentbase-model.spec.ts` — `resolveAgentModel()` falls back to the plain router string when AgentBase's LLM gateway isn't configured for that agent id (unset, or another agent's vars only); builds a gateway-backed model (keyed to `AGENTBASE_LLM_MODEL_<AGENT_ID>`) once both the base URL and this agent's model are set; `getAgentBaseLlmToken()` mints via OAuth2 `client_credentials`, caches, auto-refreshes near expiry, and errors clearly on missing config / non-2xx | Passing |
+| AGT-002 | `agentbase-model.spec.ts` — `resolveAgentModel()`: **off** AgentBase (unset `AGENTBASE_HOSTED`) falls back to the plain router string + `.env` key; builds a gateway-backed model (keyed to `AGENTBASE_LLM_MODEL_<AGENT_ID>`) once both the base URL and this agent's model are set; **on** an AgentBase-hosted container (`AGENTBASE_HOSTED=1`) an unconfigured agent does NOT fall back to the env key — it returns a model that fails at CALL time with an actionable message. `getAgentBaseLlmToken()` mints via OAuth2 `client_credentials`, caches, auto-refreshes near expiry, and errors clearly on missing config / non-2xx | Passing |
 
 ---
 

@@ -370,13 +370,14 @@ The second integration axis — registering the Mastra agent itself on AgentBase
 
 This is a **third, separate integration axis** from §7 (which covers Next ↔ Mastra) — it's about **which model each imported Mastra agent itself calls**, and who controls that choice.
 
-By default an agent's model is whatever its own code hardcodes (e.g. `model: 'google/gemini-2.5-flash'` in `example-agent.ts`), with the provider key read from this repo's own `.env` (`GOOGLE_GENERATIVE_AI_API_KEY`). That's fine for local dev, Standalone, and External deployment mode — but once an agent is **imported** into AgentBase, an org admin can instead pick the model (and key) from Studio's **"LLM configuration"** card on the agent's detail page, without ever touching this repo's `.env`:
+**The rule:** *locally* (and in Standalone/External deployment mode) an agent uses the model its own code hardcodes (e.g. `model: 'google/gemini-2.5-flash'` in `example-agent.ts`) with the provider key from this repo's own `.env` (`GOOGLE_GENERATIVE_AI_API_KEY`). *On AgentBase* (an imported, AgentBase-hosted container) the model is instead **set per agent from the org's onboarded models** — and an agent with no model set does **not** silently read an env key; it fails loudly until configured.
 
-1. Import the repo (§4A). On the **first** deploy, before any model is chosen, the agent keeps using its own fallback string + `.env` key exactly as before.
+1. Import the repo (§4A). AgentBase always injects `AGENTBASE_HOSTED=1` into the container. On the **first** deploy no model can be set yet (see the one-deploy lag below) — the container still boots and its agents are discoverable, but *calling* an unconfigured agent returns a clear error telling you to set its model in Studio (it never falls back to an env key on AgentBase).
 2. In Studio, open the agent → **LLM configuration** → pick one of the org's already-onboarded models (from the **Models** page — that's where the org's own provider key lives) → **Save**.
 3. **Redeploy** ("Pull latest & redeploy"). AgentBase mints this agent a fresh service Application and injects its gateway env into the container (reserved, never read from this repo's `.env`/Variables):
 
    ```
+   AGENTBASE_HOSTED=1                          marks the container AgentBase-hosted (always)
    AGENTBASE_LLM_BASE_URL                      shared gateway base URL
    AGENTBASE_LLM_TOKEN_URL                     shared Keycloak token endpoint
    AGENTBASE_LLM_CLIENT_ID_<AGENT_ID>           this agent's own service Application
@@ -386,9 +387,9 @@ By default an agent's model is whatever its own code hardcodes (e.g. `model: 'go
 
    `<AGENT_ID>` is the agent's own Mastra `id` (uppercased/underscored — same convention as `AGENTBASE_AGENT_URL_<AGENT_ID>` in §7), since one container can host several agents, each with its own choice.
 
-4. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel(agentId, fallback)` picks this up automatically: when both `AGENTBASE_LLM_BASE_URL` and this agent's `AGENTBASE_LLM_MODEL_<AGENT_ID>` are set, it builds an OpenAI-compatible model (`@ai-sdk/openai-compatible`) pointed at the gateway, minting/caching its own client_credentials bearer per call (mirrors `agentbase-auth.ts`'s pattern) — the org's real provider key never reaches the container. Otherwise it returns `fallback` unchanged.
+4. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel(agentId, fallback)` implements the rule: when both `AGENTBASE_LLM_BASE_URL` and this agent's `AGENTBASE_LLM_MODEL_<AGENT_ID>` are set, it builds an OpenAI-compatible model (`@ai-sdk/openai-compatible`) pointed at the gateway, minting/caching its own client_credentials bearer per call (mirrors `agentbase-auth.ts`'s pattern) — the org's real provider key never reaches the container. When `AGENTBASE_HOSTED=1` but this agent has no model, it returns a model that **fails at call time** with an actionable message (never an env key). Only when *not* AgentBase-hosted does it return `fallback` unchanged (the local/`.env` path).
 
-**Note the one-deploy lag:** a brand-new agent's own Mastra `id` isn't knowable to AgentBase until its first container boots and gets probed (for manifest-less repos) — so gateway wiring only takes effect starting from the deploy *after* the agent is first known to the registry, once an admin has configured it. This is a one-time bootstrapping gap, not an ongoing one.
+**Note the one-deploy lag:** a brand-new agent's own Mastra `id` isn't knowable to AgentBase until its first container boots and gets probed (for manifest-less repos) — so gateway wiring only takes effect starting from the deploy *after* the agent is first known to the registry, once an admin has configured it. This is why the fail-fast is at **call time**, not boot time: crashing at construction would stop the container from booting and deadlock that first discovery deploy. It's a one-time bootstrapping gap per agent, not an ongoing one.
 
 ---
 

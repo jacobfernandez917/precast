@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAgentBaseLlmToken, resetAgentBaseLlmTokenCacheForTests, resolveAgentModel } from './agentbase-model';
 
 const ENV_KEYS = [
+  'AGENTBASE_HOSTED',
   'AGENTBASE_LLM_BASE_URL',
   'AGENTBASE_LLM_TOKEN_URL',
   'AGENTBASE_LLM_CLIENT_ID_EXAMPLE_AGENT',
@@ -33,13 +34,15 @@ function setConfig() {
 }
 
 describe('resolveAgentModel', () => {
-  it('falls back to the plain router string when the gateway is not configured', () => {
+  it('falls back to the plain router string when not AgentBase-hosted and unconfigured (local dev)', () => {
+    delete process.env.AGENTBASE_HOSTED;
     delete process.env.AGENTBASE_LLM_BASE_URL;
     delete process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT;
     expect(resolveAgentModel('example-agent', 'google/gemini-2.5-flash')).toBe('google/gemini-2.5-flash');
   });
 
-  it('falls back when only the base URL is set but this agent has no model chosen yet', () => {
+  it('falls back (local) when only the base URL is set but this agent has no model chosen', () => {
+    delete process.env.AGENTBASE_HOSTED;
     process.env.AGENTBASE_LLM_BASE_URL = 'https://agentbase.example.com/llm/v1';
     delete process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT;
     expect(resolveAgentModel('example-agent', 'google/gemini-2.5-flash')).toBe('google/gemini-2.5-flash');
@@ -55,8 +58,30 @@ describe('resolveAgentModel', () => {
   });
 
   it('does not use another agent’s env vars (one config per agent id)', () => {
-    setConfig(); // only *_EXAMPLE_AGENT is set
+    setConfig(); // only *_EXAMPLE_AGENT is set; not AgentBase-hosted
+    delete process.env.AGENTBASE_HOSTED;
     expect(resolveAgentModel('summary-agent', 'anthropic/claude-sonnet-5')).toBe('anthropic/claude-sonnet-5');
+  });
+
+  it('on an AgentBase-hosted container, an unconfigured agent does NOT fall back to the env key', () => {
+    process.env.AGENTBASE_HOSTED = '1';
+    delete process.env.AGENTBASE_LLM_BASE_URL;
+    delete process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT;
+    const result = resolveAgentModel('example-agent', 'google/gemini-2.5-flash');
+    // A model object, never the fallback string — the org must set the model in Studio.
+    expect(result).not.toBe('google/gemini-2.5-flash');
+    expect((result as { modelId: string }).modelId).toBe('unconfigured');
+  });
+
+  it('the unconfigured-hosted model fails at CALL time with an actionable message', async () => {
+    process.env.AGENTBASE_HOSTED = '1';
+    delete process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT;
+    const result = resolveAgentModel('example-agent', 'google/gemini-2.5-flash') as unknown as {
+      doGenerate: (o: unknown) => Promise<unknown>;
+    };
+    await expect(
+      result.doGenerate({ prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }] }),
+    ).rejects.toThrow(/no model configured|LLM configuration/i);
   });
 });
 

@@ -62,14 +62,22 @@ export const EnvSchema = z.object({
   // schema-definition time. See .env.example.
 
   // ── AgentBase LLM gateway (org-admin-configured model per imported agent) ──
-  // AgentBase injects these into the `apps/agents` container ONLY once the org
-  // admin has set a model for a given agent in Studio (see
-  // docs/INTEGRATION_AGENTBASE.md); never present in Standalone/External
-  // deployment mode or plain local dev. AGENTBASE_LLM_BASE_URL/_TOKEN_URL are
-  // shared per container; AGENTBASE_LLM_CLIENT_ID_<AGENT_ID>/_CLIENT_SECRET_<AGENT_ID>/
-  // _MODEL_<AGENT_ID> are one set per Mastra agent id (mirrors
-  // AGENTBASE_AGENT_URL_<AGENT_ID> above) — read directly from process.env by
-  // apps/agents/src/mastra/lib/agentbase-model.ts, not enumerated here.
+  // AgentBase injects these into the `apps/agents` container; never present in
+  // Standalone/External deployment mode or plain local dev. See
+  // docs/INTEGRATION_AGENTBASE.md §7.9.
+  //   AGENTBASE_HOSTED='1'  — always injected on an AgentBase-hosted (imported)
+  //     container. When set, an agent with NO model configured fails loudly at
+  //     call time rather than falling back to a `.env` provider key: on
+  //     AgentBase the model must be set per agent from the org's onboarded
+  //     models. When absent (local/Standalone/External), the agent uses its own
+  //     model string + GOOGLE_GENERATIVE_AI_API_KEY exactly as before.
+  //   AGENTBASE_LLM_BASE_URL / _TOKEN_URL — shared per container; injected once
+  //     any agent has a model set.
+  //   AGENTBASE_LLM_CLIENT_ID_<AGENT_ID> / _CLIENT_SECRET_<AGENT_ID> /
+  //     _MODEL_<AGENT_ID> — one set per Mastra agent id (mirrors
+  //     AGENTBASE_AGENT_URL_<AGENT_ID> above), read directly from process.env by
+  //     apps/agents/src/mastra/lib/agentbase-model.ts, not enumerated here.
+  AGENTBASE_HOSTED: z.enum(['0', '1']).optional(),
   AGENTBASE_LLM_BASE_URL: z.string().url().optional(),
   AGENTBASE_LLM_TOKEN_URL: z.string().url().optional(),
 
