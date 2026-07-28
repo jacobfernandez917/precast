@@ -7,20 +7,20 @@
 
 ## Placeholders
 
-| Token           | Description                                   |
-| --------------- | --------------------------------------------- |
-| `<AGENT_NAME>`  | Agent identifier (e.g. `support-bot`)         |
-| `<DOMAIN>`      | Domain of expertise                           |
-| `<MCP_NAME>`    | External MCP/tool source, if any              |
-| `<MCP_URL>`     | MCP endpoint URL                              |
-| `<MODEL>`       | LLM model string (e.g. `anthropic/claude-sonnet-5`, `openai/gpt-5.1`, or `google/gemini-2.5-flash`) |
+| Token          | Description                                                                                         |
+| -------------- | --------------------------------------------------------------------------------------------------- |
+| `<AGENT_NAME>` | Agent identifier (e.g. `support-bot`)                                                               |
+| `<DOMAIN>`     | Domain of expertise                                                                                 |
+| `<MCP_NAME>`   | External MCP/tool source, if any                                                                    |
+| `<MCP_URL>`    | MCP endpoint URL                                                                                    |
+| `<MODEL>`      | LLM model string (e.g. `anthropic/claude-sonnet-5`, `openai/gpt-5.1`, or `google/gemini-2.5-flash`) |
 
 ## Suggested sequence
 
 1. **Plan** — copy the relevant `templates/*.md` (PRD, DATA_MODEL, AGENT_SPEC, DESIGN_SYSTEM) into `docs/` and fill them in for `<DOMAIN>`.
 2. **Model** — choose `<MODEL>` and add its provider key (Anthropic/OpenAI/Google) to the root `.env`; leave `DEFAULT_LLM_MODEL` unset to let `resolveDefaultModel()` auto-detect it, or set `DEFAULT_LLM_MODEL=<MODEL>` explicitly.
 3. **Build the agent** — define the Mastra agent + tools in `apps/agents/src/mastra/`; attach external tools via `@mastra/mcp` if using `<MCP_NAME>`.
-4. **Persist** — add your data model to `packages/shared` / the remote Postgres (`DATABASE_URL`) as needed.
+4. **Persist** — add your data model to `packages/shared` / your `DATABASE_URL` (managed Postgres, or a local SQLite file if you don't need Postgres) as needed.
 5. **Auth** — protect the agent API with the static bearer `AGENT_API_TOKEN` (Mastra middleware).
 6. **Verify live** — boot the app, exercise the agent end to end, confirm the A2A card + logs.
 

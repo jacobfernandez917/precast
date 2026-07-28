@@ -31,9 +31,15 @@ export const EnvSchema = z.object({
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
   DEFAULT_LLM_MODEL: z.string().optional(),
 
-  // ── Database (remote / managed Postgres) ───────────────────────────────────
-  // Precast does not run Postgres locally — point this at a managed service
-  // (Neon, Supabase, RDS, …). Required; no default, so it fails fast if unset.
+  // ── Database ───────────────────────────────────────────────────────────────
+  // One var, either engine — no separate "which engine" var, and no privileged
+  // default. Point this at a managed Postgres (Neon, Supabase, RDS, …) via
+  // postgres://... / postgresql://..., or a local SQLite file via
+  // file:./app.db (or sqlite:./app.db). getDatabaseKind() (database.ts)
+  // identifies which one from the URL's own scheme. Required; no default, so
+  // it fails fast if unset. Precast still doesn't run Postgres *locally* —
+  // that stays remote/managed; local SQLite is the lightweight alternative to
+  // provisioning one, not a local Postgres.
   DATABASE_URL: z.string().url(),
 
   // ── Redis (remote / managed) ───────────────────────────────────────────────

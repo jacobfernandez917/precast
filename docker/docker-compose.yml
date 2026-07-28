@@ -1,9 +1,12 @@
 # ─── App Stack ──────────────────────────────────────────────────────────────
 # Apps: Mastra agents (agents), Next web (web). Identity: Keycloak (local dev).
 # Postgres + Redis are NOT run here — point the app at your own remote/managed
-# services via the root .env (DATABASE_URL, REDIS_URL). Keycloak runs locally
-# for convenient dev auth; in production point KEYCLOAK_TOKEN_ISSUER_URI at a
-# managed Keycloak instead of this container. See .env.example.
+# services via the root .env (DATABASE_URL, REDIS_URL). DATABASE_URL accepts
+# EITHER a managed Postgres URL or a local SQLite file (getDatabaseKind() in
+# packages/shared/src/database.ts detects which) — either way, no Postgres
+# runs in this Compose file. Keycloak runs locally for convenient dev auth; in
+# production point KEYCLOAK_TOKEN_ISSUER_URI at a managed Keycloak instead of
+# this container. See .env.example.
 # Run with: docker compose -f docker/docker-compose.yml up -d
 # Override with: docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d
 # App (container) ports are set by `pnpm set-ports` / `pnpm bootstrap` — change
@@ -29,9 +32,10 @@ services:
       dockerfile: apps/agents/Dockerfile
     container_name: precast-agents
     restart: unless-stopped
-    # Load the user's root .env — this is where the remote DATABASE_URL /
-    # REDIS_URL / KEYCLOAK_TOKEN_ISSUER_URI live. Optional so the stack still
-    # boots without one; the app fails fast if a required var is missing.
+    # Load the user's root .env — this is where DATABASE_URL (Postgres or
+    # local SQLite) / REDIS_URL / KEYCLOAK_TOKEN_ISSUER_URI live. Optional so
+    # the stack still boots without one; the app fails fast if a required var
+    # is missing.
     env_file:
       - path: ../.env
         required: false

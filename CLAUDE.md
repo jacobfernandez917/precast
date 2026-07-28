@@ -17,20 +17,20 @@ This is a **monorepo boilerplate** — a curated, opinionated starting point for
 
 **Stack at a glance:**
 
-| Layer                 | Tech                                                  |
-| --------------------- | ----------------------------------------------------- |
-| Package Manager       | **pnpm** (workspaces)                                 |
-| Monorepo Orchestrator | **Turborepo**                                         |
-| Agents (template)     | **Mastra** on Node.js — agents + their tools (Studio) |
-| Web (template)        | **Next.js** (App Router) with route handlers          |
-| Design system         | **Astryx** (`@astryxdesign/core`, web UI)             |
-| Shared                | **TypeScript** packages with zod validation           |
-| Database              | **Postgres** + optional pgvector — **remote/managed** |
-| Identity              | **Keycloak** / OIDC — **Docker Compose (dev)** or remote |
-| Cache                 | **Redis** — **remote/managed**                        |
-| Containers            | **Docker Compose** (apps + Keycloak; Postgres/Redis remote) |
-| Testing               | **Vitest** + **Playwright**                           |
-| Linting               | **ESLint** + **Prettier**                             |
+| Layer                 | Tech                                                                          |
+| --------------------- | ----------------------------------------------------------------------------- |
+| Package Manager       | **pnpm** (workspaces)                                                         |
+| Monorepo Orchestrator | **Turborepo**                                                                 |
+| Agents (template)     | **Mastra** on Node.js — agents + their tools (Studio)                         |
+| Web (template)        | **Next.js** (App Router) with route handlers                                  |
+| Design system         | **Astryx** (`@astryxdesign/core`, web UI)                                     |
+| Shared                | **TypeScript** packages with zod validation                                   |
+| Database              | **Postgres** (remote/managed) or **SQLite** (local file) — one `DATABASE_URL` |
+| Identity              | **Keycloak** / OIDC — **Docker Compose (dev)** or remote                      |
+| Cache                 | **Redis** — **remote/managed**                                                |
+| Containers            | **Docker Compose** (apps + Keycloak; Postgres/Redis never run here)           |
+| Testing               | **Vitest** + **Playwright**                                                   |
+| Linting               | **ESLint** + **Prettier**                                                     |
 
 ---
 
@@ -189,8 +189,9 @@ HANDOFF.md is a snapshot; PROGRESS.md is the long-form ledger. On disagreement a
 
 - Document assigned ports in [docs/TECH_STACK.md](docs/TECH_STACK.md).
 - Use Docker DNS names for inter-**app** URLs, not `localhost` (e.g. `http://agents:4111`).
-- **Postgres + Redis are remote/managed, not in Compose** — the apps reach them via the root `.env` (`DATABASE_URL`, `REDIS_URL`). Do not add local Postgres/Redis services to Compose.
-- **Keycloak runs in Compose for local dev** (`start-dev`), published on `KEYCLOAK_HOST_PORT` (default 8080). In production, point `KEYCLOAK_TOKEN_ISSUER_URI` at a managed Keycloak instead of the container. See ADR (Keycloak returned to Compose; Postgres/Redis stay remote).
+- **Redis is remote/managed, not in Compose** — the apps reach it via the root `.env` (`REDIS_URL`). Do not add a local Redis service to Compose.
+- **Postgres is never run in Compose either way, but `DATABASE_URL` now accepts either engine** — a managed Postgres URL (`postgres://`/`postgresql://`), or a local SQLite file (`file:./app.db` / `sqlite:...`) as a lightweight alternative to provisioning one. `getDatabaseKind()` (`packages/shared/src/database.ts`) identifies which from the URL's own scheme — no separate "which engine" var, and no privileged default. Do not add a local Postgres service to Compose regardless of which engine a project chooses. See [ADR-001](docs/ADRS.md).
+- **Keycloak runs in Compose for local dev** (`start-dev`), published on `KEYCLOAK_HOST_PORT` (default 8080). In production, point `KEYCLOAK_TOKEN_ISSUER_URI` at a managed Keycloak instead of the container.
 - **Published host ports** are configurable via `AGENTS_HOST_PORT` / `WEB_HOST_PORT` / `KEYCLOAK_HOST_PORT` in `.env` (container ports unchanged).
 - **Service selection is configurable via `COMPOSE_PROFILES`** in `.env` (Compose's own mechanism) — a comma-separated subset of `agents,web,keycloak` (default: all three). Each service declares `profiles: ['<own name>']`; `web`'s `depends_on.agents` is `required: false` so excluding `agents` doesn't break Compose. Use this once services are deployed to different places (e.g. agents hosted by an AgentBase import; only `web`+`keycloak` need to run in this stack).
 - **Always invoke Compose through `scripts/docker-compose.mjs`** (all `pnpm docker:*` scripts already do) — never call `docker compose -f docker/docker-compose.yml …` directly. Compose does not read the repo-root `.env` by default for that invocation shape; the wrapper passes `--env-file .env` and fails fast if `.env` is missing.
