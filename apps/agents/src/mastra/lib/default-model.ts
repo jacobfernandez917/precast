@@ -64,3 +64,16 @@ export function resolveDefaultModel(): string | LanguageModelV4 {
 
   return unconfiguredLocalModel();
 }
+
+/**
+ * True if `resolveDefaultModel()` would resolve to a real model rather than
+ * the call-time-failing stub. Used for a boot-time warning (see
+ * `mastra/index.ts`) so an unconfigured provider is visible the moment
+ * `mastra dev`/`mastra start` boots, instead of surfacing only when a user
+ * actually chats with an agent and hits `unconfiguredLocalModel()`'s error.
+ */
+export function isLlmProviderConfigured(): boolean {
+  return Boolean(
+    process.env.DEFAULT_LLM_MODEL || PROVIDER_DEFAULTS.some(({ envVar }) => process.env[envVar]),
+  );
+}

@@ -9,15 +9,26 @@
  * Steps, in order:
  *   1. Ask for (or read) the project name.
  *   2. Ask for the Mastra API and Next web dev ports (Enter to keep defaults).
- *   3. Rename the `precast` placeholder everywhere (scripts/rename-project.mjs).
- *   4. Apply the chosen ports across env, configs, pnpm scripts, Docker, docs
+ *   3. Ask which LLM provider the project will use (Anthropic/OpenAI/Google, or
+ *      skip) — never collects the actual key value, only which one to remind
+ *      about later. No provider is hardcoded as the default; the agents
+ *      auto-detect from whichever single key ends up set in `.env` (see
+ *      apps/agents/src/mastra/lib/default-model.ts).
+ *   4. Rename the `precast` placeholder everywhere (scripts/rename-project.mjs).
+ *   5. Apply the chosen ports across env, configs, pnpm scripts, Docker, docs
  *      (scripts/set-ports.mjs).
- *   5. Install + update dependencies to latest compatible (scripts/update-deps.mjs).
- *   6. Remove Precast's own git history and re-initialize a BLANK repo on the
+ *   6. Install + update dependencies to latest compatible (scripts/update-deps.mjs).
+ *   7. Remove Precast's own git history and re-initialize a BLANK repo on the
  *      `develop` branch with a single initial commit, hooks activated.
+ *   8. Create a real `.env` from `.env.example` (if one doesn't already exist),
+ *      and print an ACTION-REQUIRED reminder naming the exact env var to set —
+ *      not a vague "go edit .env.example" — so an unconfigured LLM provider
+ *      can't quietly slip past scaffolding unannounced.
  *
  * Non-interactive port selection uses equals-form flags:
  *   pnpm bootstrap my-project --mastra-port=4200 --web-port=3100
+ * Non-interactive LLM provider selection:
+ *   pnpm bootstrap my-project --llm-provider=anthropic   # or openai | google | skip
  *
  * This is destructive to .git on purpose: a project bootstrapped from Precast
  * must not inherit Precast's commit history. It runs LAST so a failure earlier
@@ -36,6 +47,11 @@ const DEFAULT_BRANCH = 'develop';
 const DEFAULT_MASTRA_PORT = 4111;
 const DEFAULT_WEB_PORT = 3000;
 const RESERVED_PORTS = { 5432: 'Postgres', 6379: 'Redis', 8080: 'Keycloak' };
+const LLM_PROVIDERS = [
+  { key: 'anthropic', envVar: 'ANTHROPIC_API_KEY', label: 'Anthropic' },
+  { key: 'openai', envVar: 'OPENAI_API_KEY', label: 'OpenAI' },
+  { key: 'google', envVar: 'GOOGLE_GENERATIVE_AI_API_KEY', label: 'Google' },
+];
 
 const rawArgs = process.argv.slice(2);
 const assumeYes = rawArgs.includes('--yes') || rawArgs.includes('-y');
@@ -130,6 +146,47 @@ async function resolvePort(label, flagName, def) {
   }
 }
 
+/**
+ * Ask which LLM provider this project will use. Never collects the actual key
+ * value — only which one, so the final "Next steps" can name one exact env
+ * var instead of a vague "edit .env.example". Non-interactive mode requires
+ * an explicit `--llm-provider=` flag (unlike ports, which fall back to a
+ * default silently) — an unconfigured provider is exactly the gap this
+ * question exists to close, so we don't want a scripted call skipping it
+ * without at least an explicit `skip`.
+ */
+async function resolveLlmProvider() {
+  const fv = flagVal('llm-provider');
+  if (nameArg) {
+    if (!fv) return null; // no flag given — proceed, but the closing reminder still warns loudly
+    const normalized = fv.toLowerCase();
+    if (normalized === 'skip') return null;
+    const match = LLM_PROVIDERS.find((p) => p.key === normalized);
+    if (!match) {
+      console.error(
+        `❌ --llm-provider must be one of: ${LLM_PROVIDERS.map((p) => p.key).join(', ')}, skip (got "${fv}").`,
+      );
+      process.exit(1);
+    }
+    return match;
+  }
+  const rl = createInterface({ input: stdin, output: stdout });
+  try {
+    console.log('\nWhich LLM provider will this project use?');
+    LLM_PROVIDERS.forEach((p, i) => console.log(`  ${i + 1}. ${p.label} (${p.envVar})`));
+    console.log(`  ${LLM_PROVIDERS.length + 1}. Skip for now (you'll set it up later)`);
+    for (;;) {
+      const answer = (await rl.question(`Choice [1-${LLM_PROVIDERS.length + 1}]: `)).trim();
+      const n = Number(answer);
+      if (Number.isInteger(n) && n >= 1 && n <= LLM_PROVIDERS.length) return LLM_PROVIDERS[n - 1];
+      if (n === LLM_PROVIDERS.length + 1) return null;
+      console.error(`  Enter a number 1-${LLM_PROVIDERS.length + 1}.`);
+    }
+  } finally {
+    rl.close();
+  }
+}
+
 async function confirm(question) {
   if (assumeYes) return true;
   const rl = createInterface({ input: stdin, output: stdout });
@@ -152,6 +209,7 @@ async function main() {
     process.exit(1);
   }
   const portsCustom = mastraPort !== DEFAULT_MASTRA_PORT || webPort !== DEFAULT_WEB_PORT;
+  const llmProvider = await resolveLlmProvider();
 
   console.log(`\nThis will:`);
   console.log(`  1. Rename the "precast" placeholder → "${name}"`);
@@ -163,6 +221,9 @@ async function main() {
   );
   console.log(`  4. Reset progress docs (PROGRESS/HANDOFF/journal) to a clean slate`);
   console.log(`  5. DELETE Precast's git history and start a blank repo on "${DEFAULT_BRANCH}"`);
+  console.log(
+    `  6. Create .env from .env.example${llmProvider ? ` (reminding you to set ${llmProvider.envVar})` : ' (no LLM provider chosen yet — you will be reminded)'}`,
+  );
 
   if (!(await confirm('\nProceed?'))) {
     console.log('Aborted — nothing changed.');
@@ -188,16 +249,52 @@ async function main() {
   // 5. Reset git history → blank repo on develop.
   resetGit(name);
 
+  // 6. Create .env from .env.example so there's a real file to edit, not just
+  // an instruction to copy one — this is the gap that let an unconfigured LLM
+  // provider go unnoticed until a chat actually failed.
+  const envCreated = copyEnvFile();
+
   console.log(`\n✅ ${name} is ready.`);
   console.log('\nNext steps:');
   console.log('  • Set your project name + mission in docs/PROGRESS.md §1 and the README title.');
-  console.log('  • Copy env:            cp .env.example .env');
+  if (!envCreated && !existsSync(join(rootDir, '.env'))) {
+    console.log('  • Copy env:            cp .env.example .env');
+  }
   console.log('  • Verify:              pnpm build && pnpm test');
   console.log(
     '  • Add your remote:     git remote add origin <url> && git push -u origin ' + DEFAULT_BRANCH,
   );
 
+  console.log('');
+  if (llmProvider) {
+    console.log(
+      `⚠️  ACTION REQUIRED — set ${llmProvider.envVar} in .env before the agents will respond.`,
+    );
+  } else {
+    console.log(
+      '⚠️  ACTION REQUIRED — no LLM provider configured yet. Before the agents will respond,',
+    );
+    console.log(
+      '   open .env and set ONE of: ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY',
+    );
+    console.log('   (or DEFAULT_LLM_MODEL for a specific "<provider>/<model>" string).');
+  }
+
   printFeedForwardGuidance();
+}
+
+/**
+ * Create `.env` from `.env.example` if one doesn't already exist. Never
+ * overwrites an existing `.env` (e.g. a re-run, or one already hand-created).
+ * Returns whether it actually created the file.
+ */
+function copyEnvFile() {
+  const envPath = join(rootDir, '.env');
+  const examplePath = join(rootDir, '.env.example');
+  if (existsSync(envPath) || !existsSync(examplePath)) return false;
+  writeFileSync(envPath, readFileSync(examplePath, 'utf-8'), 'utf-8');
+  console.log('\nCreated .env from .env.example.');
+  return true;
 }
 
 /**

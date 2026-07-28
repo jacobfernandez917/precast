@@ -54,6 +54,7 @@
 | AGT-001 | `echo` returns its input message | Passing |
 | AGT-002 | `agentbase-model.spec.ts` — `resolveAgentModel()`: **off** AgentBase (unset `AGENTBASE_HOSTED`) falls back to the plain router string + `.env` key; builds a gateway-backed model (keyed to `AGENTBASE_LLM_MODEL_<AGENT_ID>`) once both the base URL and this agent's model are set; **on** an AgentBase-hosted container (`AGENTBASE_HOSTED=1`) an unconfigured agent does NOT fall back to the env key — it returns a model that fails at CALL time with an actionable message. `getAgentBaseLlmToken()` mints via OAuth2 `client_credentials`, caches, auto-refreshes near expiry, and errors clearly on missing config / non-2xx | Passing |
 | AGT-003 | `default-model.spec.ts` — `resolveDefaultModel()`: explicit `DEFAULT_LLM_MODEL` always wins; auto-detects Anthropic/OpenAI/Google independently from whichever single provider key is set; documented tie-break (Anthropic > OpenAI > Google) when more than one key is set; returns a call-time-failing model (never a string) when nothing is configured, with a message naming all three supported env vars | Passing |
+| AGT-004 | `default-model.spec.ts` — `isLlmProviderConfigured()`: false when nothing is set; true for `DEFAULT_LLM_MODEL` and independently for each of the three provider keys. Backs the boot-time warning in `mastra/index.ts` (`pnpm dev`/`mastra start` logs loudly if unconfigured, instead of only failing mid-conversation) | Passing |
 
 ---
 

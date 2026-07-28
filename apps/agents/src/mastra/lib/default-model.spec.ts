@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { resolveDefaultModel } from './default-model';
+import { isLlmProviderConfigured, resolveDefaultModel } from './default-model';
 
-const ENV_KEYS = ['DEFAULT_LLM_MODEL', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY'] as const;
+const ENV_KEYS = [
+  'DEFAULT_LLM_MODEL',
+  'ANTHROPIC_API_KEY',
+  'OPENAI_API_KEY',
+  'GOOGLE_GENERATIVE_AI_API_KEY',
+] as const;
 const originalEnv: Record<string, string | undefined> = {};
 
 beforeEach(() => {
@@ -61,4 +66,23 @@ describe('resolveDefaultModel', () => {
       result.doGenerate({ prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }] }),
     ).rejects.toThrow(/ANTHROPIC_API_KEY.*OPENAI_API_KEY.*GOOGLE_GENERATIVE_AI_API_KEY/s);
   });
+});
+
+describe('isLlmProviderConfigured', () => {
+  it('is false when nothing is set', () => {
+    expect(isLlmProviderConfigured()).toBe(false);
+  });
+
+  it('is true when DEFAULT_LLM_MODEL is set', () => {
+    process.env.DEFAULT_LLM_MODEL = 'openai/gpt-5.1';
+    expect(isLlmProviderConfigured()).toBe(true);
+  });
+
+  it.each(['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY'] as const)(
+    'is true when %s is set',
+    (envVar) => {
+      process.env[envVar] = 'test-key';
+      expect(isLlmProviderConfigured()).toBe(true);
+    },
+  );
 });

@@ -5,11 +5,26 @@ import { parseApiEnv } from '@precast/shared';
 import { agentAuthMiddleware } from './middleware/auth';
 import { exampleAgent } from './agents/example-agent';
 import { summaryAgent } from './agents/summary-agent';
+import { isLlmProviderConfigured } from './lib/default-model';
 
 // Validate env at boot — fail fast on missing/invalid config. The single root
 // `.env` is loaded by the dev/start scripts (dotenv-cli); in production the real
 // environment (Docker/host) supplies the vars.
 const env = parseApiEnv();
+
+// Warn LOUDLY at boot, not just at call time (see default-model.ts's
+// unconfiguredLocalModel) — a missing LLM key should surface the moment
+// `mastra dev`/`mastra start` runs, not get discovered mid-conversation.
+// This is advisory only: an AgentBase-hosted deploy legitimately boots
+// without one on its first deploy (see agentbase-model.ts), so we don't fail
+// the boot here, only make the gap impossible to miss in the terminal.
+if (!isLlmProviderConfigured() && env.AGENTBASE_HOSTED !== '1') {
+  console.warn(
+    '⚠️  No LLM provider configured — agents will boot, but any actual chat/tool-call will fail. ' +
+      'Set ONE of ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY in .env ' +
+      '(or DEFAULT_LLM_MODEL for a specific model).',
+  );
+}
 
 // The shared schema allows pino's full range; Mastra's logger supports a
 // subset, so map the two extremes onto the nearest supported level.

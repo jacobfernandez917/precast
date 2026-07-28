@@ -46,17 +46,19 @@ pnpm bootstrap      # interactive, or: pnpm bootstrap my-project
 `bootstrap` (see [scripts/bootstrap.mjs](scripts/bootstrap.mjs)) will:
 
 1. **Ask for the project name**, then the **Mastra API and Next web ports** (press Enter to keep the defaults, `4111` / `3000`).
-2. **Rename** the `precast` placeholder to your project name everywhere it matters.
-3. **Apply the chosen ports** across `.env.example`, config, pnpm scripts, Docker, and docs.
-4. **Update dependencies** to their latest compatible versions.
-5. **Delete Precast's git history** and re-initialize a **blank repo on the `develop` branch** with a single initial commit, hooks activated.
+2. **Ask which LLM provider** you'll use — Anthropic, OpenAI, or Google — so it can remind you exactly which key to set (never collects the actual key value).
+3. **Rename** the `precast` placeholder to your project name everywhere it matters.
+4. **Apply the chosen ports** across `.env.example`, config, pnpm scripts, Docker, and docs.
+5. **Update dependencies** to their latest compatible versions.
+6. **Delete Precast's git history** and re-initialize a **blank repo on the `develop` branch** with a single initial commit, hooks activated.
+7. **Create `.env` from `.env.example`** and print an explicit reminder naming the exact env var to fill in.
 
-Non-interactively, pass ports as flags: `pnpm bootstrap my-project --mastra-port=4200 --web-port=3100`.
+Non-interactively, pass flags: `pnpm bootstrap my-project --mastra-port=4200 --web-port=3100 --llm-provider=anthropic`.
 
 Then:
 
 ```bash
-cp .env.example .env    # edit with your values
+# .env already exists (bootstrap created it) — just add your provider key
 pnpm build && pnpm test # verify
 git remote add origin <url> && git push -u origin develop
 ```
