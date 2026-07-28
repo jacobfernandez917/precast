@@ -23,8 +23,10 @@ import type { LanguageModelV4 } from '@ai-sdk/provider';
  * (`AGENTBASE_HOSTED=1`), an agent with NO model configured yet gets a
  * call-time-failing model — never an env key; on AgentBase the model is set
  * per agent from the org's onboarded models. Off AgentBase (local, Standalone,
- * External), it returns `fallback` unchanged — Mastra's built-in router + this
- * repo's own `.env` (`GOOGLE_GENERATIVE_AI_API_KEY`), exactly as before.
+ * External), it returns `fallback` unchanged. Callers pass the result of
+ * `resolveDefaultModel()` (./default-model.ts) as `fallback` — either a plain
+ * `"<provider>/<model>"` string for Mastra's built-in router, or (if no
+ * provider key is configured) that helper's own call-time-failing model.
  */
 
 interface TokenResponse {
@@ -123,10 +125,11 @@ function unconfiguredHostedModel(agentId: string): LanguageModelV4 {
  *   - **On AgentBase, not yet configured** → a call-time-failing model — never
  *     an env key (see `unconfiguredHostedModel`).
  *   - **Local / Standalone / External** (not AgentBase-hosted) → `fallback`
- *     unchanged: Mastra's built-in router resolves the provider key from this
- *     repo's own `.env` (`GOOGLE_GENERATIVE_AI_API_KEY`).
+ *     unchanged: typically the result of `resolveDefaultModel()`
+ *     (./default-model.ts), which auto-detects the provider key from this
+ *     repo's own `.env`.
  */
-export function resolveAgentModel(agentId: string, fallback: string): string | LanguageModelV4 {
+export function resolveAgentModel(agentId: string, fallback: string | LanguageModelV4): string | LanguageModelV4 {
   const baseUrl = process.env.AGENTBASE_LLM_BASE_URL;
   const modelId = process.env[llmEnvVarName(agentId, 'MODEL')];
 

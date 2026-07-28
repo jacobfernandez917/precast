@@ -19,9 +19,17 @@ export const EnvSchema = z.object({
   WEB_HOST: z.string().default('0.0.0.0'),
 
   // ── LLM provider ───────────────────────────────────────────────────────────
-  // Mastra's model gateway reads the provider key from the environment. Set the
-  // one matching the agent's `provider/model` string (default: google/*).
+  // Mastra's model gateway reads the provider key matching the agent's
+  // `provider/model` string. No provider is hardcoded as "the" default — set
+  // whichever ONE of these three keys matches the provider you want; the
+  // agents auto-detect from whichever is present (see
+  // apps/agents/src/mastra/lib/default-model.ts). Optionally set
+  // DEFAULT_LLM_MODEL to a "<provider>/<model>" string to pick a specific
+  // model instead of the auto-detected one.
+  ANTHROPIC_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
+  DEFAULT_LLM_MODEL: z.string().optional(),
 
   // ── Database (remote / managed Postgres) ───────────────────────────────────
   // Precast does not run Postgres locally — point this at a managed service
@@ -69,8 +77,9 @@ export const EnvSchema = z.object({
   //     container. When set, an agent with NO model configured fails loudly at
   //     call time rather than falling back to a `.env` provider key: on
   //     AgentBase the model must be set per agent from the org's onboarded
-  //     models. When absent (local/Standalone/External), the agent uses its own
-  //     model string + GOOGLE_GENERATIVE_AI_API_KEY exactly as before.
+  //     models. When absent (local/Standalone/External), the agent falls back
+  //     to `resolveDefaultModel()` (see default-model.ts above) — no single
+  //     provider key is required.
   //   AGENTBASE_LLM_BASE_URL / _TOKEN_URL — shared per container; injected once
   //     any agent has a model set.
   //   AGENTBASE_LLM_CLIENT_ID_<AGENT_ID> / _CLIENT_SECRET_<AGENT_ID> /

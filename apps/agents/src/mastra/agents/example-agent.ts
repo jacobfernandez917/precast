@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { exampleTool } from '../tools/example-tool';
 import { resolveAgentModel } from '../lib/agentbase-model';
+import { resolveDefaultModel } from '../lib/default-model';
 
 const AGENT_ID = 'example-agent';
 
@@ -18,8 +19,9 @@ export const exampleAgent = new Agent({
     'You are a placeholder assistant used to verify the boilerplate. ' +
     'Answer briefly. Use the example tool when asked to echo text.',
   // Uses AgentBase's LLM gateway when imported + org-admin-configured
-  // (see docs/INTEGRATION_AGENTBASE.md); otherwise this fallback string,
-  // resolved via Mastra's built-in model router + this repo's own `.env`.
-  model: resolveAgentModel(AGENT_ID, 'google/gemini-2.5-flash'),
+  // (see docs/INTEGRATION_AGENTBASE.md); otherwise resolveDefaultModel()
+  // auto-detects from whichever provider key is set in this repo's own
+  // `.env` (Anthropic, OpenAI, or Google — see default-model.ts).
+  model: resolveAgentModel(AGENT_ID, resolveDefaultModel()),
   tools: { exampleTool },
 });

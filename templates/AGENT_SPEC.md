@@ -11,7 +11,7 @@
 
 ## 1. Agent: Reservation Agent
 
-**Id:** `reservation-agent` · **Model:** `google/gemini-2.5-flash` (via Mastra model gateway)
+**Id:** `reservation-agent` · **Model:** `<provider>/<model>` — e.g. `anthropic/claude-sonnet-5`, `openai/gpt-5.1`, or `google/gemini-2.5-flash` (via Mastra model gateway; no provider is hardcoded as the default — see `apps/agents/src/mastra/lib/default-model.ts`)
 
 **Job:** Turn a natural-language request into a confirmed room booking through
 chat, asking for missing details and never inventing data.

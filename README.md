@@ -74,7 +74,7 @@ pnpm build
 pnpm dev                               # all apps, or: pnpm dev:agents / pnpm dev:web
 ```
 
-The web app runs at `http://localhost:3000` and the Mastra agent API + Studio playground at `http://localhost:4111`. The placeholder example agent needs an LLM key — set `GOOGLE_GENERATIVE_AI_API_KEY` in `.env` to converse (build/test work without it).
+The web app runs at `http://localhost:3000` and the Mastra agent API + Studio playground at `http://localhost:4111`. The placeholder example agent needs an LLM key to converse (build/test work without it) — set **one** of `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_GENERATIVE_AI_API_KEY` in `.env`; the agents auto-detect which provider to use (see `apps/agents/src/mastra/lib/default-model.ts`), or set `DEFAULT_LLM_MODEL` to pick a specific model.
 
 There is a **single `.env` at the repo root** — don't create per-app `.env` files. The dev/start scripts load it (via `dotenv-cli`), Docker Compose loads it (`env_file: ../.env`), and production uses the real environment.
 
@@ -97,7 +97,7 @@ See [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) for both flow
 
 Any **A2A client can also invoke the agents directly** (JSON-RPC 2.0) at `POST /api/a2a/:agentId` by sending `Authorization: Bearer <AGENT_API_TOKEN>` — the bearer must match the server's `AGENT_API_TOKEN` (routes are open when it's unset). The "route through AgentBase" rule above applies to the **web frontend**; external clients authenticate directly with the token.
 
-**Which LLM an imported agent uses is also org-admin-configurable.** *Locally* (and in Standalone/External mode) an agent uses its own hardcoded model + `GOOGLE_GENERATIVE_AI_API_KEY` from `.env`, exactly as before. *On AgentBase* the model is instead set per agent from the org's onboarded models, via Studio's "LLM configuration" card — and an agent with no model set fails loudly rather than reading an env key. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel()` implements this split. See [docs/INTEGRATION_AGENTBASE.md §7.9](docs/INTEGRATION_AGENTBASE.md#79-org-admin-llm-configuration-for-imported-agents).
+**Which LLM an imported agent uses is also org-admin-configurable.** *Locally* (and in Standalone/External mode) an agent auto-detects its model from whichever provider key is set in `.env` — see `resolveDefaultModel()` above; no single provider is hardcoded. *On AgentBase* the model is instead set per agent from the org's onboarded models, via Studio's "LLM configuration" card — and an agent with no model set fails loudly rather than reading an env key. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel()` implements this split. See [docs/INTEGRATION_AGENTBASE.md §7.9](docs/INTEGRATION_AGENTBASE.md#79-org-admin-llm-configuration-for-imported-agents).
 
 To move to non-default **app** ports at any time, run `pnpm set-ports --mastra=4200 --web=3100` (either flag optional) — it rewrites env, config, pnpm scripts, Docker, and the port-stating docs in one pass.
 

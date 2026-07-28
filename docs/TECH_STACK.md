@@ -2,7 +2,7 @@
 
 > **Authoritative source of truth for all tech-stack facts.** If this file disagrees with any other doc about a version, library, container image, or port, this file wins and the other doc has a bug.
 
-**Last Updated:** 2026-07-14
+**Last Updated:** 2026-07-28
 
 ---
 
@@ -60,12 +60,16 @@ lives in `src/mastra/` (`index.ts` instance, `agents/`, `tools/`). ESM, no decor
 | zod                      | ^3      | Tool input/output schemas + env validation        |
 
 > By default the LLM is reached via Mastra's **model gateway** using a
-> `provider/model` string (`google/gemini-2.5-flash`), with the matching
-> provider key in `.env` (`GOOGLE_GENERATIVE_AI_API_KEY`). Once an agent is
-> **imported** into AgentBase, an org admin can instead pick a model (and key)
-> per agent from Studio — `apps/agents/src/mastra/lib/agentbase-model.ts`'s
-> `resolveAgentModel()` then routes through AgentBase's LLM gateway
-> (`@ai-sdk/openai-compatible`) instead, falling back to the string above when
+> `provider/model` string. No provider is hardcoded as "the" default —
+> `apps/agents/src/mastra/lib/default-model.ts`'s `resolveDefaultModel()`
+> auto-detects from whichever of `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` /
+> `GOOGLE_GENERATIVE_AI_API_KEY` is set in `.env` (or reads an explicit
+> `DEFAULT_LLM_MODEL` override), and fails loudly at call time if none are
+> set. Once an agent is **imported** into AgentBase, an org admin can instead
+> pick a model (and key) per agent from Studio —
+> `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel()` then
+> routes through AgentBase's LLM gateway (`@ai-sdk/openai-compatible`)
+> instead, falling back to `resolveDefaultModel()`'s result when
 > unconfigured. See `docs/INTEGRATION_AGENTBASE.md` §7.9.
 
 ---
