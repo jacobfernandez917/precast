@@ -8,35 +8,35 @@
 
 ## 1. Quick Reference
 
-| Layer                 | Tech                 | Version | Notes                                                 |
-| --------------------- | -------------------- | ------- | ----------------------------------------------------- |
-| Package Manager       | pnpm                 | 9.15.9  | Workspaces monorepo                                   |
-| Monorepo Orchestrator | Turborepo            | ^2.9.16 | Task orchestration                                    |
-| Runtime               | Node.js              | 24      | `.nvmrc` pin                                          |
-| Container base        | node:24-alpine       | —       | agents + web multi-stage image base                   |
-| Language              | TypeScript           | ^5.9.3  | Strict mode                                           |
-| Agents                | Mastra               | ^1.18   | `apps/agents/` — agent framework, `mastra dev`        |
-| LLM access            | Mastra model gateway | —       | `provider/model` string; no separate AI SDK           |
-| Agent store           | @mastra/libsql       | ^1.15   | Agent memory/threads (SQLite/libsql)                  |
-| Web                   | Next.js (App Router) | ^16     | `apps/web/`                                           |
-| UI runtime            | React                | ^19     | Web app                                               |
-| Design system         | Astryx               | ^0.1    | `@astryxdesign/core` (see templates/DESIGN_SYSTEM.md) |
-| CSS utilities         | Tailwind CSS         | ^4      | Layout/spacing via Astryx Tailwind bridge             |
-| Validation            | zod                  | ^3      | All external boundaries                               |
-| Logging               | pino                 | ^9      | Agents: @mastra/loggers PinoLogger. Web: own pino logger (`apps/web/app/lib/logger.ts`). Both keyed off `LOG_LEVEL` |
-| Log pretty-print (dev) | pino-pretty          | ^13     | Web dev-only; colorized terminal output (prod = JSON)  |
-| Database              | PostgreSQL           | 17      | **Remote/managed** (Neon, Supabase, RDS) — `DATABASE_URL` |
-| Vector                | pgvector             | ^0.8    | Optional (on the remote Postgres)                     |
-| Identity              | Keycloak / OIDC      | latest  | **Docker Compose (dev)** or remote — `KEYCLOAK_TOKEN_ISSUER_URI` |
-| Cache                 | Redis                | 7       | **Remote/managed** (Upstash, Redis Cloud) — `REDIS_URL`   |
-| Linting               | ESLint               | ^10     | Flat config                                           |
-| Formatting            | Prettier             | ^3      |                                                       |
-| Testing (agents)      | Vitest               | ^2      | `apps/agents` — no config (defaults)                  |
-| Testing (Web)         | Vitest               | ^2      | `apps/web/vitest.config.ts`                           |
-| E2E Testing           | Playwright           | ^1      | `apps/web/playwright.config.ts` (autonomous)          |
-| Git Hooks             | `.githooks/`         | —       | Native core.hooksPath; doc-contract + lint-staged     |
-| Lint-Staged           | lint-staged          | ^17     | Invoked from `.githooks/pre-commit`                   |
-| Env loading (dev)     | dotenv-cli           | ^11     | Dev/start scripts load the single root `.env`         |
+| Layer                  | Tech                  | Version       | Notes                                                                                                               |
+| ---------------------- | --------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Package Manager        | pnpm                  | 9.15.9        | Workspaces monorepo                                                                                                 |
+| Monorepo Orchestrator  | Turborepo             | ^2.9.16       | Task orchestration                                                                                                  |
+| Runtime                | Node.js               | 24            | `.nvmrc` pin                                                                                                        |
+| Container base         | node:24-alpine        | —             | agents + web multi-stage image base                                                                                 |
+| Language               | TypeScript            | ^5.9.3        | Strict mode                                                                                                         |
+| Agents                 | Mastra                | ^1.18         | `apps/agents/` — agent framework, `mastra dev`                                                                      |
+| LLM access             | Mastra model gateway  | —             | `provider/model` string; no separate AI SDK                                                                         |
+| Agent store            | @mastra/libsql        | ^1.15         | Agent memory/threads (SQLite/libsql)                                                                                |
+| Web                    | Next.js (App Router)  | ^16           | `apps/web/`                                                                                                         |
+| UI runtime             | React                 | ^19           | Web app                                                                                                             |
+| Design system          | Astryx                | ^0.1          | `@astryxdesign/core` (see templates/DESIGN_SYSTEM.md)                                                               |
+| CSS utilities          | Tailwind CSS          | ^4            | Layout/spacing via Astryx Tailwind bridge                                                                           |
+| Validation             | zod                   | ^3            | All external boundaries                                                                                             |
+| Logging                | pino                  | ^9            | Agents: @mastra/loggers PinoLogger. Web: own pino logger (`apps/web/app/lib/logger.ts`). Both keyed off `LOG_LEVEL` |
+| Log pretty-print (dev) | pino-pretty           | ^13           | Web dev-only; colorized terminal output (prod = JSON)                                                               |
+| Database               | PostgreSQL            | 17            | **Remote/managed** (Neon, Supabase, RDS) — `DATABASE_URL`                                                           |
+| Vector                 | pgvector / sqlite-vec | ^0.8 / latest | Optional, not yet implemented — see §9 RAG stack                                                                    |
+| Identity               | Keycloak / OIDC       | latest        | **Docker Compose (dev)** or remote — `KEYCLOAK_TOKEN_ISSUER_URI`                                                    |
+| Cache                  | Redis                 | 7             | **Remote/managed** (Upstash, Redis Cloud) — `REDIS_URL`                                                             |
+| Linting                | ESLint                | ^10           | Flat config                                                                                                         |
+| Formatting             | Prettier              | ^3            |                                                                                                                     |
+| Testing (agents)       | Vitest                | ^2            | `apps/agents` — no config (defaults)                                                                                |
+| Testing (Web)          | Vitest                | ^2            | `apps/web/vitest.config.ts`                                                                                         |
+| E2E Testing            | Playwright            | ^1            | `apps/web/playwright.config.ts` (autonomous)                                                                        |
+| Git Hooks              | `.githooks/`          | —             | Native core.hooksPath; doc-contract + lint-staged                                                                   |
+| Lint-Staged            | lint-staged           | ^17           | Invoked from `.githooks/pre-commit`                                                                                 |
+| Env loading (dev)      | dotenv-cli            | ^11           | Dev/start scripts load the single root `.env`                                                                       |
 
 ---
 
@@ -48,16 +48,16 @@ servers, no hand-rolled REST APIs; agents reach external services as tools).
 and the Studio playground at the root, on `MASTRA_PORT` (default 4111). Source
 lives in `src/mastra/` (`index.ts` instance, `agents/`, `tools/`). ESM, no decorators.
 
-| Dependency               | Version | Purpose                                           |
-| ------------------------ | ------- | ------------------------------------------------- |
-| @mastra/core             | ^1.49   | Agent, tools, Mastra instance                     |
-| @mastra/libsql           | ^1.15   | Durable agent memory/thread store (SQLite)        |
-| @mastra/loggers          | ^1.2    | PinoLogger for structured logs                    |
-| @a2a-js/sdk              | ^0.3    | Official A2A types (agent card `securitySchemes`) |
-| @ai-sdk/openai-compatible | ^3.0   | AgentBase LLM gateway client (see below)          |
-| @ai-sdk/provider         | ^4.0    | `LanguageModelV4` type for the gateway client     |
-| mastra                   | ^1.18   | CLI: `mastra dev` / `mastra build`                |
-| zod                      | ^3      | Tool input/output schemas + env validation        |
+| Dependency                | Version | Purpose                                           |
+| ------------------------- | ------- | ------------------------------------------------- |
+| @mastra/core              | ^1.49   | Agent, tools, Mastra instance                     |
+| @mastra/libsql            | ^1.15   | Durable agent memory/thread store (SQLite)        |
+| @mastra/loggers           | ^1.2    | PinoLogger for structured logs                    |
+| @a2a-js/sdk               | ^0.3    | Official A2A types (agent card `securitySchemes`) |
+| @ai-sdk/openai-compatible | ^3.0    | AgentBase LLM gateway client (see below)          |
+| @ai-sdk/provider          | ^4.0    | `LanguageModelV4` type for the gateway client     |
+| mastra                    | ^1.18   | CLI: `mastra dev` / `mastra build`                |
+| zod                       | ^3      | Tool input/output schemas + env validation        |
 
 > By default the LLM is reached via Mastra's **model gateway** using a
 > `provider/model` string. No provider is hardcoded as "the" default —
@@ -125,10 +125,10 @@ Compose — point the apps at your own remote/managed services via the root `.en
 (`DATABASE_URL`, `REDIS_URL`). **Keycloak** runs locally for dev auth; in production
 point `KEYCLOAK_TOKEN_ISSUER_URI` at a managed Keycloak instead.
 
-| Service  | Image                            | Port (host)                    | Purpose                               |
-| -------- | -------------------------------- | ------------------------------ | ------------------------------------- |
-| agents   | built — `apps/agents/Dockerfile` | `${AGENTS_HOST_PORT:-4111}`    | Mastra agents app (multi-stage build) |
-| web      | built — `apps/web/Dockerfile`    | `${WEB_HOST_PORT:-3000}`       | Next.js web app (multi-stage build)   |
+| Service  | Image                              | Port (host)                   | Purpose                                   |
+| -------- | ---------------------------------- | ----------------------------- | ----------------------------------------- |
+| agents   | built — `apps/agents/Dockerfile`   | `${AGENTS_HOST_PORT:-4111}`   | Mastra agents app (multi-stage build)     |
+| web      | built — `apps/web/Dockerfile`      | `${WEB_HOST_PORT:-3000}`      | Next.js web app (multi-stage build)       |
 | keycloak | `quay.io/keycloak/keycloak:latest` | `${KEYCLOAK_HOST_PORT:-8080}` | OIDC identity provider (dev; `start-dev`) |
 
 - **agents** / **web** images build from the repo root on **node:24-alpine** (multi-stage: pnpm workspace install + build → self-contained runtime bundle — `.mastra/output` for agents, Next `.next/standalone` for web).
@@ -142,10 +142,10 @@ point `KEYCLOAK_TOKEN_ISSUER_URI` at a managed Keycloak instead.
 
 ## 6. Port Assignments
 
-| Service            | Port | Notes                             |
-| ------------------ | ---- | --------------------------------- |
-| Web (host dev)     | 3000 | Next dev server                   |
-| Mastra (host dev)  | 4111 | `mastra dev` — agent API + Studio |
+| Service            | Port | Notes                                 |
+| ------------------ | ---- | ------------------------------------- |
+| Web (host dev)     | 3000 | Next dev server                       |
+| Mastra (host dev)  | 4111 | `mastra dev` — agent API + Studio     |
 | Keycloak (Compose) | 8080 | local dev OIDC (`KEYCLOAK_HOST_PORT`) |
 
 The **Web** and **Mastra** dev ports above are the defaults; they are chosen at `pnpm bootstrap` and can be changed any time with `pnpm set-ports --mastra=<port> --web=<port>`, which rewrites env, config, pnpm scripts, Docker, and this table in one pass. Postgres/Redis run on your remote/managed provider — their ports are part of the `.env` URLs, not local host ports.
@@ -184,6 +184,26 @@ The **Web** and **Mastra** dev ports above are the defaults; they are chosen at 
 
 ---
 
-## 9. Out of Scope
+## 9. RAG stack (optional — not yet implemented)
+
+Precast ships no RAG code today. This is the **designated stack** for when a project
+built on Precast needs retrieval-augmented generation — recorded here so it's a
+decision made once, not re-litigated per project:
+
+| Layer                 | Tech                                          | Notes                                                                                                                                            |
+| --------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Embedding generation  | Transformers.js (`@huggingface/transformers`) | Runs locally in Node — no external API key required; keeps the RAG floor at zero extra vendor keys, matching the `capability-modules` philosophy |
+| Embedding model       | `Xenova/all-MiniLM-L6-v2`                     | 384-dim, small and fast; a reasonable general-purpose default                                                                                    |
+| Vector store (remote) | `pgvector`                                    | When the project's data already lives in Precast's remote/managed Postgres (`DATABASE_URL`)                                                      |
+| Vector store (local)  | `sqlite-vec`                                  | When embeddings should live alongside Mastra's local libsql/SQLite agent store (`MASTRA_DB_URL`) instead                                         |
+
+> Pick the vector store by which storage backend the project already uses — don't
+> stand up a second, RAG-only database when one of the two stores above already
+> fits. Neither embedding generation nor the vector store requires a new provider
+> key: this capability's floor is the LLM key Precast already requires.
+
+---
+
+## 10. Out of Scope
 
 - CI/CD pipeline (implemented outside this repo).
