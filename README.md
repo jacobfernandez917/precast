@@ -76,7 +76,7 @@ pnpm build
 pnpm dev                               # all apps, or: pnpm dev:agents / pnpm dev:web
 ```
 
-The web app runs at `http://localhost:3000` and the Mastra agent API + Studio playground at `http://localhost:4111`. The placeholder example agent needs an LLM key to converse (build/test work without it) — set **one** of `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_GENERATIVE_AI_API_KEY` in `.env`; the agents auto-detect which provider to use (see `apps/agents/src/mastra/lib/default-model.ts`), or set `DEFAULT_LLM_MODEL` to pick a specific model.
+The web app runs at `http://localhost:3000` and the Mastra agent API + Studio playground at `http://localhost:4111`. The placeholder example agent needs an LLM key to converse (build/test work without it) — set **one** provider key in `.env` and the agents auto-detect which to use: Anthropic, OpenAI, Google, xAI, Mistral, DeepSeek, Groq, Cerebras, Perplexity, or a router (OpenRouter, Vercel AI Gateway). See `apps/agents/src/mastra/lib/default-model.ts` for the canonical list and each provider's default model, or set `DEFAULT_LLM_MODEL` to a `<provider>/<model>` string to pick a specific model — including from any of the 100+ other providers Mastra resolves but doesn't auto-detect.
 
 There is a **single `.env` at the repo root** — don't create per-app `.env` files. The dev/start scripts load it (via `dotenv-cli`), Docker Compose loads it (`env_file: ../.env`), and production uses the real environment.
 

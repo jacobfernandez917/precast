@@ -9,10 +9,12 @@
  * Steps, in order:
  *   1. Ask for (or read) the project name.
  *   2. Ask for the Mastra API and Next web dev ports (Enter to keep defaults).
- *   3. Ask which LLM provider the project will use (Anthropic/OpenAI/Google, or
- *      skip) — never collects the actual key value, only which one to remind
- *      about later. No provider is hardcoded as the default; the agents
- *      auto-detect from whichever single key ends up set in `.env` (see
+ *   3. Ask which LLM provider the project will use (see LLM_PROVIDERS below —
+ *      Anthropic, OpenAI, Google, xAI, Mistral, DeepSeek, Groq, Cerebras,
+ *      Perplexity, or the OpenRouter / Vercel AI Gateway routers — or skip).
+ *      Never collects the actual key value, only which one to remind about
+ *      later. No provider is hardcoded as the default; the agents auto-detect
+ *      from whichever single key ends up set in `.env` (see
  *      apps/agents/src/mastra/lib/default-model.ts).
  *   4. Rename the `precast` placeholder everywhere (scripts/rename-project.mjs).
  *   5. Apply the chosen ports across env, configs, pnpm scripts, Docker, docs
@@ -27,8 +29,9 @@
  *
  * Non-interactive port selection uses equals-form flags:
  *   pnpm bootstrap my-project --mastra-port=4200 --web-port=3100
- * Non-interactive LLM provider selection:
- *   pnpm bootstrap my-project --llm-provider=anthropic   # or openai | google | skip
+ * Non-interactive LLM provider selection (see LLM_PROVIDERS below for the full
+ * set, or `skip` to decide later):
+ *   pnpm bootstrap my-project --llm-provider=anthropic
  *
  * This is destructive to .git on purpose: a project bootstrapped from Precast
  * must not inherit Precast's commit history. It runs LAST so a failure earlier
@@ -47,10 +50,22 @@ const DEFAULT_BRANCH = 'develop';
 const DEFAULT_MASTRA_PORT = 4111;
 const DEFAULT_WEB_PORT = 3000;
 const RESERVED_PORTS = { 5432: 'Postgres', 6379: 'Redis', 8080: 'Keycloak' };
+// Keep in sync with PROVIDER_DEFAULTS in
+// apps/agents/src/mastra/lib/default-model.ts — that module owns the canonical
+// list (and each provider's default model); this one only needs the env var to
+// name in the closing reminder.
 const LLM_PROVIDERS = [
   { key: 'anthropic', envVar: 'ANTHROPIC_API_KEY', label: 'Anthropic' },
   { key: 'openai', envVar: 'OPENAI_API_KEY', label: 'OpenAI' },
   { key: 'google', envVar: 'GOOGLE_GENERATIVE_AI_API_KEY', label: 'Google' },
+  { key: 'xai', envVar: 'XAI_API_KEY', label: 'xAI' },
+  { key: 'mistral', envVar: 'MISTRAL_API_KEY', label: 'Mistral' },
+  { key: 'deepseek', envVar: 'DEEPSEEK_API_KEY', label: 'DeepSeek' },
+  { key: 'groq', envVar: 'GROQ_API_KEY', label: 'Groq' },
+  { key: 'cerebras', envVar: 'CEREBRAS_API_KEY', label: 'Cerebras' },
+  { key: 'perplexity', envVar: 'PERPLEXITY_API_KEY', label: 'Perplexity' },
+  { key: 'openrouter', envVar: 'OPENROUTER_API_KEY', label: 'OpenRouter (router)' },
+  { key: 'vercel', envVar: 'AI_GATEWAY_API_KEY', label: 'Vercel AI Gateway (router)' },
 ];
 
 const rawArgs = process.argv.slice(2);
@@ -172,15 +187,22 @@ async function resolveLlmProvider() {
   }
   const rl = createInterface({ input: stdin, output: stdout });
   try {
+    const skipChoice = LLM_PROVIDERS.length + 1;
     console.log('\nWhich LLM provider will this project use?');
     LLM_PROVIDERS.forEach((p, i) => console.log(`  ${i + 1}. ${p.label} (${p.envVar})`));
-    console.log(`  ${LLM_PROVIDERS.length + 1}. Skip for now (you'll set it up later)`);
+    console.log(`  ${skipChoice}. Skip for now (you'll set it up later)`);
     for (;;) {
-      const answer = (await rl.question(`Choice [1-${LLM_PROVIDERS.length + 1}]: `)).trim();
+      const answer = (await rl.question(`Choice [1-${skipChoice}, or a provider name]: `)).trim();
       const n = Number(answer);
       if (Number.isInteger(n) && n >= 1 && n <= LLM_PROVIDERS.length) return LLM_PROVIDERS[n - 1];
-      if (n === LLM_PROVIDERS.length + 1) return null;
-      console.error(`  Enter a number 1-${LLM_PROVIDERS.length + 1}.`);
+      if (n === skipChoice) return null;
+      // Also accept the provider key by name — with this many options, typing
+      // "openrouter" is friendlier than counting rows.
+      const normalized = answer.toLowerCase();
+      if (normalized === 'skip') return null;
+      const byName = LLM_PROVIDERS.find((p) => p.key === normalized);
+      if (byName) return byName;
+      console.error(`  Enter a number 1-${skipChoice}, or a provider name (e.g. anthropic).`);
     }
   } finally {
     rl.close();

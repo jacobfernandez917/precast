@@ -21,14 +21,29 @@ export const EnvSchema = z.object({
   // ── LLM provider ───────────────────────────────────────────────────────────
   // Mastra's model gateway reads the provider key matching the agent's
   // `provider/model` string. No provider is hardcoded as "the" default — set
-  // whichever ONE of these three keys matches the provider you want; the
-  // agents auto-detect from whichever is present (see
-  // apps/agents/src/mastra/lib/default-model.ts). Optionally set
-  // DEFAULT_LLM_MODEL to a "<provider>/<model>" string to pick a specific
-  // model instead of the auto-detected one.
+  // whichever ONE of these keys matches the provider you want; the agents
+  // auto-detect from whichever is present (see
+  // apps/agents/src/mastra/lib/default-model.ts, which owns the canonical
+  // list + each provider's default model).
+  //
+  // These are the providers Mastra ships a first-party package for. Mastra
+  // also resolves 100+ community providers by the same `provider/model`
+  // string — use DEFAULT_LLM_MODEL for those; they just aren't auto-detected.
   ANTHROPIC_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
+  // Google accepts either name; GOOGLE_GENERATIVE_AI_API_KEY is canonical.
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
+  GOOGLE_API_KEY: z.string().optional(),
+  XAI_API_KEY: z.string().optional(),
+  MISTRAL_API_KEY: z.string().optional(),
+  DEEPSEEK_API_KEY: z.string().optional(),
+  GROQ_API_KEY: z.string().optional(),
+  CEREBRAS_API_KEY: z.string().optional(),
+  PERPLEXITY_API_KEY: z.string().optional(),
+  // Routers/aggregators — their model ids are themselves `vendor/model`.
+  OPENROUTER_API_KEY: z.string().optional(),
+  AI_GATEWAY_API_KEY: z.string().optional(), // Vercel AI Gateway
+  // Optional override: a "<provider>/<model>" string, wins over auto-detect.
   DEFAULT_LLM_MODEL: z.string().optional(),
 
   // ── Database ───────────────────────────────────────────────────────────────

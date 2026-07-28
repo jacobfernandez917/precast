@@ -62,10 +62,18 @@ lives in `src/mastra/` (`index.ts` instance, `agents/`, `tools/`). ESM, no decor
 > By default the LLM is reached via Mastra's **model gateway** using a
 > `provider/model` string. No provider is hardcoded as "the" default —
 > `apps/agents/src/mastra/lib/default-model.ts`'s `resolveDefaultModel()`
-> auto-detects from whichever of `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` /
-> `GOOGLE_GENERATIVE_AI_API_KEY` is set in `.env` (or reads an explicit
-> `DEFAULT_LLM_MODEL` override), and fails loudly at call time if none are
-> set. Once an agent is **imported** into AgentBase, an org admin can instead
+> auto-detects from whichever provider key is set in `.env` (or reads an
+> explicit `DEFAULT_LLM_MODEL` override), and fails loudly at call time if
+> none are. Auto-detected providers, in tie-break order: **Anthropic, OpenAI,
+> Google** (`GOOGLE_GENERATIVE_AI_API_KEY` or `GOOGLE_API_KEY`), **xAI,
+> Mistral, DeepSeek, Groq, Cerebras, Perplexity**, then the routers
+> **OpenRouter** and **Vercel AI Gateway** (`AI_GATEWAY_API_KEY`) — direct
+> providers before routers. That module is the canonical list; env var names
+> and default model ids there come from Mastra's own bundled registry. Mastra
+> resolves 100+ further community providers by the same string form — reach
+> those via `DEFAULT_LLM_MODEL`; they simply aren't auto-detected. Router
+> model ids keep their vendor prefix (`openrouter/anthropic/claude-opus-5`) —
+> Mastra splits on the first slash only. Once an agent is **imported** into AgentBase, an org admin can instead
 > pick a model (and key) per agent from Studio —
 > `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel()` then
 > routes through AgentBase's LLM gateway (`@ai-sdk/openai-compatible`)

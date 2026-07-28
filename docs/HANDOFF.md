@@ -27,7 +27,7 @@ No scheduled next task — Precast is a runnable baseline. To start a real proje
 
 1. `pnpm install && pnpm bootstrap` (or `pnpm bootstrap my-project`).
 2. **Write the feed-forward docs first:** copy the relevant `templates/*.md` into `docs/`, replace the example content with your product.
-3. Fill in `docs/PROGRESS.md` §1 (name + mission) and the README title; set **one** of `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` in `.env` (the agents auto-detect which provider to use), point `REDIS_URL` / `KEYCLOAK_TOKEN_ISSUER_URI` at your remote/managed services, and set `DATABASE_URL` to either a managed Postgres URL or a local SQLite file (see [.env.example](../.env.example)).
+3. Fill in `docs/PROGRESS.md` §1 (name + mission) and the README title; set **one** LLM provider key in `.env` — Anthropic, OpenAI, Google, xAI, Mistral, DeepSeek, Groq, Cerebras, Perplexity, OpenRouter, or Vercel AI Gateway (the agents auto-detect which; see `apps/agents/src/mastra/lib/default-model.ts`), point `REDIS_URL` / `KEYCLOAK_TOKEN_ISSUER_URI` at your remote/managed services, and set `DATABASE_URL` to either a managed Postgres URL or a local SQLite file (see [.env.example](../.env.example)).
 4. Build your agents/tools under `apps/agents/src/mastra/` and pages under `apps/web/app/`; extend the env schema in `packages/shared/src/env.ts`.
 
 ---
