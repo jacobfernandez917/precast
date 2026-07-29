@@ -23,10 +23,10 @@ RUN pnpm --filter "./packages/shared" build \
 FROM node:24-alpine AS runtime
 ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
-    PORT=3000
+    PORT=45001
 WORKDIR /app
 COPY --from=build /repo/apps/web/.next/standalone ./
 COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /repo/apps/web/public ./apps/web/public
-EXPOSE 3000
+EXPOSE 45001
 CMD ["node", "apps/web/server.js"]

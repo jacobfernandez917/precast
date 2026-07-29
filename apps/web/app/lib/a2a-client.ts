@@ -160,7 +160,7 @@ async function callDirect(
   text: string,
   options?: CallOptions,
 ): Promise<AgentReply> {
-  const base = process.env.MASTRA_INTERNAL_URL ?? 'http://localhost:4111';
+  const base = process.env.MASTRA_INTERNAL_URL ?? 'http://localhost:45000';
   const token = process.env.AGENT_API_TOKEN ?? '';
 
   // Mastra speaks A2A 0.3.0: `message/send` with a Message envelope. The target

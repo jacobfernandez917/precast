@@ -39,7 +39,7 @@ const LOG_LEVEL_MAP = {
 
 /**
  * The Mastra instance is the entry point for all agents, tools, and workflows.
- * `mastra dev` serves this on MASTRA_PORT (default 4111): Mastra's HTTP surface
+ * `mastra dev` serves this on MASTRA_PORT (default 45000): Mastra's HTTP surface
  * under `/api/*` (A2A + agent routes) and the Studio playground at the root.
  *
  * SCOPE — this app (`apps/agents`) hosts **Mastra agents only** (and the tools

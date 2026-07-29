@@ -45,7 +45,7 @@
 Mastra **agents-only** app — hosts agents and their tools, nothing else (no MCP
 servers, no hand-rolled REST APIs; agents reach external services as tools).
 `mastra dev` serves Mastra's HTTP surface under `/api/*` (A2A + agent routes)
-and the Studio playground at the root, on `MASTRA_PORT` (default 4111). Source
+and the Studio playground at the root, on `MASTRA_PORT` (default 45000). Source
 lives in `src/mastra/` (`index.ts` instance, `agents/`, `tools/`). ESM, no decorators.
 
 | Dependency                | Version | Purpose                                           |
@@ -133,15 +133,15 @@ Compose — point the apps at your own remote/managed services via the root `.en
 (`DATABASE_URL`, `REDIS_URL`). **Keycloak** runs locally for dev auth; in production
 point `KEYCLOAK_TOKEN_ISSUER_URI` at a managed Keycloak instead.
 
-| Service  | Image                              | Port (host)                   | Purpose                                   |
-| -------- | ---------------------------------- | ----------------------------- | ----------------------------------------- |
-| agents   | built — `apps/agents/Dockerfile`   | `${AGENTS_HOST_PORT:-4111}`   | Mastra agents app (multi-stage build)     |
-| web      | built — `apps/web/Dockerfile`      | `${WEB_HOST_PORT:-3000}`      | Next.js web app (multi-stage build)       |
-| keycloak | `quay.io/keycloak/keycloak:latest` | `${KEYCLOAK_HOST_PORT:-8080}` | OIDC identity provider (dev; `start-dev`) |
+| Service  | Image                              | Port (host)                    | Purpose                                   |
+| -------- | ---------------------------------- | ------------------------------ | ----------------------------------------- |
+| agents   | built — `apps/agents/Dockerfile`   | `${AGENTS_HOST_PORT:-45000}`   | Mastra agents app (multi-stage build)     |
+| web      | built — `apps/web/Dockerfile`      | `${WEB_HOST_PORT:-45001}`      | Next.js web app (multi-stage build)       |
+| keycloak | `quay.io/keycloak/keycloak:latest` | `${KEYCLOAK_HOST_PORT:-45002}` | OIDC identity provider (dev; `start-dev`) |
 
-- **agents** / **web** images build from the repo root on **node:24-alpine** (multi-stage: pnpm workspace install + build → self-contained runtime bundle — `.mastra/output` for agents, Next `.next/standalone` for web).
-- Inter-service URLs use Docker DNS names, never `localhost`: `web` reaches the API via `MASTRA_INTERNAL_URL=http://agents:4111`. Remote infra is reached over the public network via its `.env` URL.
-- `agents` persists agent memory to the `precast-agents-data` volume (`MASTRA_DB_URL=file:/data/mastra.db`).
+- **agents** / **web** images build from the repo root on **`node:24-alpine` for BOTH the builder and the runtime stage** (multi-stage: pnpm workspace install + build → self-contained runtime bundle — `.mastra/output` for agents, Next `.next/standalone` for web). One Node major across build and run — matching `.nvmrc`, so no builder/runtime version skew — on a base small enough to rebuild on every `pnpm poc`. `apps/web/test/docker-build.spec.ts` pins every `FROM` to that tag and checks `.nvmrc` agrees.
+- Inter-service URLs use Docker DNS names, never `localhost`: `web` reaches the API via `MASTRA_INTERNAL_URL=http://agents:45000`. Remote infra is reached over the public network via its `.env` URL.
+- `agents` persists agent memory to the `agents-data` volume (`MASTRA_DB_URL=file:/data/mastra.db`), which Compose resolves to `<project>_agents-data`. Volumes are declared **bare** (no project-name prefix) because Compose prefixes them with the project itself — declaring `precast-agents-data` would produce the stuttering `precast_precast-agents-data`. The project prefix is what isolates volumes between repos, so bare names stay collision-free.
 - Both load the root `.env` (`env_file` optional) — that is where the remote infra URLs come from; the compose `environment:` block overrides only network-specific app values.
 - **Each service declares `profiles: ['<own name>']`.** `COMPOSE_PROFILES` in the root `.env` (Compose's own variable) selects which build/run — default `agents,web,keycloak`. This lets you build only a subset once the pieces are deployed separately (e.g. agents hosted by an AgentBase import; only `web`+`keycloak` need to run here). `web`'s `depends_on.agents` is `required: false` so excluding `agents` doesn't fail Compose validation.
 - **Compose does NOT read the repo-root `.env` by default** when invoked with `-f docker/docker-compose.yml` from the repo root (it looks in the compose file's own directory unless told otherwise) — so every `pnpm docker:*` script routes through `scripts/docker-compose.mjs`, which passes `--env-file .env` (failing fast with a clear message if `.env` is missing). Without this, `AGENTS_HOST_PORT`/`WEB_HOST_PORT`/`KEYCLOAK_HOST_PORT`/`COMPOSE_PROFILES`/`KEYCLOAK_ADMIN` all silently fall back to their YAML defaults.
@@ -150,15 +150,27 @@ point `KEYCLOAK_TOKEN_ISSUER_URI` at a managed Keycloak instead.
 
 ## 6. Port Assignments
 
-| Service            | Port | Notes                                 |
-| ------------------ | ---- | ------------------------------------- |
-| Web (host dev)     | 3000 | Next dev server                       |
-| Mastra (host dev)  | 4111 | `mastra dev` — agent API + Studio     |
-| Keycloak (Compose) | 8080 | local dev OIDC (`KEYCLOAK_HOST_PORT`) |
+| Service              | Port  | Notes                                    |
+| -------------------- | ----- | ---------------------------------------- |
+| Mastra (host dev)    | 45000 | `mastra dev` — agent API + Studio        |
+| Web (host dev)       | 45001 | Next dev server                          |
+| Keycloak (host dev)  | 45002 | local dev OIDC (`KEYCLOAK_HOST_PORT`)    |
+| Keycloak (container) | 8080  | fixed — only the host mapping ever moves |
 
-The **Web** and **Mastra** dev ports above are the defaults; they are chosen at `pnpm bootstrap` and can be changed any time with `pnpm set-ports --mastra=<port> --web=<port>`, which rewrites env, config, pnpm scripts, Docker, and this table in one pass. Postgres/Redis run on your remote/managed provider — their ports are part of the `.env` URLs, not local host ports.
+**The stack owns one consecutive block of three ports**, assigned in stack order (agents → web → keycloak). `pnpm bootstrap` picks that block **at random, verified free, inside `40000`–`49100`**; `pnpm set-ports --auto` re-picks one any time, and explicit `--mastra` / `--web` / `--keycloak` flags pin individual ports. The values above are what this boilerplate ships with as an example.
 
-**Docker published host ports** are separate from the container/app ports: `docker-compose.yml` publishes `${AGENTS_HOST_PORT:-4111}:4111`, `${WEB_HOST_PORT:-3000}:3000`, and `${KEYCLOAK_HOST_PORT:-8080}:8080`. Set `AGENTS_HOST_PORT` / `WEB_HOST_PORT` / `KEYCLOAK_HOST_PORT` in the root `.env` to remap the host side (e.g. `60000`/`60001`/`60002`) without changing the container ports; they default to the container port and only affect `pnpm docker:up`.
+Why that range and shape:
+
+- **Consecutive** — one project, one memorable block.
+- **Random + verified free** — two Precast projects on the same machine used to collide on `3000`/`4111` every single time. A per-project block just works.
+- **≥ 40000** — clear of every common dev-server default (`3000`, `4000`, `5173`, `8000`, `8080`) and of the privileged range, so no `sudo`.
+- **< 49152** — that is where the IANA/macOS/Linux **ephemeral** range begins. Publishing a container port inside it lets a random outbound socket claim the port first, producing an "address already in use" that only reproduces sometimes. `apps/web/test/ports.spec.ts` enforces these bounds; the picker lives in `scripts/set-ports.mjs` (`PORT_RANGE`, `pickConsecutivePorts()`).
+
+Postgres/Redis run on your remote/managed provider — their ports are part of the `.env` URLs, not local host ports.
+
+**Docker published host ports** are separate from the container/app ports: `docker-compose.yml` publishes `${AGENTS_HOST_PORT:-45000}:45000`, `${WEB_HOST_PORT:-45001}:45001`, and `${KEYCLOAK_HOST_PORT:-45002}:8080`. Set `AGENTS_HOST_PORT` / `WEB_HOST_PORT` / `KEYCLOAK_HOST_PORT` in the root `.env` to remap the host side (e.g. `60000`/`60001`/`60002`) without changing the container ports; the app ones default to the app port, and they only affect `pnpm docker:up`.
+
+**Container runtime is a prerequisite.** The Compose stack (and `pnpm poc`) needs Docker Desktop (macOS/Windows) or Docker Engine + the Compose plugin (Linux). `scripts/check-docker.mjs` (`pnpm docker:check`, `pnpm docker:wait`) is the preflight: it distinguishes "not installed" from "installed but not started", prints the fix for the actual platform, and `--wait` polls until the engine answers so a first-run install doesn't need the command re-run. Every `pnpm docker:*` and `pnpm poc` invocation runs it first.
 
 ---
 

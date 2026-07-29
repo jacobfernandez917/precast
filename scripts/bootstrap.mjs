@@ -8,7 +8,12 @@
  *
  * Steps, in order:
  *   1. Ask for (or read) the project name.
- *   2. Ask for the Mastra API and Next web dev ports (Enter to keep defaults).
+ *   2. Pick the stack's ports. By DEFAULT this auto-selects a random, free,
+ *      CONSECUTIVE triple in the 40000–49100 range (agents / web / keycloak,
+ *      e.g. 45000/45001/45002) — see scripts/set-ports.mjs for why that range.
+ *      Consecutive keeps the stack one memorable block; random+free means two
+ *      Precast projects on one machine don't fight over 3000/4111 the way they
+ *      always did. Any port can still be pinned explicitly.
  *   3. Ask which LLM provider the project will use (see LLM_PROVIDERS below —
  *      Anthropic, OpenAI, Google, xAI, Mistral, DeepSeek, Groq, Cerebras,
  *      Perplexity, or the OpenRouter / Vercel AI Gateway routers — or skip).
@@ -27,8 +32,10 @@
  *      not a vague "go edit .env.example" — so an unconfigured LLM provider
  *      can't quietly slip past scaffolding unannounced.
  *
- * Non-interactive port selection uses equals-form flags:
- *   pnpm bootstrap my-project --mastra-port=4200 --web-port=3100
+ * Non-interactive port selection uses equals-form flags (anything not pinned is
+ * still auto-picked from the same free consecutive block):
+ *   pnpm bootstrap my-project --mastra-port=45000 --web-port=45001 --keycloak-port=45002
+ *   pnpm bootstrap my-project --ports=keep        # keep the committed defaults
  * Non-interactive LLM provider selection (see LLM_PROVIDERS below for the full
  * set, or `skip` to decide later):
  *   pnpm bootstrap my-project --llm-provider=anthropic
@@ -44,12 +51,12 @@ import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { pickConsecutivePorts, PORT_RANGE } from './set-ports.mjs';
+import { dockerStatus } from './check-docker.mjs';
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_BRANCH = 'develop';
-const DEFAULT_MASTRA_PORT = 4111;
-const DEFAULT_WEB_PORT = 3000;
-const RESERVED_PORTS = { 5432: 'Postgres', 6379: 'Redis', 8080: 'Keycloak' };
+const RESERVED_PORTS = { 5432: 'Postgres', 6379: 'Redis' };
 // Keep in sync with PROVIDER_DEFAULTS in
 // apps/agents/src/mastra/lib/default-model.ts — that module owns the canonical
 // list (and each provider's default model); this one only needs the env var to
@@ -132,29 +139,60 @@ async function resolveName() {
 }
 
 /**
- * Ask for a single port. Enter (empty) keeps the default. In non-interactive
- * mode (name passed as an arg) it reads the equals-form flag or falls back to
- * the default without prompting.
+ * Decide the stack's three ports.
+ *
+ * Default: a random FREE CONSECUTIVE triple in PORT_RANGE (agents / web /
+ * keycloak). Two Precast projects on one machine used to collide on 3000/4111
+ * every time; a per-project block in the high private range just works, and
+ * being consecutive keeps it memorable.
+ *
+ * Overrides: `--mastra-port` / `--web-port` / `--keycloak-port` pin individual
+ * ports (anything unpinned still comes from the auto block); `--ports=keep`
+ * keeps whatever the repo currently ships with. Interactive runs are shown the
+ * auto-picked block and can accept it with Enter.
  */
-async function resolvePort(label, flagName, def) {
-  const fv = flagVal(flagName);
-  if (nameArg) {
-    if (fv === undefined) return def;
+async function resolvePorts() {
+  const pinned = {};
+  for (const [flag, label, key] of [
+    ['mastra-port', 'Mastra', 'mastra'],
+    ['web-port', 'Web', 'web'],
+    ['keycloak-port', 'Keycloak', 'keycloak'],
+  ]) {
+    const fv = flagVal(flag);
+    if (fv === undefined) continue;
     const r = validatePort(fv);
     if (r.err) {
       console.error(`❌ ${label} port: ${r.err}`);
       process.exit(1);
     }
-    return r.port;
+    pinned[key] = r.port;
   }
+
+  if (flagVal('ports') === 'keep') return { keep: true, ...pinned };
+
+  const [mastra, web, keycloak] = await pickConsecutivePorts();
+  const auto = { mastra, web, keycloak, ...pinned };
+
+  // Non-interactive (name given as an arg): take the block as-is.
+  if (nameArg) return auto;
+
   const rl = createInterface({ input: stdin, output: stdout });
   try {
     for (;;) {
-      const answer = (await rl.question(`${label} port [default ${def}, Enter to skip]: `)).trim();
-      if (!answer) return def;
+      console.log(
+        `\nPorts — auto-picked a free consecutive block in ${PORT_RANGE.min}–${PORT_RANGE.max}:`,
+      );
+      console.log(`  agents ${auto.mastra} · web ${auto.web} · keycloak ${auto.keycloak}`);
+      const answer = (
+        await rl.question('Enter to accept, or type a base port for the block: ')
+      ).trim();
+      if (!answer) return auto;
       const r = validatePort(answer);
-      if (r.port) return r.port;
-      console.error(`  ${r.err}`);
+      if (r.err) {
+        console.error(`  ${r.err}`);
+        continue;
+      }
+      return { mastra: r.port, web: r.port + 1, keycloak: r.port + 2, ...pinned };
     }
   } finally {
     rl.close();
@@ -224,19 +262,22 @@ async function main() {
   console.log('── Precast bootstrap ────────────────────────────────────────────\n');
 
   const name = await resolveName();
-  const mastraPort = await resolvePort('Mastra API', 'mastra-port', DEFAULT_MASTRA_PORT);
-  const webPort = await resolvePort('Next web', 'web-port', DEFAULT_WEB_PORT);
-  if (mastraPort === webPort) {
-    console.error(`❌ Mastra and web ports must differ (both ${mastraPort}).`);
+  const ports = await resolvePorts();
+  if (!ports.keep && new Set([ports.mastra, ports.web, ports.keycloak]).size !== 3) {
+    console.error(
+      `❌ Mastra, web, and Keycloak ports must all differ ` +
+        `(got ${ports.mastra}, ${ports.web}, ${ports.keycloak}).`,
+    );
     process.exit(1);
   }
-  const portsCustom = mastraPort !== DEFAULT_MASTRA_PORT || webPort !== DEFAULT_WEB_PORT;
   const llmProvider = await resolveLlmProvider();
 
   console.log(`\nThis will:`);
   console.log(`  1. Rename the "precast" placeholder → "${name}"`);
   console.log(
-    `  2. Set ports — Mastra ${mastraPort}, web ${webPort}${portsCustom ? '' : ' (defaults)'}`,
+    ports.keep
+      ? '  2. Keep the current ports'
+      : `  2. Set ports — agents ${ports.mastra}, web ${ports.web}, keycloak ${ports.keycloak}`,
   );
   console.log(
     `  3. Install${skipDeps ? '' : ' + update'} dependencies${skipDeps ? '' : ' to latest compatible'}`,
@@ -256,7 +297,14 @@ async function main() {
   run('node', ['scripts/rename-project.mjs', name]);
 
   // 2. Wire chosen ports through env, configs, pnpm scripts, Docker, docs.
-  run('node', ['scripts/set-ports.mjs', `--mastra=${mastraPort}`, `--web=${webPort}`]);
+  if (!ports.keep) {
+    run('node', [
+      'scripts/set-ports.mjs',
+      `--mastra=${ports.mastra}`,
+      `--web=${ports.web}`,
+      `--keycloak=${ports.keycloak}`,
+    ]);
+  }
 
   // 3. Dependencies.
   if (skipDeps) {
@@ -282,10 +330,17 @@ async function main() {
   if (!envCreated && !existsSync(join(rootDir, '.env'))) {
     console.log('  • Copy env:            cp .env.example .env');
   }
-  console.log('  • Verify:              pnpm build && pnpm test');
+  // PoC first: the fastest route to something the user can look at and react to
+  // (CLAUDE.md §4.9). Full `pnpm test` belongs to the hardening pass, after the
+  // PoC has been reviewed — a green test run on the wrong product is wasted time.
+  console.log('  • See it run:          pnpm poc            (builds + starts the Docker stack)');
+  console.log('  • Fast check:          pnpm verify:poc     (typecheck only — PoC bar)');
+  console.log('  • Full verify later:   pnpm build && pnpm test && pnpm test:e2e');
   console.log(
     '  • Add your remote:     git remote add origin <url> && git push -u origin ' + DEFAULT_BRANCH,
   );
+
+  printDockerPrerequisite();
 
   console.log('');
   if (llmProvider) {
@@ -303,6 +358,27 @@ async function main() {
   }
 
   printFeedForwardGuidance();
+}
+
+/**
+ * `pnpm poc` runs the stack in Docker Compose, so a first-time user needs a
+ * container runtime before anything is visible. Say so HERE — at the end of
+ * bootstrap, while they're still at the keyboard — rather than letting it
+ * surface later as a daemon-socket error.
+ */
+function printDockerPrerequisite() {
+  const state = dockerStatus();
+  if (state === 'running') return;
+  console.log('');
+  if (state === 'missing') {
+    console.log('🐳 PREREQUISITE — Docker is not installed, and `pnpm poc` needs it.');
+    console.log('   Install Docker Desktop:  https://www.docker.com/products/docker-desktop/');
+  } else {
+    console.log('🐳 PREREQUISITE — Docker is installed but the engine is not running.');
+    console.log('   Start Docker Desktop, then continue.');
+  }
+  console.log('   Then run:  pnpm docker:wait   (waits for the engine, exits as soon as it is up)');
+  console.log('   Details:   pnpm docker:check');
 }
 
 /**

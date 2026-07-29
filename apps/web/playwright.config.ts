@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = Number(process.env.E2E_PORT ?? 3000);
+const PORT = Number(process.env.E2E_PORT ?? 45001);
 const HOST = process.env.E2E_HOST ?? '127.0.0.1';
 const baseURL = `http://${HOST}:${PORT}`;
 

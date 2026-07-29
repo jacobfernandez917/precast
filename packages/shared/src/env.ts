@@ -8,14 +8,14 @@ import { z } from 'zod';
  */
 export const EnvSchema = z.object({
   // ── Mastra API (agents + Studio) ───────────────────────────────────────────
-  MASTRA_PORT: z.coerce.number().default(4111),
+  MASTRA_PORT: z.coerce.number().default(45000),
   MASTRA_HOST: z.string().default('0.0.0.0'),
   // Agent memory/thread store. Local SQLite file by default; use a libsql/Turso
   // URL (libsql://...) or swap for @mastra/pg in production.
   MASTRA_DB_URL: z.string().default('file:./mastra.db'),
 
   // ── Web ──────────────────────────────────────────────────────────────────
-  WEB_PORT: z.coerce.number().default(3000),
+  WEB_PORT: z.coerce.number().default(45001),
   WEB_HOST: z.string().default('0.0.0.0'),
 
   // ── LLM provider ───────────────────────────────────────────────────────────
@@ -65,13 +65,13 @@ export const EnvSchema = z.object({
   // ── Keycloak / OIDC (remote) ───────────────────────────────────────────────
   // Point at your hosted Keycloak (or any OIDC issuer). The localhost default is
   // a dev fallback only; set your issuer URL in `.env` for real use.
-  KEYCLOAK_TOKEN_ISSUER_URI: z.string().url().default('http://localhost:8080/realms/precast'),
+  KEYCLOAK_TOKEN_ISSUER_URI: z.string().url().default('http://localhost:45002/realms/precast'),
   KEYCLOAK_CLIENT_ID: z.string().default('precast-api'),
   KEYCLOAK_CLIENT_SECRET: z.string().optional(),
 
   // Base URL the web app uses to reach the Mastra agent API for *direct* A2A
-  // calls (when AgentBase is disabled). Docker sets this to http://agents:4111.
-  MASTRA_INTERNAL_URL: z.string().url().default('http://localhost:4111'),
+  // calls (when AgentBase is disabled). Docker sets this to http://agents:45000.
+  MASTRA_INTERNAL_URL: z.string().url().default('http://localhost:45000'),
 
   // ── AgentBase (A2A registry/proxy) ─────────────────────────────────────────
   // AgentBase is the DEFAULT transport (guard rail): the web app proxies A2A

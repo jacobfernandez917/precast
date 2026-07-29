@@ -136,6 +136,31 @@ HANDOFF.md is a snapshot; PROGRESS.md is the long-form ledger. On disagreement a
 
 ## 4. Working Rules (project-specific)
 
+### 4.0 Proof of Concept FIRST — **MANDATORY**
+
+> **Never disappear for an hour and come back with a finished build.** Get the smallest thing that _runs and can be looked at_ in front of the user early, collect their reaction, and only then build the rest. An hour of polished work aimed at the wrong target is an hour lost; ten minutes of rough work aimed at the wrong target costs ten minutes.
+
+**The loop for any new build (a project, a feature, a surface):**
+
+1. **Slice.** Pick the thinnest **vertical** slice that a human can see and react to — one screen, or one agent answering one real prompt end to end. Vertical, not horizontal: a working thin path beats three complete layers that don't connect.
+2. **Run it.** `pnpm poc` builds and starts the Docker Compose stack, waits for each service's health endpoint, and prints the URLs. The PoC is not done when the code compiles; it is done when there is a **URL that answers**.
+3. **Show it and stop.** Give the user the URL(s), what to click, what is real, and what is still stubbed or mocked. Then **stop and ask for feedback.** Do not continue into hardening on your own initiative.
+4. **Fold in the feedback**, then harden: full tests (§4.2), the complete doc contract (§4.6), and the remaining scope. Each substantial change along the way refreshes the preview and re-shows the URL (see the rules below) — the user should never have to ask "is it up, and where?".
+
+**Rules:**
+
+- **Keep the preview current, and always re-show the URL.** After **every** substantial change that can be previewed, refresh the running stack and hand the user the URL again — in the same reply as the change. A change the user cannot see has not been delivered.
+  - Whole stack: `pnpm poc`. Just what changed: `pnpm poc web` / `pnpm poc agents` (rebuilds that image and recreates only that container — much faster).
+  - **Never a bare `docker restart`.** Code is baked into the image, so restarting re-serves the _old_ build. `pnpm poc <service>` rebuilds, which is why it exists.
+  - Always print the actual `http://localhost:<port>` — never "the usual port" or "localhost:3000" from memory. Ports are auto-assigned per project (§4.5); `pnpm poc` ends by printing the real ones.
+  - Say what to click and what changed since last time, not just that it's up.
+- **If the request involves a UI and gave no design direction, ask before building.** Do not silently invent a look and reveal it later — that's the same wasted-hour failure this section exists to prevent. In your first reply, ask for **pegs, references, or inspirations**: existing products or screens they like, a brand/style guide, screenshots, a Figma file, or even "make it look like X". If they genuinely have none, say plainly that **you will propose a direction and that it is explicitly subject to their critique**, then build the smallest version of it and put it in front of them at the PoC gate. Record the chosen direction in `docs/DESIGN_SYSTEM.md`. Build from the Astryx design system either way (§4.1).
+- **Time-box the PoC.** If the first runnable slice is more than roughly 20–30 minutes away, the slice is too big — cut it and show something smaller sooner.
+- **Stub and mock in the open.** Reach for stubs, mock data, and mock external dependencies to get to "running" faster, but **say plainly what is fake** when presenting. Never present a mocked path as working.
+- **Real, human-facing copy from the start** — no spec IDs, env-var names, agent/tool internal names, `TODO`, or lorem ipsum in the UI (see the scaffold skill's UI rules).
+- **The PoC is a checkpoint, not a deliverable.** Don't optimize, refactor, or complete scope inside it; note what you deliberately deferred and pick it up after the feedback.
+- **Record the gate** in `docs/PROGRESS.md`: what the PoC covered, what was deferred, and what the user said.
+
 ### 4.1 Code
 
 - **Monorepo structure:** `apps/*` for deployable applications, `packages/*` for shared libraries.
@@ -149,6 +174,8 @@ HANDOFF.md is a snapshot; PROGRESS.md is the long-form ledger. On disagreement a
 ### 4.2 Testing — **MANDATORY**
 
 > **Every new build ships with its tests.** A feature, fix, or infra change is **not complete** until the test layers below are updated **in the same change set** as the code. "It builds" is not "it's tested."
+>
+> **One exception, by phase:** a **proof of concept** (§4.0) ships on the reduced bar in §4.2.1. Full coverage is owed at the hardening pass, before the work is called done.
 
 #### Test layers (what to touch, and where)
 
@@ -171,6 +198,27 @@ HANDOFF.md is a snapshot; PROGRESS.md is the long-form ledger. On disagreement a
 - New product surface without a corresponding test (or an explicit, justified `Not Started` row) is an **incomplete build** — flag the gap in PROGRESS.md blockers rather than shipping it silently.
 - Keep test IDs stable; never renumber. Retire an ID by marking it removed, don't reuse it.
 
+### 4.2.1 Reduced test bar for a proof of concept
+
+> Writing a full test pyramid around a slice the user hasn't seen yet is the single biggest source of wasted time in a Precast build — the tests get discarded along with the design they were pinning down. **During the PoC phase (§4.0) only, the bar drops to the following.** It is a deferral, never a waiver.
+
+**The PoC bar — all of it required:**
+
+1. **`pnpm verify:poc`** (typecheck across the workspace) is green.
+2. **`pnpm poc`** brings the stack up and every service reports healthy — that health-green run **is** the PoC's smoke test.
+3. **One `SMOKE-*` row** in [docs/TEST_CASES.md](docs/TEST_CASES.md) recording that the stack came up and the slice answered.
+4. **Deferred coverage is written down, not silently skipped** — add each intended test as a `Not Started` row in TEST_CASES.md, plus a PROGRESS.md blocker naming the hardening pass that owes it.
+
+**What to skip during the PoC:** exhaustive unit tests for logic still in flux, Playwright specs for flows still being designed, and edge/error-path tests for behaviour the user may reject outright.
+
+**What to test even in a PoC** (cheap now, expensive later):
+
+- **Fitness guards** protecting an architectural invariant you touched — `apps/web/test/a2a-only.spec.ts`, env validation, `docker-build.spec.ts`, `ports.spec.ts`. These are why a PoC doesn't quietly rot the boilerplate's rules.
+- **Anything involving auth, tokens, or a security boundary.** Never defer these.
+- **A pure function whose correctness the slice depends on** — a one-line Vitest case costs less than debugging it through the UI.
+
+**Leaving the PoC phase.** Once the user has given feedback and the design is settled, the full §4.2 bar applies again: author the deferred tests, flip the `Not Started` rows to real statuses, run `pnpm test` (and `pnpm test:e2e` if UI/routes changed), and clear the PROGRESS.md blocker. **A build cannot be reported as done while it is still on the PoC bar** — say explicitly that it is a PoC and what coverage it still owes.
+
 ### 4.3 Git & Commits
 
 - Commits should be small, scoped, and message-formatted as `<area>: <imperative summary>` (e.g., `api: add rate limiting middleware`).
@@ -188,7 +236,7 @@ HANDOFF.md is a snapshot; PROGRESS.md is the long-form ledger. On disagreement a
 ### 4.5 Ports & Compose
 
 - Document assigned ports in [docs/TECH_STACK.md](docs/TECH_STACK.md).
-- Use Docker DNS names for inter-**app** URLs, not `localhost` (e.g. `http://agents:4111`).
+- Use Docker DNS names for inter-**app** URLs, not `localhost` (e.g. `http://agents:45000`).
 - **Redis is remote/managed, not in Compose** — the apps reach it via the root `.env` (`REDIS_URL`). Do not add a local Redis service to Compose.
 - **Postgres is never run in Compose either way, but `DATABASE_URL` now accepts either engine** — a managed Postgres URL (`postgres://`/`postgresql://`), or a local SQLite file (`file:./app.db` / `sqlite:...`) as a lightweight alternative to provisioning one. `getDatabaseKind()` (`packages/shared/src/database.ts`) identifies which from the URL's own scheme — no separate "which engine" var, and no privileged default. Do not add a local Postgres service to Compose regardless of which engine a project chooses. See [ADR-001](docs/ADRS.md).
 - **Keycloak runs in Compose for local dev** (`start-dev`), published on `KEYCLOAK_HOST_PORT` (default 8080). In production, point `KEYCLOAK_TOKEN_ISSUER_URI` at a managed Keycloak instead of the container.

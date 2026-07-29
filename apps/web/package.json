@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --filter @precast/shared build && dotenv -e ../../.env -- next dev -p 3000",
-    "dev:verbose": "pnpm --filter @precast/shared build && dotenv -v LOG_LEVEL=debug -e ../../.env -- next dev -p 3000",
+    "dev": "pnpm --filter @precast/shared build && dotenv -e ../../.env -- next dev -p 45001",
+    "dev:verbose": "pnpm --filter @precast/shared build && dotenv -v LOG_LEVEL=debug -e ../../.env -- next dev -p 45001",
     "build": "next build --webpack",
-    "start": "dotenv -e ../../.env -- next start -p 3000",
+    "start": "dotenv -e ../../.env -- next start -p 45001",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

@@ -73,3 +73,47 @@ describe('docker: rename-proof workspace builds', () => {
     ).toBe(true);
   });
 });
+
+/**
+ * Base-image guard: every stage of every app Dockerfile runs on Node 24 (the
+ * active LTS line, matching .nvmrc) on Alpine.
+ *
+ * Both halves matter. Node 24 because the runtime must match the version the
+ * workspace is built and tested against — a builder/runtime version skew shows
+ * up as a native-module or API mismatch only once the container runs. Alpine
+ * because these images are rebuilt on every `pnpm poc`, and a slim base is the
+ * difference between a fast PoC loop and a slow one.
+ */
+const FROM_LINE = /^FROM\s+(\S+)/gm;
+
+describe('docker: node 24 alpine base images', () => {
+  const dockerfiles = findDockerfiles();
+
+  it.each(dockerfiles)('%s builds every stage on node:24-alpine', (dockerfile) => {
+    const rel = dockerfile.replace(REPO_ROOT, '').replace(/^\//, '');
+    const body = stripComments(readFileSync(dockerfile, 'utf8'));
+    const bases = [...body.matchAll(FROM_LINE)].map((m) => m[1]);
+
+    expect(
+      bases.length,
+      `${rel} must declare at least a build and a runtime stage`,
+    ).toBeGreaterThanOrEqual(2);
+
+    for (const base of bases) {
+      expect(
+        base,
+        `${rel} has a stage on "${base}" — every stage must use node:24-alpine so the runtime ` +
+          'matches the Node version the workspace is built and tested against (.nvmrc), and so ' +
+          'the images stay small enough to rebuild on every `pnpm poc`.',
+      ).toBe('node:24-alpine');
+    }
+  });
+
+  it('.nvmrc agrees with the image major version', () => {
+    const nvmrc = readFileSync(join(REPO_ROOT, '.nvmrc'), 'utf8').trim();
+    expect(
+      nvmrc.replace(/^v/, '').split('.')[0],
+      'the Dockerfiles pin node:24-alpine, so .nvmrc must be on the same major line.',
+    ).toBe('24');
+  });
+});

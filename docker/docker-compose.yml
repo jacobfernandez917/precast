@@ -24,6 +24,18 @@
 # Compose does NOT read the repo-root .env by default when invoked with
 # `-f docker/docker-compose.yml` from the repo root.
 
+# PROJECT NAME — do not remove, and keep it equal to this repo's project name.
+# Without it, Compose derives the project name from the compose FILE's parent
+# directory — always `docker/` here — so EVERY repo built from this boilerplate
+# would share one namespace ("docker"), and `pnpm docker:up` in one repo would
+# adopt, recreate, and stop ANOTHER repo's containers and volumes. An explicit
+# name keeps each repo's containers, volumes, and networks isolated; Compose also
+# prefixes the volume names below with it. `pnpm rename` / `pnpm bootstrap`
+# rewrite the value on the next line, so it follows the project automatically.
+# (This comment deliberately avoids naming the placeholder, so a rename can't
+# turn it into nonsense.)
+name: precast
+
 services:
   agents:
     profiles: ['agents']
@@ -41,20 +53,20 @@ services:
         required: false
     environment:
       MASTRA_HOST: 0.0.0.0
-      MASTRA_PORT: 4111
+      MASTRA_PORT: 45000
       MASTRA_DB_URL: file:/data/mastra.db
       LOG_LEVEL: info
     ports:
-      # host (AGENTS_HOST_PORT, default 4111) → container 4111
-      - '${AGENTS_HOST_PORT:-4111}:4111'
+      # host (AGENTS_HOST_PORT, default 45000) → container 45000
+      - '${AGENTS_HOST_PORT:-45000}:45000'
     volumes:
-      - precast-agents-data:/data
+      - agents-data:/data
     healthcheck:
       test:
         - CMD
         - node
         - -e
-        - 'fetch("http://localhost:4111/api/agents").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'
+        - 'fetch("http://localhost:45000/api/agents").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'
       interval: 10s
       timeout: 5s
       retries: 10
@@ -72,18 +84,18 @@ services:
         required: false
     environment:
       HOSTNAME: 0.0.0.0
-      PORT: 3000
-      WEB_PORT: 3000
+      PORT: 45001
+      WEB_PORT: 45001
       # Reach the agents app over the Docker network, not localhost.
-      MASTRA_INTERNAL_URL: http://agents:4111
+      MASTRA_INTERNAL_URL: http://agents:45000
       # AgentBase is the default transport, but this self-contained stack has no
       # AgentBase service — so opt into direct in-cluster A2A. Set to "1" (with
       # the Application credentials + AGENTBASE_AGENT_URL_* — see .env.example)
       # to proxy through AgentBase instead.
       ENABLE_AGENTBASE: '0'
     ports:
-      # host (WEB_HOST_PORT, default 3000) → container 3000
-      - '${WEB_HOST_PORT:-3000}:3000'
+      # host (WEB_HOST_PORT, default 45001) → container 45001
+      - '${WEB_HOST_PORT:-45001}:45001'
     depends_on:
       agents:
         condition: service_healthy
@@ -96,14 +108,14 @@ services:
         - CMD
         - node
         - -e
-        - 'fetch("http://localhost:3000/api/health").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'
+        - 'fetch("http://localhost:45001/api/health").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 20s
 
   # Keycloak (OIDC) for local development. Runs in dev mode (HTTP, no TLS).
-  # Admin console at http://localhost:${KEYCLOAK_HOST_PORT:-8080} (admin/admin by
+  # Admin console at http://localhost:${KEYCLOAK_HOST_PORT:-45002} (admin/admin by
   # default). Nothing depends on it, so no healthcheck. In production, use a
   # managed Keycloak and set KEYCLOAK_TOKEN_ISSUER_URI accordingly.
   keycloak:
@@ -118,10 +130,16 @@ services:
       KC_HEALTH_ENABLED: 'true'
     ports:
       # host (KEYCLOAK_HOST_PORT, default 8080) → container 8080
-      - '${KEYCLOAK_HOST_PORT:-8080}:8080'
+      - '${KEYCLOAK_HOST_PORT:-45002}:8080'
     volumes:
-      - precast-keycloak-data:/opt/keycloak/data
+      - keycloak-data:/opt/keycloak/data
 
+# Volume names are deliberately NOT prefixed with the project name — Compose
+# already prefixes them with the project (`name:` above), so declaring
+# `<project>-agents-data` would resolve to a stuttering
+# `<project>_<project>-agents-data`. Declared bare, they resolve to
+# `<project>_agents-data`. That project prefix is what isolates them between
+# repos, so bare names are still collision-free.
 volumes:
-  precast-agents-data:
-  precast-keycloak-data:
+  agents-data:
+  keycloak-data:

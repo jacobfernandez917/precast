@@ -20,12 +20,23 @@ import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { dockerStatus } from './check-docker.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
+// Container-runtime preflight: a missing/stopped engine otherwise surfaces as a
+// raw daemon-socket error, which reads like a Precast bug rather than "install
+// Docker Desktop". scripts/check-docker.mjs owns the platform-specific fix.
+if (dockerStatus() !== 'running') {
+  spawnSync('node', ['scripts/check-docker.mjs'], { cwd: root, stdio: 'inherit' });
+  process.exit(1);
+}
+
 if (!existsSync(join(root, '.env'))) {
   console.error('❌ .env not found at the repo root.');
-  console.error('   Docker Compose reads it for ports, service selection (COMPOSE_PROFILES), and config.');
+  console.error(
+    '   Docker Compose reads it for ports, service selection (COMPOSE_PROFILES), and config.',
+  );
   console.error('   Fix: cp .env.example .env   (then edit with your values)');
   process.exit(1);
 }

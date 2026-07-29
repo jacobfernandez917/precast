@@ -22,7 +22,7 @@
 
 ### 2.1 Precast — produces the agent
 
-Precast's `apps/agents` is a **Mastra** app. A running instance exposes (default port **4111**, `MASTRA_PORT`):
+Precast's `apps/agents` is a **Mastra** app. A running instance exposes (default port **45000**, `MASTRA_PORT`):
 
 | Purpose                    | Endpoint                                          | Protocol                                         |
 | -------------------------- | ------------------------------------------------- | ------------------------------------------------ |
@@ -58,7 +58,7 @@ Common to both:
 ## 3. Why they fit — the protocol match
 
 ```
-        PRECAST (Mastra app, :4111)                 AGENTBASE (registry + proxy, :8028)
+        PRECAST (Mastra app, :45000)                 AGENTBASE (registry + proxy, :8028)
         ┌───────────────────────────┐               ┌────────────────────────────────────┐
         │ Agent (example-agent)      │               │  POST /agents  (register)            │
         │                            │  card URL     │    ├─ fetch card                     │
@@ -186,7 +186,7 @@ Path A (§4A) reads a manifest at the **repo root**. Precast ships one:
 ```jsonc
 {
   "dockerfile": "apps/agents/Dockerfile", // built with the repo ROOT as context
-  "port": 4111,                            // the container's listen port
+  "port": 45000,                            // the container's listen port
   "authEnv": "AGENT_API_TOKEN",            // env var AgentBase mints the inbound bearer into
   "requiredEnv": ["DATABASE_URL"]          // must be settled before build (derived; see below)
   // "agents": [...] intentionally omitted — see below
@@ -221,14 +221,14 @@ matches. Don't hand-edit `requiredEnv`.
 
 **Fallback:** a repo with **no** `agentbase.import.json` still imports via
 Precast conventions (Dockerfile discovered at `./Dockerfile` then
-`apps/agents/Dockerfile`, port 4111, `AGENT_API_TOKEN`, post-boot agent
+`apps/agents/Dockerfile`, port 45000, `AGENT_API_TOKEN`, post-boot agent
 discovery). Shipping the manifest just makes the contract explicit.
 
 ---
 
 ## 6. Caveats (not blockers)
 
-- **Path A hosts; Path B you host.** Under import (Path A) AgentBase builds + runs the container and reachability is its problem. Under Path B the card's `url` must be reachable by AgentBase (production wants TLS); the boilerplate serves plain `http://0.0.0.0:4111`.
+- **Path A hosts; Path B you host.** Under import (Path A) AgentBase builds + runs the container and reachability is its problem. Under Path B the card's `url` must be reachable by AgentBase (production wants TLS); the boilerplate serves plain `http://0.0.0.0:45000`.
 - **Skills are only as good as your tools.** Mastra maps each tool → one A2A skill. Define meaningful tools; the placeholder exposes only `exampleTool`.
 - **Skills start `DRAFT`** (both paths). Governance requires promoting to `APPROVED` before proxy invocation — a process step, not a compatibility gap.
 - **Updates are org-initiated** (Path A). New commits are not auto-deployed; use **Pull latest & redeploy** on the imported agent's edit page. Webhook auto-deploy is out of scope for now.
@@ -351,7 +351,7 @@ AGENT_API_TOKEN=your-secret-token
 
 # .env (or environment) — Next side
 ENABLE_AGENTBASE=1                                # default (proxy); set 0 for direct A2A
-MASTRA_INTERNAL_URL=http://localhost:4111         # direct-mode Mastra base URL
+MASTRA_INTERNAL_URL=http://localhost:45000         # direct-mode Mastra base URL
 AGENTBASE_CLIENT_ID=your-application-client-id    # from AgentBase Studio → Applications
 AGENTBASE_CLIENT_SECRET=your-application-secret   # shown once at creation/rotation
 AGENTBASE_TOKEN_URL=https://keycloak.example.com/realms/agentbase/protocol/openid-connect/token
