@@ -54,13 +54,13 @@ Projects scaffolded before provenance tracking existed have no `precast.lock.jso
 where they came from once:
 
 ```bash
-pnpm precast:update --adopt --ref=v0.1.0
+pnpm precast:update --adopt --ref=v0.2.0
 ```
 
 Adoption sets the baseline to **upstream's** content at that version, so anything you have
-since customized shows up as `Yours` and is left alone. Pick the version you actually started
-from; if you don't know, pick the oldest plausible one — you'll get a longer plan to review,
-not a wrong result.
+since customized shows up as `Yours` and is left alone. `v0.2.0` is the earliest tag that
+exists, so it is the right baseline for every pre-provenance project — you'll get a longer
+plan to review, not a wrong result.
 
 ### Useful flags
 
@@ -143,7 +143,7 @@ the updated `scripts/bootstrap.mjs` and `scripts/set-ports.mjs`, plus the genera
 4. **Optional — re-pick ports** onto the narrower range with `pnpm set-ports --auto`. Existing
    ports in 40000–44999 still work; nothing forces a change.
 
-**Advisory files touched.** `package.json` — gains three scripts:
+**Advisory files touched.** `package.json` — gains two scripts:
 
 ```json
 "set-theme": "node scripts/set-theme.mjs",
@@ -162,27 +162,33 @@ pnpm poc web               # look at it
 
 ---
 
-## v0.1.0 — Provenance and the upgrade path  (2026-08-06)
+## v0.1.0 — Provenance and the upgrade path  *(never tagged — shipped inside v0.2.0)*
 
-**What changed.** The first tagged Precast release, and the point from which upgrades become
+> **Not a release you can target.** This work landed on `develop` and was published as part
+> of **v0.2.0**; there is no `v0.1.0` tag. It is kept as a separate entry because it is a
+> distinct mechanism worth reading on its own. Use `--ref=v0.2.0` anywhere a version is asked
+> for.
+
+**What changed.** The provenance mechanism, and the point from which upgrades become
 possible at all. Adds `precast.manifest.json` (release identity + the managed/advisory file
 map), `precast.lock.json` (written by `pnpm bootstrap`, recording the upstream version,
 commit, project name, and a hash baseline for every managed file), `scripts/precast-lock.mjs`,
 `scripts/precast-update.mjs`, and this ledger.
 
-Everything before this release is untagged history with no provenance record.
+Everything before this point is untagged history with no provenance record.
 
 **Handled by `pnpm precast:update`.** Nothing yet — this release *is* the mechanism. From the
 next release onward, changes under `scripts/`, `.githooks/`, `docker/`, `templates/`, the root
 configs, and `CLAUDE.md` sync automatically.
 
-**Manual steps.** For a project scaffolded **before** this release, adopt a baseline once:
+**Manual steps.** For a project scaffolded **before** this mechanism existed, adopt a baseline
+once:
 
 ```bash
-pnpm precast:update --adopt --ref=v0.1.0
+pnpm precast:update --adopt --ref=v0.2.0
 ```
 
-Projects scaffolded from v0.1.0 or later get their `precast.lock.json` from `pnpm bootstrap`
+Projects scaffolded from v0.2.0 or later get their `precast.lock.json` from `pnpm bootstrap`
 and need no manual step.
 
 **Advisory files touched.** `package.json` — gains two scripts:

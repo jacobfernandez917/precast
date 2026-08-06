@@ -169,7 +169,7 @@ configs, `CLAUDE.md`) and leaves anything you've customized alone. Changes under
 each release changed and what the sync can't do for you.
 
 Scaffolded before this existed? Record a baseline once with
-`pnpm precast:update --adopt --ref=v0.1.0`.
+`pnpm precast:update --adopt --ref=v0.2.0`.
 
 ---
 
