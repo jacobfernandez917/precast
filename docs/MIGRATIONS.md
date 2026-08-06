@@ -226,11 +226,25 @@ pnpm precast:update      # check-only plan; should report everything current
 5. Tag and push:
 
    ```bash
-   git tag -a v0.2.0 -m "Precast v0.2.0" && git push origin v0.2.0
+   git tag -a v0.3.0 -m "Precast v0.3.0" && git push origin v0.3.0
    ```
 
    `precast:update` resolves the newest semver tag by default, so an untagged commit on
    `develop` is invisible to derived projects until you tag it.
+
+   **Keep the current tag moving with `develop`.** While a release is still being finished —
+   follow-up docs, a fix to something you just shipped — advance the tag rather than leaving
+   it behind, so what derived projects fetch is what you actually mean by that version:
+
+   ```bash
+   git tag -f -a v0.3.0 -m "Precast v0.3.0" && git push --force origin v0.3.0
+   ```
+
+   Two caveats. Anyone who already fetched that tag needs `git fetch --tags --force` to see
+   the move; and a project that ran `precast:update` against the older tag has a baseline
+   recorded against content that no longer exists at that ref, which shows up as extra
+   `CONFLICT`/`unknown` rows on its next run. Once a release is genuinely out and being
+   consumed, stop moving it and cut a patch (`v0.3.1`) instead.
 6. Sanity-check the release against a real derived project before announcing it:
 
    ```bash
