@@ -287,6 +287,7 @@ If TECH_STACK.md disagrees with any other doc about a **tech-stack fact** (a ver
 
 This project was scaffolded from the **Precast** boilerplate, which keeps improving after you fork it. `precast.lock.json` records which release you came from; `pnpm precast:update` pulls later improvements in.
 
+- **Easiest path: the `upgrade` skill.** If the Precast plugin is installed, say "upgrade precast" (or `/precast:upgrade`) — it runs the check, summarizes the releases in between, applies the safe set, and works the per-release manual steps against this codebase. The rules below are what it follows.
 - **Check before you apply.** `pnpm precast:update` is check-only and writes nothing. It classifies every managed file as `Update` (untouched here — safe), `Yours` (customized here — left alone), or `CONFLICT` (both sides moved). `--apply` takes the safe set; `--force` also takes conflicts, keeping a `.precast-bak`.
 - **The sync only covers the framework surface** — `scripts/`, `.githooks/`, `docker/`, `templates/`, the root configs, and this file. Changes under `apps/` and `packages/` are yours; port those by hand from the release entry in [docs/MIGRATIONS.md](docs/MIGRATIONS.md).
 - **Advisory files are never written automatically** (`package.json`, `.env.example`, the fitness-guard specs, `packages/shared/src/{env,database}.ts`). The plan reports them; you port them.

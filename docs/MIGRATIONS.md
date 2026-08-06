@@ -30,6 +30,12 @@ it can adapt an instruction like "add X to the A2A client" onto code you've sinc
 
 ## 2. Upgrading, start to finish
 
+> **Easiest path — ask your coding agent.** The Precast plugin ships an **`upgrade`** skill
+> that drives this whole section: say *"upgrade precast"* (or `/precast:upgrade`) and it reads
+> your lock file, runs the check, summarizes the releases in between, applies the safe set,
+> then works the manual steps below against your actual codebase. The steps here are what it
+> follows — and what to do by hand if you'd rather.
+
 ```bash
 pnpm precast:update                 # check only — prints the plan, writes nothing
 pnpm precast:update --apply         # take the safe changes
