@@ -9,9 +9,9 @@
 **Applies to:** `apps/web/` · **Source:** the APC Claude Design project (§4) ·
 **Generated artefact:** `apps/web/app/theme/apc-themes.css`
 
-> **Easiest path — ask your coding agent.** The Precast plugin ships an **`apc-design`** skill
+> **Easiest path — ask your coding agent.** The Precast plugin ships a **`design-system`** skill
 > that drives everything here: say *"APC design system"*, *"switch the theme"*, or
-> *"style this with APC"* (or `/precast:apc-design`). It also knows how to pull the
+> *"style this with APC"* (or `/precast:design-system`). It also knows how to pull the
 > per-component specs — geometry, state matrices, usage rules — out of the Claude Design
 > project when you're building a screen.
 
