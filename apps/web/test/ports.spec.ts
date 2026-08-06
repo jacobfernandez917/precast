@@ -13,7 +13,7 @@ import { PORT_RANGE, STACK_SIZE, pickConsecutivePorts } from '../../../scripts/s
  *  - **Consecutive** so a project's whole stack is one memorable block.
  *  - **Random + verified free** so two Precast projects on the same machine
  *    don't both try to own 3000/4111, which they always did before.
- *  - **40000–49151** because that is above every common dev-server default and
+ *  - **45000–49151** because that is above every common dev-server default and
  *    the privileged range, but BELOW where the OS ephemeral range starts
  *    (49152 on macOS/Linux/IANA). Publishing inside the ephemeral range means a
  *    random outbound socket can steal the port first — an "address already in

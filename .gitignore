@@ -22,6 +22,9 @@ test-results
 # Docker (per-developer local overrides — see docker-compose.override.yml header)
 docker/docker-compose.override.yml
 
+# Backups left by `pnpm precast:update --force` (review, then delete)
+*.precast-bak
+
 # Claude Code
 .claude/settings.local.json
 docs/.progress-journal.jsonl

@@ -35,15 +35,17 @@ const RESERVED = { 5432: 'Postgres', 6379: 'Redis' };
 
 /**
  * Where `--auto` is allowed to land, and why these bounds:
- *  - Above 40000: clear of every common dev-server default (3000/4000/5173/
- *    8000/8080) and of the privileged range, so it never needs sudo.
+ *  - At or above 45000: clear of every common dev-server default (3000/4000/
+ *    5173/8000/8080) and of the privileged range, so it never needs sudo.
  *  - Below 49152: that's where the IANA/macOS/Linux EPHEMERAL range starts.
+ *    This is the reason the range stops at 49100 rather than 50000 — a base
+ *    above 49152 would publish inside the ephemeral range.
  *    Publishing a container port inside it invites a random outbound socket to
  *    have grabbed the port first — a flaky "address already in use" that only
  *    reproduces sometimes. Staying under it makes the pick genuinely safe.
  * The max base leaves room for the whole consecutive block.
  */
-export const PORT_RANGE = { min: 40000, max: 49100 };
+export const PORT_RANGE = { min: 45000, max: 49100 };
 export const STACK_SIZE = 3; // agents, web, keycloak
 
 /** Is this port bindable right now on all interfaces (what Docker publishes on)? */

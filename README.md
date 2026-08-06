@@ -12,12 +12,13 @@ Precast is built to be driven by coding agents (Claude Code, OpenClaw, or any ot
 - **Documentation contract** — a `CLAUDE.md → HANDOFF.md → PROGRESS.md → authoritative docs` chain that keeps context flowing between sessions and agents.
 - **Guardrails** — pre-commit doc-contract enforcement, lint-staged, EditorConfig, zod-based env validation, and fitness tests (A2A-only web→agents, rename-proof Docker builds). Both apps' `dev` scripts build `@precast/shared` first, so a fresh scaffold's first `pnpm dev` never trips a missing-`dist` error.
 - **Progress automation** — Claude Code hooks auto-journal every edit into `PROGRESS.md`.
-- **Neutral runnable starters** — a **Mastra** agent API (a placeholder example agent + tool + durable memory, served with a Studio playground) and a **Next.js** web app (App Router, styled with the **Astryx** design system) on a shared TypeScript package, plus a Docker Compose stack for the apps (multi-stage images) with a local **Keycloak** for dev auth, while **Postgres and Redis** are used as **remote/managed** services via `.env`. They carry no domain — just enough to prove the wiring, build, type-check, lint, and test green out of the box. You build the real structure from the feed-forward docs + tech stack.
-- **Feed-forward planning templates** — PRD, data model, agent spec, and an Astryx design system guide in `templates/`, each a worked example you copy into `docs/` and fill in before building.
+- **Neutral runnable starters** — a **Mastra** agent API (a placeholder example agent + tool + durable memory, served with a Studio playground) and a **Next.js** web app (App Router, **Astryx** components coloured by the **APC Design System**) on a shared TypeScript package, plus a Docker Compose stack for the apps (multi-stage images) with a local **Keycloak** for dev auth, while **Postgres and Redis** are used as **remote/managed** services via `.env`. They carry no domain — just enough to prove the wiring, build, type-check, lint, and test green out of the box. You build the real structure from the feed-forward docs + tech stack.
+- **Feed-forward planning templates** — PRD, data model, agent spec, and a design system guide in `templates/`, each a worked example you copy into `docs/` and fill in before building.
 - **PRD-driven scaffolding** — already have a PRD? Hand it to your coding agent ("scaffold from this PRD") and it expands the PRD into the feed-forward docs and stubs the agents/UI, asking about anything vague. Drop the PRD at `docs/PRD.md`. (Delivered via the Precast scaffold skill; see `templates/PRD.md` for the shape — a loose PRD works too.)
 - **Mocks for missing dependencies** — when an external REST API, MCP server, or A2A agent is referenced but you haven't supplied the real one, the scaffold generates a **standards-conforming mock** (real service interface, realistic payloads, swappable by config) so the MVP runs end-to-end. Real config in `.env` → the real dependency is used instead. Never mocks over something you provided.
 - **Deployment mode chosen up front** — the scaffold asks how the project will run and wires it accordingly: **Standalone** (no AgentBase; direct A2A), **External agent** (you host, onboarded to AgentBase by registering its endpoint), or **Imported** (AgentBase imports the repo and hosts it). This sets `ENABLE_AGENTBASE`, keeps or drops `agentbase.import.json`, and points at the right onboarding path — see [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md).
-- **Designs the UI when you don't** — no mockups? The scaffold builds a clean, modern, responsive interface from the **Astryx** design system (components + tokens), with real human-facing copy (no internal jargon or placeholders) and realistic mock data so screens look real out of the box. Provide a design and it follows yours instead.
+- **Five APC Design System themes, chosen at scaffold time** — **Stockholm**, **Prague**, **Arctic**, **Nova**, **Melbourne**, previewable at **[apc-design-system.917v.dev](https://apc-design-system.917v.dev)**. They layer onto Astryx as token overrides (light + dark per theme), so switching is `pnpm set-theme <name>` rather than a UI rewrite. See [docs/DESIGN_SYSTEM_APC.md](docs/DESIGN_SYSTEM_APC.md).
+- **Designs the UI when you don't** — no mockups? The scaffold builds a clean, modern, responsive interface from **Astryx** components on APC tokens, with real human-facing copy (no internal jargon or placeholders) and realistic mock data so screens look real out of the box. Provide a design and it follows yours instead.
 
 See [docs/TECH_STACK.md](docs/TECH_STACK.md) for the pinned versions of everything.
 
@@ -45,15 +46,16 @@ pnpm bootstrap      # interactive, or: pnpm bootstrap my-project
 
 `bootstrap` (see [scripts/bootstrap.mjs](scripts/bootstrap.mjs)) will:
 
-1. **Ask for the project name**, then show an **auto-picked port block** for the stack — a random, verified-free, **consecutive** triple in `40000`–`49100` (agents / web / keycloak, e.g. `45000` / `45001` / `45002`). Press Enter to accept, or type a base port for the block. Random-and-free means two Precast projects on one machine never fight over `3000`/`4111`; staying under `49152` keeps the ports out of the OS ephemeral range, where an outbound socket could grab one first.
+1. **Ask for the project name**, then show an **auto-picked port block** for the stack — a random, verified-free, **consecutive** triple in `45000`–`49100` (agents / web / keycloak, e.g. `45000` / `45001` / `45002`). Press Enter to accept, or type a base port for the block. Random-and-free means two Precast projects on one machine never fight over `3000`/`4111`; staying under `49152` keeps the ports out of the OS ephemeral range, where an outbound socket could grab one first.
 2. **Ask which LLM provider** you'll use — Anthropic, OpenAI, or Google — so it can remind you exactly which key to set (never collects the actual key value).
-3. **Rename** the `precast` placeholder to your project name everywhere it matters.
-4. **Apply the chosen ports** across `.env.example`, config, pnpm scripts, Docker, and docs.
-5. **Update dependencies** to their latest compatible versions.
-6. **Delete Precast's git history** and re-initialize a **blank repo on the `develop` branch** with a single initial commit, hooks activated.
-7. **Create `.env` from `.env.example`** and print an explicit reminder naming the exact env var to fill in.
+3. **Ask which APC Design System theme** the web app should use — **Stockholm** (default), **Prague**, **Arctic**, **Nova**, or **Melbourne**. Preview them at **[apc-design-system.917v.dev](https://apc-design-system.917v.dev)**; change your mind later with `pnpm set-theme <name>`.
+4. **Rename** the `precast` placeholder to your project name everywhere it matters.
+5. **Apply the chosen ports and theme** across `.env.example`, config, pnpm scripts, Docker, and docs.
+6. **Update dependencies** to their latest compatible versions.
+7. **Record where this project came from** in `precast.lock.json`, then **delete Precast's git history** and re-initialize a **blank repo on the `develop` branch** with a single initial commit, hooks activated.
+8. **Create `.env` from `.env.example`** and print an explicit reminder naming the exact env var to fill in.
 
-Non-interactively, pass flags: `pnpm bootstrap my-project --llm-provider=anthropic`. Ports are auto-picked unless you pin them (`--mastra-port=45000 --web-port=45001 --keycloak-port=45002`, any subset) or keep the current ones (`--ports=keep`).
+Non-interactively, pass flags: `pnpm bootstrap my-project --llm-provider=anthropic --theme=arctic`. Ports are auto-picked unless you pin them (`--mastra-port=45000 --web-port=45001 --keycloak-port=45002`, any subset) or keep the current ones (`--ports=keep`).
 
 ### Prerequisite: a container runtime
 
@@ -149,6 +151,26 @@ pnpm deps:update --dry      # preview outdated packages
 pnpm deps:update --latest   # bump to latest majors (review carefully)
 ```
 
+### Keeping up with Precast itself
+
+Precast keeps improving after you scaffold from it. `precast.lock.json` records which release
+this project came from, and `pnpm precast:update` pulls later improvements in — without any
+shared git history, which `pnpm bootstrap` deliberately removes.
+
+```bash
+pnpm precast:version        # which Precast release this project derives from
+pnpm precast:update         # check only — print the plan, write nothing
+pnpm precast:update --apply # take the safe changes
+```
+
+It syncs the framework surface (`scripts/`, `.githooks/`, `docker/`, `templates/`, root
+configs, `CLAUDE.md`) and leaves anything you've customized alone. Changes under `apps/` and
+`packages/` are yours to port by hand — [docs/MIGRATIONS.md](docs/MIGRATIONS.md) says what
+each release changed and what the sync can't do for you.
+
+Scaffolded before this existed? Record a baseline once with
+`pnpm precast:update --adopt --ref=v0.1.0`.
+
 ---
 
 ## For coding agents: how to start here
@@ -179,6 +201,8 @@ If you are an agent picking up this repo, read in this exact order **before touc
 | [docs/STYLE_GUIDE.md](docs/STYLE_GUIDE.md) | Code style + naming                     | When conventions change          |
 | [docs/SCRIPTS.md](docs/SCRIPTS.md)         | Operator cheatsheet for `pnpm` scripts  | When scripts change              |
 | [docs/TEST_CASES.md](docs/TEST_CASES.md)   | Test catalog with traceability          | Every new build (tests + status) |
+| [docs/MIGRATIONS.md](docs/MIGRATIONS.md)   | Precast release ledger + upgrade steps  | Every Precast release            |
+| [docs/DESIGN_SYSTEM_APC.md](docs/DESIGN_SYSTEM_APC.md) | APC themes, tokens, re-import       | When the design source changes    |
 
 ---
 

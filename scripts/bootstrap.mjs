@@ -9,7 +9,7 @@
  * Steps, in order:
  *   1. Ask for (or read) the project name.
  *   2. Pick the stack's ports. By DEFAULT this auto-selects a random, free,
- *      CONSECUTIVE triple in the 40000–49100 range (agents / web / keycloak,
+ *      CONSECUTIVE triple in the 45000–49100 range (agents / web / keycloak,
  *      e.g. 45000/45001/45002) — see scripts/set-ports.mjs for why that range.
  *      Consecutive keeps the stack one memorable block; random+free means two
  *      Precast projects on one machine don't fight over 3000/4111 the way they
@@ -21,13 +21,19 @@
  *      later. No provider is hardcoded as the default; the agents auto-detect
  *      from whichever single key ends up set in `.env` (see
  *      apps/agents/src/mastra/lib/default-model.ts).
- *   4. Rename the `precast` placeholder everywhere (scripts/rename-project.mjs).
- *   5. Apply the chosen ports across env, configs, pnpm scripts, Docker, docs
- *      (scripts/set-ports.mjs).
- *   6. Install + update dependencies to latest compatible (scripts/update-deps.mjs).
- *   7. Remove Precast's own git history and re-initialize a BLANK repo on the
- *      `develop` branch with a single initial commit, hooks activated.
- *   8. Create a real `.env` from `.env.example` (if one doesn't already exist),
+ *   4. Ask which APC Design System theme the web app should use — Stockholm,
+ *      Prague, Arctic, Nova, or Melbourne (preview them at
+ *      https://apc-design-system.917v.dev). All five share one token
+ *      architecture, so this is a token swap rather than a rewrite; asking here
+ *      is what keeps Precast-derived products looking like one family.
+ *   5. Rename the `precast` placeholder everywhere (scripts/rename-project.mjs).
+ *   6. Apply the chosen ports across env, configs, pnpm scripts, Docker, docs
+ *      (scripts/set-ports.mjs), and the chosen theme (scripts/set-theme.mjs).
+ *   7. Install + update dependencies to latest compatible (scripts/update-deps.mjs).
+ *   8. Record provenance in precast.lock.json, then remove Precast's own git
+ *      history and re-initialize a BLANK repo on the `develop` branch with a
+ *      single initial commit, hooks activated.
+ *   9. Create a real `.env` from `.env.example` (if one doesn't already exist),
  *      and print an ACTION-REQUIRED reminder naming the exact env var to set —
  *      not a vague "go edit .env.example" — so an unconfigured LLM provider
  *      can't quietly slip past scaffolding unannounced.
@@ -39,6 +45,9 @@
  * Non-interactive LLM provider selection (see LLM_PROVIDERS below for the full
  * set, or `skip` to decide later):
  *   pnpm bootstrap my-project --llm-provider=anthropic
+ * Non-interactive theme selection (defaults to Stockholm when a name is passed
+ * as an argument, since there is nobody at the prompt to answer):
+ *   pnpm bootstrap my-project --theme=arctic
  *
  * This is destructive to .git on purpose: a project bootstrapped from Precast
  * must not inherit Precast's commit history. It runs LAST so a failure earlier
@@ -53,6 +62,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pickConsecutivePorts, PORT_RANGE } from './set-ports.mjs';
 import { dockerStatus } from './check-docker.mjs';
+import { stampLock, readManifest } from './precast-lock.mjs';
+import { APC_THEMES, DEFAULT_THEME } from './build-apc-theme.mjs';
+import { THEME_IDS, setTheme } from './set-theme.mjs';
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_BRANCH = 'develop';
@@ -208,6 +220,49 @@ async function resolvePorts() {
  * question exists to close, so we don't want a scripted call skipping it
  * without at least an explicit `skip`.
  */
+/**
+ * Which APC Design System theme the web app ships with. Asked here rather than
+ * left to chance because it is the one choice that makes every Precast-derived
+ * product look like it belongs to the same family — and because retro-fitting a
+ * look after the UI is built is far more work than picking one now.
+ */
+async function resolveApcTheme() {
+  const fv = flagVal('theme');
+  if (fv) {
+    const normalized = fv.toLowerCase();
+    if (!THEME_IDS.includes(normalized)) {
+      console.error(`❌ --theme must be one of: ${THEME_IDS.join(', ')} (got "${fv}").`);
+      process.exit(1);
+    }
+    return normalized;
+  }
+  // Non-interactive (name passed as an arg): keep the shipped default rather
+  // than blocking on a prompt nobody is there to answer.
+  if (nameArg) return DEFAULT_THEME;
+
+  const rl = createInterface({ input: stdin, output: stdout });
+  try {
+    console.log('\nWhich APC Design System theme should the web app use?');
+    console.log('Preview all five: https://apc-design-system.917v.dev');
+    APC_THEMES.forEach((t, i) =>
+      console.log(`  ${i + 1}. ${t.label}${t.id === DEFAULT_THEME ? ' (default)' : ''}`),
+    );
+    for (;;) {
+      const answer = (
+        await rl.question(`Choice [1-${APC_THEMES.length}, or a theme name]: `)
+      ).trim();
+      if (!answer) return DEFAULT_THEME;
+      const n = Number(answer);
+      if (Number.isInteger(n) && n >= 1 && n <= APC_THEMES.length) return APC_THEMES[n - 1].id;
+      const normalized = answer.toLowerCase();
+      if (THEME_IDS.includes(normalized)) return normalized;
+      console.error(`  Enter 1-${APC_THEMES.length}, or a theme name (e.g. arctic).`);
+    }
+  } finally {
+    rl.close();
+  }
+}
+
 async function resolveLlmProvider() {
   const fv = flagVal('llm-provider');
   if (nameArg) {
@@ -271,6 +326,8 @@ async function main() {
     process.exit(1);
   }
   const llmProvider = await resolveLlmProvider();
+  const apcTheme = await resolveApcTheme();
+  const manifest = readManifest(rootDir);
 
   console.log(`\nThis will:`);
   console.log(`  1. Rename the "precast" placeholder → "${name}"`);
@@ -282,10 +339,15 @@ async function main() {
   console.log(
     `  3. Install${skipDeps ? '' : ' + update'} dependencies${skipDeps ? '' : ' to latest compatible'}`,
   );
-  console.log(`  4. Reset progress docs (PROGRESS/HANDOFF/journal) to a clean slate`);
-  console.log(`  5. DELETE Precast's git history and start a blank repo on "${DEFAULT_BRANCH}"`);
   console.log(
-    `  6. Create .env from .env.example${llmProvider ? ` (reminding you to set ${llmProvider.envVar})` : ' (no LLM provider chosen yet — you will be reminded)'}`,
+    `  4. Apply the ${APC_THEMES.find((t) => t.id === apcTheme).label} APC theme + reset progress docs to a clean slate`,
+  );
+  console.log(
+    `  5. Record which Precast this came from in precast.lock.json (so \`pnpm precast:update\` works later)`,
+  );
+  console.log(`  6. DELETE Precast's git history and start a blank repo on "${DEFAULT_BRANCH}"`);
+  console.log(
+    `  7. Create .env from .env.example${llmProvider ? ` (reminding you to set ${llmProvider.envVar})` : ' (no LLM provider chosen yet — you will be reminded)'}`,
   );
 
   if (!(await confirm('\nProceed?'))) {
@@ -313,18 +375,32 @@ async function main() {
     run('node', ['scripts/update-deps.mjs', '--no-verify']);
   }
 
-  // 4. Reset progress memory so the new project starts with a clean slate.
+  // 4. Apply the chosen APC theme, then reset progress memory so the new
+  // project starts with a clean slate.
+  setTheme(apcTheme);
   resetDocs();
 
-  // 5. Reset git history → blank repo on develop.
+  // 5. Record provenance. MUST run before resetGit — the upstream commit is only
+  // readable while Precast's own .git is still here, and the hashes must be taken
+  // after the rename so they describe this project's files, not the placeholder's.
+  const lock = stampLock(rootDir, { projectName: name, commit: upstreamCommit(), manifest });
+
+  // 6. Reset git history → blank repo on develop.
   resetGit(name);
 
-  // 6. Create .env from .env.example so there's a real file to edit, not just
+  // 7. Create .env from .env.example so there's a real file to edit, not just
   // an instruction to copy one — this is the gap that let an unconfigured LLM
   // provider go unnoticed until a chat actually failed.
   const envCreated = copyEnvFile();
 
   console.log(`\n✅ ${name} is ready.`);
+  if (lock) {
+    console.log(
+      `   Derived from Precast ${lock.precastVersion}` +
+        (lock.precastCommit ? ` (${lock.precastCommit.slice(0, 7)})` : '') +
+        ` — ${Object.keys(lock.files).length} files tracked for upgrades.`,
+    );
+  }
   console.log('\nNext steps:');
   console.log('  • Set your project name + mission in docs/PROGRESS.md §1 and the README title.');
   if (!envCreated && !existsSync(join(rootDir, '.env'))) {
@@ -339,6 +415,7 @@ async function main() {
   console.log(
     '  • Add your remote:     git remote add origin <url> && git push -u origin ' + DEFAULT_BRANCH,
   );
+  console.log('  • Later, pull Precast improvements in:  pnpm precast:update');
 
   printDockerPrerequisite();
 
@@ -431,6 +508,16 @@ function resetDocs() {
       .join('\n');
     writeFileSync(progress, cleaned, 'utf-8');
   }
+}
+
+/**
+ * The upstream commit this clone sits on, read while Precast's `.git` is still
+ * present. Returns null for a tarball download or an already-detached copy —
+ * the version in precast.manifest.json is still enough to upgrade from.
+ */
+function upstreamCommit() {
+  const res = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: rootDir, encoding: 'utf-8' });
+  return res.status === 0 ? res.stdout.trim() : null;
 }
 
 function resetGit(name) {

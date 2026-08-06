@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { Providers } from './providers';
+import { APC_THEME } from './theme/apc-theme';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -16,7 +17,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    // `data-apc-theme` selects the APC token set in theme/apc-themes.css.
+    // Server-rendered, so the first paint is already themed.
+    <html lang="en" data-apc-theme={APC_THEME}>
       <body>
         <Providers>{children}</Providers>
       </body>

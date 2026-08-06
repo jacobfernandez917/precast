@@ -1,0 +1,40 @@
+{
+  "$comment": "Precast release identity + the file-ownership map that `pnpm precast:update` syncs against. Read from UPSTREAM at upgrade time, so this list evolves with the boilerplate. See docs/MIGRATIONS.md.",
+  "version": "0.2.0",
+  "repository": "https://github.com/jacobfernandez917/precast.git",
+  "branch": "develop",
+  "managed": [
+    ".dockerignore",
+    ".editorconfig",
+    ".gitignore",
+    ".lintstagedrc.json",
+    ".nvmrc",
+    ".prettierignore",
+    ".prettierrc",
+    "CLAUDE.md",
+    "eslint.config.js",
+    "precast.manifest.json",
+    "tsconfig.base.json",
+    "turbo.json",
+    ".githooks/**",
+    "docker/**",
+    "scripts/**",
+    "templates/**",
+    "apps/web/app/theme/apc.tokens.json",
+    "apps/web/app/theme/apc-themes.css"
+  ],
+  "advisory": [
+    ".env.example",
+    "agentbase.import.json",
+    "package.json",
+    "apps/web/app/theme/apc-theme.ts",
+    "apps/web/test/a2a-only.spec.ts",
+    "apps/web/test/apc-theme.spec.ts",
+    "apps/web/test/docker-build.spec.ts",
+    "apps/web/test/docker-compose-profiles.spec.ts",
+    "apps/web/test/import-manifest.spec.ts",
+    "apps/web/test/ports.spec.ts",
+    "packages/shared/src/database.ts",
+    "packages/shared/src/env.ts"
+  ]
+}
