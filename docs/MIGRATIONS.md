@@ -146,7 +146,12 @@ the updated `scripts/bootstrap.mjs` and `scripts/set-ports.mjs`, plus the genera
 2. **Pick a theme:** `pnpm set-theme <name>`, or keep the Stockholm default.
 3. **Audit hard-coded colours.** Any literal hex in your components will look correct in one
    theme and wrong in the other four. Replace with semantic roles.
-4. **Optional — re-pick ports** onto the narrower range with `pnpm set-ports --auto`. Existing
+4. **Copy the text-wrapping block** into `apps/web/app/globals.css` (bottom of the file, in
+   `@layer components`): `text-wrap: pretty` on `:where(body)` and `text-wrap: balance` on the
+   heading selector. Set it on `body` so it inherits — a `p, li, …` tag list misses Astryx
+   components, which render prose in `<span>`. Note `text-wrap: normal` is **not** a valid
+   value and is silently dropped; the opt-out is `text-wrap: wrap`.
+5. **Optional — re-pick ports** onto the narrower range with `pnpm set-ports --auto`. Existing
    ports in 40000–44999 still work; nothing forces a change.
 
 **Advisory files touched.** `package.json` — gains two scripts:
@@ -156,7 +161,7 @@ the updated `scripts/bootstrap.mjs` and `scripts/set-ports.mjs`, plus the genera
 "theme:build": "node scripts/build-apc-theme.mjs"
 ```
 
-`apps/web/test/ports.spec.ts` — the range comment now reads 45000–49151.
+`apps/web/test/ports.spec.ts` — the range comment now reads 45000–49151. New guards you may want to copy: `apps/web/test/apc-theme.spec.ts` and `apps/web/test/typography.spec.ts`.
 
 **Verify.**
 

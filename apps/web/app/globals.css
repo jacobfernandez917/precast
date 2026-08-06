@@ -27,4 +27,37 @@
 /* Maps Tailwind theme vars (text-primary, bg-surface, …) to Astryx tokens. */
 @import '@astryxdesign/core/tailwind-theme.css';
 
+/*
+ * Typographic wrapping — no orphaned final words, anywhere.
+ *
+ * Two properties, because they solve the problem at different lengths and
+ * using the wrong one is a silent no-op:
+ *
+ *  - `balance` evens out line lengths so a heading never drops one lonely word
+ *    onto its own line. Browsers cap it at a small number of lines (~6 in
+ *    Chromium) and ignore it beyond that, so it is for SHORT blocks only.
+ *  - `pretty` is the long-form equivalent: it keeps the last line from being a
+ *    single orphaned word without re-balancing the whole paragraph, and carries
+ *    none of `balance`'s line cap. This is what body copy needs.
+ *
+ * `:where()` keeps specificity at 0, so any component or utility can still opt
+ * out with `text-wrap: wrap`. Unsupported browsers fall back to normal
+ * wrapping — this degrades, it never breaks layout.
+ */
+@layer components {
+  /*
+   * Set on `body` and inherited, NOT enumerated per tag. Astryx renders prose
+   * inside <span>, so a `p, li, …` list silently misses most real UI text —
+   * which is exactly the orphan this rule exists to prevent. `pre`/`code` keep
+   * their own `white-space`, so code blocks are unaffected.
+   */
+  :where(body) {
+    text-wrap: pretty;
+  }
+
+  :where(h1, h2, h3, h4, h5, h6, dt, figcaption, caption, legend, th, blockquote) {
+    text-wrap: balance;
+  }
+}
+
 @import 'tailwindcss/utilities.css' layer(utilities);
