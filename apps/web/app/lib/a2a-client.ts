@@ -68,7 +68,25 @@ export interface AgentReply {
 }
 
 interface CallOptions {
-  sessionId?: string;
+  /**
+   * Conversation thread. Sent as the A2A `contextId`, which Mastra maps onto
+   * its memory `threadId`. Omit it and the turn is stateless — Mastra only
+   * passes thread/resource to the agent when a `contextId` is present.
+   *
+   * MUST be a server-derived, resource-namespaced id — see
+   * `resolveAgentContext()` in `./agent-context`. Never pass a raw
+   * client-supplied value.
+   */
+  threadId?: string;
+  /**
+   * Stable per-user id. Sent as `message.metadata.resourceId`, which scopes
+   * working memory and drives Mastra's thread-ownership check.
+   *
+   * Omitting this is NOT neutral: Mastra falls back to the agent id, so every
+   * user collapses into one shared memory bucket. Always pass the value from
+   * `resolveAgentContext()`.
+   */
+  resourceId?: string;
   signal?: AbortSignal;
 }
 
@@ -102,7 +120,8 @@ function envVarNameForAgent(agentId: string): string {
 
 // ── A2A envelope (shared by both transports — AgentBase relays it unchanged) ─
 
-function buildA2aMessageEnvelope(text: string, sessionId?: string): unknown {
+function buildA2aMessageEnvelope(text: string, options?: CallOptions): unknown {
+  const { threadId, resourceId } = options ?? {};
   return {
     jsonrpc: '2.0',
     id: crypto.randomUUID(),
@@ -113,7 +132,13 @@ function buildA2aMessageEnvelope(text: string, sessionId?: string): unknown {
         role: 'user',
         messageId: crypto.randomUUID(),
         parts: [{ kind: 'text', text }],
-        ...(sessionId ? { contextId: sessionId } : {}),
+        // contextId → Mastra threadId. Without it Mastra passes neither thread
+        // nor resource to the agent, and memory stays inert.
+        ...(threadId ? { contextId: threadId } : {}),
+        // Read by Mastra's A2A handler as `message.metadata.resourceId`. It
+        // defaults to the AGENT ID when absent, which would put every user in
+        // one shared memory bucket — so this is load-bearing, not optional.
+        ...(resourceId ? { metadata: { resourceId } } : {}),
       },
     },
   };
@@ -149,7 +174,7 @@ async function callViaAgentBase(
 
   // AgentBase's per-agent proxy takes the raw A2A envelope as the body (org +
   // agent are already in the URL) — the same one direct mode sends to Mastra.
-  const body = buildA2aMessageEnvelope(text, options?.sessionId);
+  const body = buildA2aMessageEnvelope(text, options);
 
   const raw = await postJsonRpc(url, body, tokenResult.accessToken, options?.signal);
   return normalize(raw, 'agentbase');
@@ -165,7 +190,7 @@ async function callDirect(
 
   // Mastra speaks A2A 0.3.0: `message/send` with a Message envelope. The target
   // agent is in the URL path; the bearer must match the server's AGENT_API_TOKEN.
-  const body = buildA2aMessageEnvelope(text, options?.sessionId);
+  const body = buildA2aMessageEnvelope(text, options);
 
   const raw = await postJsonRpc(
     `${base}/api/a2a/${encodeURIComponent(agentId)}`,

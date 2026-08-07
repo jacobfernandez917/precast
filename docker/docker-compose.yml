@@ -1,10 +1,10 @@
 # ─── App Stack ──────────────────────────────────────────────────────────────
 # Apps: Mastra agents (agents), Next web (web). Identity: Keycloak (local dev).
 # Postgres + Redis are NOT run here — point the app at your own remote/managed
-# services via the root .env (DATABASE_URL, REDIS_URL). DATABASE_URL accepts
-# EITHER a managed Postgres URL or a local SQLite file (getDatabaseKind() in
-# packages/shared/src/database.ts detects which) — either way, no Postgres
-# runs in this Compose file. Keycloak runs locally for convenient dev auth; in
+# services via the root .env (DATABASE_URL, REDIS_URL). DATABASE_URL must be a
+# managed Postgres URL (ADR-002 — SQLite is rejected at boot); "always Postgres"
+# is about the engine, not where it runs, so no Postgres runs in this Compose
+# file either. Keycloak runs locally for convenient dev auth; in
 # production point KEYCLOAK_TOKEN_ISSUER_URI at a managed Keycloak instead of
 # this container. See .env.example.
 # Run with: docker compose -f docker/docker-compose.yml up -d
@@ -44,23 +44,22 @@ services:
       dockerfile: apps/agents/Dockerfile
     container_name: precast-agents
     restart: unless-stopped
-    # Load the user's root .env — this is where DATABASE_URL (Postgres or
-    # local SQLite) / REDIS_URL / KEYCLOAK_TOKEN_ISSUER_URI live. Optional so
-    # the stack still boots without one; the app fails fast if a required var
-    # is missing.
+    # Load the user's root .env — this is where DATABASE_URL (managed Postgres)
+    # / REDIS_URL / KEYCLOAK_TOKEN_ISSUER_URI live. Optional so the stack still
+    # boots without one; the app fails fast if a required var is missing.
     env_file:
       - path: ../.env
         required: false
+    # NOTE: keys listed here OVERRIDE env_file. Deliberately no MASTRA_DB_URL /
+    # DATABASE_URL — agent memory lives in the managed Postgres from .env
+    # (ADR-002), and hardcoding a value here would silently shadow it.
     environment:
       MASTRA_HOST: 0.0.0.0
       MASTRA_PORT: 45000
-      MASTRA_DB_URL: file:/data/mastra.db
       LOG_LEVEL: info
     ports:
       # host (AGENTS_HOST_PORT, default 45000) → container 45000
       - '${AGENTS_HOST_PORT:-45000}:45000'
-    volumes:
-      - agents-data:/data
     healthcheck:
       test:
         - CMD
@@ -136,10 +135,12 @@ services:
 
 # Volume names are deliberately NOT prefixed with the project name — Compose
 # already prefixes them with the project (`name:` above), so declaring
-# `<project>-agents-data` would resolve to a stuttering
-# `<project>_<project>-agents-data`. Declared bare, they resolve to
-# `<project>_agents-data`. That project prefix is what isolates them between
+# `<project>-keycloak-data` would resolve to a stuttering
+# `<project>_<project>-keycloak-data`. Declared bare, they resolve to
+# `<project>_keycloak-data`. That project prefix is what isolates them between
 # repos, so bare names are still collision-free.
+#
+# `agents` has no volume: its memory lives in the managed Postgres (ADR-002),
+# so the container is fully stateless and safe to recreate.
 volumes:
-  agents-data:
   keycloak-data:

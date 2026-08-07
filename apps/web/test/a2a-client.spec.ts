@@ -10,7 +10,12 @@ import { getAgentBaseAccessToken } from '../app/lib/agentbase-auth';
 const mockedGetToken = vi.mocked(getAgentBaseAccessToken);
 
 const AGENT_URL_VAR = 'AGENTBASE_AGENT_URL_EXAMPLE_AGENT';
-const ENV_KEYS = ['ENABLE_AGENTBASE', AGENT_URL_VAR, 'MASTRA_INTERNAL_URL', 'AGENT_API_TOKEN'] as const;
+const ENV_KEYS = [
+  'ENABLE_AGENTBASE',
+  AGENT_URL_VAR,
+  'MASTRA_INTERNAL_URL',
+  'AGENT_API_TOKEN',
+] as const;
 const originalEnv: Record<string, string | undefined> = {};
 
 beforeEach(() => {
@@ -56,7 +61,9 @@ describe('callAgent — proxy mode (AgentBase)', () => {
     process.env.AGENTBASE_AGENT_URL_SLACK_DAILY_DIGEST =
       'https://agentbase.acme.dev/proxy/a2a/acme/slack-daily-digest-73a6577a';
     mockedGetToken.mockResolvedValue({ ok: true, accessToken: 'jwt' });
-    const fetchSpy = vi.fn(async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }));
+    const fetchSpy = vi.fn(
+      async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }),
+    );
     vi.stubGlobal('fetch', fetchSpy);
 
     await callAgent('slack-daily-digest', 'hi');
@@ -80,10 +87,15 @@ describe('callAgent — proxy mode (AgentBase)', () => {
 
   it('POSTs the plain A2A message/send envelope (no slug/skill wrapper) with the minted bearer', async () => {
     mockedGetToken.mockResolvedValue({ ok: true, accessToken: 'minted-jwt' });
-    const fetchSpy = vi.fn(async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }));
+    const fetchSpy = vi.fn(
+      async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }),
+    );
     vi.stubGlobal('fetch', fetchSpy);
 
-    const reply = await callAgent('example-agent', 'hi there', { sessionId: 'sess-1' });
+    const reply = await callAgent('example-agent', 'hi there', {
+      threadId: 'res-1::conv-1',
+      resourceId: 'res-1',
+    });
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const [url, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
@@ -96,7 +108,10 @@ describe('callAgent — proxy mode (AgentBase)', () => {
     expect(body.skill_id).toBeUndefined();
     expect(body.method).toBe('message/send');
     expect(body.params.message.parts[0].text).toBe('hi there');
-    expect(body.params.message.contextId).toBe('sess-1');
+    expect(body.params.message.contextId).toBe('res-1::conv-1');
+    // Load-bearing: Mastra falls back to the agent id when this is absent,
+    // which would put every user in one shared memory bucket.
+    expect(body.params.message.metadata.resourceId).toBe('res-1');
 
     expect(reply).toMatchObject({ ok: true, via: 'agentbase', text: 'hello back' });
   });
@@ -107,7 +122,9 @@ describe('callAgent — direct mode (ENABLE_AGENTBASE=0)', () => {
     process.env.ENABLE_AGENTBASE = '0';
     process.env.MASTRA_INTERNAL_URL = 'http://localhost:4111';
     process.env.AGENT_API_TOKEN = 'mastra-token';
-    const fetchSpy = vi.fn(async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }));
+    const fetchSpy = vi.fn(
+      async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }),
+    );
     vi.stubGlobal('fetch', fetchSpy);
 
     const reply = await callAgent('example-agent', 'hi');

@@ -122,6 +122,64 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.3.0 — Postgres-only, and durable agent memory  (2026-08-07)
+
+**What changed.** Two linked changes.
+
+**Postgres-only ([ADR-002](ADRS.md), supersedes ADR-001).** `DATABASE_URL` no longer accepts
+SQLite. `getDatabaseKind()` is gone, replaced by `isPostgresUrl()` / `assertPostgresUrl()` —
+validation rather than engine detection. The trigger was a real bug: `docker-compose.yml`
+hardcoded `MASTRA_DB_URL: file:/data/mastra.db` under `environment:`, which **overrides**
+`env_file`, so agent memory went to a container-local SQLite file even for projects correctly
+configured for Postgres — and vanished on every `pnpm poc agents` rebuild.
+
+**Agent memory is wired up.** Precast previously shipped no `Memory` on any agent, and the
+`sessionId` plumbing from the web app was dead — nothing consumed it. Mastra only engages
+memory when the A2A message carries a `contextId`, and it defaults `resourceId` to the *agent
+id*, which would put every user of a deployment into one shared memory bucket. The web app now
+derives both ids server-side (`apps/web/app/lib/agent-context.ts`) and never accepts them from
+the request body.
+
+**Handled by `pnpm precast:update`.** `docker/docker-compose.yml` (removes the SQLite override
+and the now-unused `agents-data` volume), `CLAUDE.md` §4.5, `templates/AGENT_SPEC.md`.
+
+**Manual steps.**
+
+1. **Set a Postgres `DATABASE_URL`.** If yours is `file:`/`sqlite:`/`libsql:`, the app will now
+   refuse to boot with a message naming the scheme. Point it at a managed instance. There is no
+   data migration path provided — a SQLite-backed project was, by ADR-002's reasoning, a
+   prototype; move any data you care about yourself.
+2. **Bump the Mastra family** in `apps/agents/package.json`: `@mastra/core` `^1.57`, `mastra`
+   `^1.23`, add `@mastra/pg` `^1.19` and `@mastra/memory` `^1.26`, remove `@mastra/libsql`.
+   `@mastra/pg` requires `@mastra/core >= 1.53`, so the bump is not optional.
+3. **Swap the store.** Replace the `LibSQLStore` in `apps/agents/src/mastra/index.ts` with the
+   shared `getPrecastStore()` from the new `apps/agents/src/mastra/lib/storage.ts` (copy that
+   file across). One store instance is shared with every `Memory` so the process keeps a single
+   connection pool.
+4. **Attach memory** to your conversational agents via `createAgentMemory()` (new
+   `apps/agents/src/mastra/lib/memory.ts`). Leave it off agents that perform a pure
+   transformation — a summarizer's output should depend only on its input.
+5. **Derive identity server-side.** Copy `apps/web/app/lib/agent-context.ts`. In your A2A route
+   handler, replace any `body.sessionId` with `resolveAgentContext(body.conversationId)` and
+   pass `{ threadId, resourceId }` to `callAgent()`. **This is a security fix** — if you already
+   keyed memory off a client-supplied id, users could read each other's threads.
+6. **Update `callAgent()`** to send `contextId` *and* `message.metadata.resourceId`. Omitting
+   the latter silently collapses all users into one memory bucket.
+7. **Return `conversationId`** from the route handler and have the UI send it back on the next
+   turn, or every turn starts a new thread.
+
+**Advisory files touched.** `package.json` (the Mastra bumps above); `.env.example`
+(`MASTRA_DB_URL` becomes an optional Postgres URL, new `MASTRA_DB_SCHEMA=mastra`);
+`packages/shared/src/{env,database}.ts` (Postgres-only validation, `resolveMastraDbUrl()`);
+the fitness specs `apps/web/test/{a2a-client,agent-context}.spec.ts`.
+
+**Verify.** `pnpm verify:poc`, then `pnpm test`. Then `pnpm poc` and, in the chat demo, tell the
+agent your name, send a second message asking for it back, and confirm it answers — that proves
+`contextId` is threading. Press **Start over** and ask again: it should still know your name,
+because that fact lives in resource-scoped working memory rather than the thread.
+
+---
+
 ## v0.2.0 — APC Design System themes + narrower port range  (2026-08-06)
 
 **What changed.** The web app now ships the **APC Design System**'s five themes — Stockholm

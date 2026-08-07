@@ -13,6 +13,16 @@ const AGENT_ID = 'summary-agent';
  *
  * Like `example-agent`, it carries no domain. Replace both with your project's
  * real agents, designed from your feed-forward docs (templates/AGENT_SPEC.md).
+ *
+ * NO `memory:` — deliberately, and this is the useful half of the contrast with
+ * `example-agent`. Summarizing is a pure function of the text handed in: the
+ * same input should produce the same summary whether it is the first call or
+ * the thousandth. Giving this agent memory would make its output depend on
+ * conversation history that has nothing to do with the passage being
+ * summarized, and would grow a thread per caller for no benefit.
+ *
+ * Rule of thumb: attach memory to agents that hold a *conversation*, not to
+ * agents that perform a *transformation*.
  */
 export const summaryAgent = new Agent({
   id: AGENT_ID,

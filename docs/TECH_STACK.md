@@ -15,9 +15,10 @@
 | Runtime                | Node.js               | 24            | `.nvmrc` pin                                                                                                                                                                                                              |
 | Container base         | node:24-alpine        | —             | agents + web multi-stage image base                                                                                                                                                                                       |
 | Language               | TypeScript            | ^5.9.3        | Strict mode                                                                                                                                                                                                               |
-| Agents                 | Mastra                | ^1.18         | `apps/agents/` — agent framework, `mastra dev`                                                                                                                                                                            |
+| Agents                 | Mastra                | ^1.23         | `apps/agents/` — agent framework, `mastra dev`                                                                                                                                                                            |
 | LLM access             | Mastra model gateway  | —             | `provider/model` string; no separate AI SDK                                                                                                                                                                               |
-| Agent store            | @mastra/libsql        | ^1.15         | Agent memory/threads (SQLite/libsql)                                                                                                                                                                                      |
+| Agent store            | @mastra/pg            | ^1.19         | Agent memory/threads/working memory, in Postgres (schema `MASTRA_DB_SCHEMA`)                                                                                                                                              |
+| Agent memory           | @mastra/memory        | ^1.26         | `Memory` on conversational agents — see `apps/agents/src/mastra/lib/memory.ts`                                                                                                                                            |
 | Web                    | Next.js (App Router)  | ^16           | `apps/web/`                                                                                                                                                                                                               |
 | UI runtime             | React                 | ^19           | Web app                                                                                                                                                                                                                   |
 | Design system          | Astryx                | ^0.1          | `@astryxdesign/core` — components + base tokens (see templates/DESIGN_SYSTEM.md)                                                                                                                                          |
@@ -26,8 +27,8 @@
 | Validation             | zod                   | ^3            | All external boundaries                                                                                                                                                                                                   |
 | Logging                | pino                  | ^9            | Agents: @mastra/loggers PinoLogger. Web: own pino logger (`apps/web/app/lib/logger.ts`). Both keyed off `LOG_LEVEL`                                                                                                       |
 | Log pretty-print (dev) | pino-pretty           | ^13           | Web dev-only; colorized terminal output (prod = JSON)                                                                                                                                                                     |
-| Database               | PostgreSQL or SQLite  | 17 / —        | Either via one `DATABASE_URL` — Postgres **remote/managed** (Neon, Supabase, RDS), or a local SQLite file; engine identified from the URL scheme by `getDatabaseKind()` (`packages/shared/src/database.ts`) — see ADR-001 |
-| Vector                 | pgvector / sqlite-vec | ^0.8 / latest | Optional, not yet implemented — see §9 RAG stack                                                                                                                                                                          |
+| Database               | PostgreSQL            | 17            | **Always Postgres**, via one `DATABASE_URL`; **remote/managed** (Neon, Supabase, RDS), never in Compose. Validated at boot by `isPostgresUrl()` (`packages/shared/src/database.ts`) — see ADR-002                          |
+| Vector                 | pgvector              | ^0.8          | Optional, not yet implemented — see §9 RAG stack                                                                                                                                                                          |
 | Identity               | Keycloak / OIDC       | latest        | **Docker Compose (dev)** or remote — `KEYCLOAK_TOKEN_ISSUER_URI`                                                                                                                                                          |
 | Cache                  | Redis                 | 7             | **Remote/managed** (Upstash, Redis Cloud) — `REDIS_URL`                                                                                                                                                                   |
 | Linting                | ESLint                | ^10           | Flat config                                                                                                                                                                                                               |
@@ -51,8 +52,9 @@ lives in `src/mastra/` (`index.ts` instance, `agents/`, `tools/`). ESM, no decor
 
 | Dependency                | Version | Purpose                                           |
 | ------------------------- | ------- | ------------------------------------------------- |
-| @mastra/core              | ^1.49   | Agent, tools, Mastra instance                     |
-| @mastra/libsql            | ^1.15   | Durable agent memory/thread store (SQLite)        |
+| @mastra/core              | ^1.57   | Agent, tools, Mastra instance                     |
+| @mastra/pg                | ^1.19   | Durable Mastra store (Postgres)                   |
+| @mastra/memory            | ^1.26   | Conversation + working memory for agents          |
 | @mastra/loggers           | ^1.2    | PinoLogger for structured logs                    |
 | @a2a-js/sdk               | ^0.3    | Official A2A types (agent card `securitySchemes`) |
 | @ai-sdk/openai-compatible | ^3.0    | AgentBase LLM gateway client (see below)          |
@@ -147,7 +149,7 @@ point `KEYCLOAK_TOKEN_ISSUER_URI` at a managed Keycloak instead.
 
 - **agents** / **web** images build from the repo root on **`node:24-alpine` for BOTH the builder and the runtime stage** (multi-stage: pnpm workspace install + build → self-contained runtime bundle — `.mastra/output` for agents, Next `.next/standalone` for web). One Node major across build and run — matching `.nvmrc`, so no builder/runtime version skew — on a base small enough to rebuild on every `pnpm poc`. `apps/web/test/docker-build.spec.ts` pins every `FROM` to that tag and checks `.nvmrc` agrees.
 - Inter-service URLs use Docker DNS names, never `localhost`: `web` reaches the API via `MASTRA_INTERNAL_URL=http://agents:45000`. Remote infra is reached over the public network via its `.env` URL.
-- `agents` persists agent memory to the `agents-data` volume (`MASTRA_DB_URL=file:/data/mastra.db`), which Compose resolves to `<project>_agents-data`. Volumes are declared **bare** (no project-name prefix) because Compose prefixes them with the project itself — declaring `precast-agents-data` would produce the stuttering `precast_precast-agents-data`. The project prefix is what isolates volumes between repos, so bare names stay collision-free.
+- `agents` has **no volume** — it persists agent memory to the managed Postgres from `.env` (ADR-002), so the container is stateless and safe to recreate. Compose deliberately sets no `MASTRA_DB_URL`/`DATABASE_URL` under `environment:`, because keys listed there override `env_file` and would shadow the real connection string. The remaining volume (`keycloak-data`) is declared **bare** (no project-name prefix) because Compose prefixes it with the project itself — declaring `precast-keycloak-data` would produce the stuttering `precast_precast-keycloak-data`. The project prefix is what isolates volumes between repos, so bare names stay collision-free.
 - Both load the root `.env` (`env_file` optional) — that is where the remote infra URLs come from; the compose `environment:` block overrides only network-specific app values.
 - **Each service declares `profiles: ['<own name>']`.** `COMPOSE_PROFILES` in the root `.env` (Compose's own variable) selects which build/run — default `agents,web,keycloak`. This lets you build only a subset once the pieces are deployed separately (e.g. agents hosted by an AgentBase import; only `web`+`keycloak` need to run here). `web`'s `depends_on.agents` is `required: false` so excluding `agents` doesn't fail Compose validation.
 - **Compose does NOT read the repo-root `.env` by default** when invoked with `-f docker/docker-compose.yml` from the repo root (it looks in the compose file's own directory unless told otherwise) — so every `pnpm docker:*` script routes through `scripts/docker-compose.mjs`, which passes `--env-file .env` (failing fast with a clear message if `.env` is missing). Without this, `AGENTS_HOST_PORT`/`WEB_HOST_PORT`/`KEYCLOAK_HOST_PORT`/`COMPOSE_PROFILES`/`KEYCLOAK_ADMIN` all silently fall back to their YAML defaults.
@@ -228,13 +230,12 @@ decision made once, not re-litigated per project:
 | ----------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Embedding generation    | Transformers.js (`@huggingface/transformers`) | Runs locally in Node — no external API key required; keeps the RAG floor at zero extra vendor keys, matching the `capability-modules` philosophy                                                    |
 | Embedding model         | `Xenova/all-MiniLM-L6-v2`                     | 384-dim, small and fast; a reasonable general-purpose default                                                                                                                                       |
-| Vector store (Postgres) | `pgvector`                                    | When `getDatabaseKind(DATABASE_URL)` is `'postgres'` — embeds alongside the project's own data                                                                                                      |
-| Vector store (SQLite)   | `sqlite-vec`                                  | When `getDatabaseKind(DATABASE_URL)` is `'sqlite'` (a local file), or alongside Mastra's own local libsql agent store (`MASTRA_DB_URL`) if the project has no `DATABASE_URL`-backed data of its own |
+| Vector store            | `pgvector`                                    | Embeds alongside the project's own data in the same Postgres. Single answer since ADR-002 made Precast Postgres-only — there is no per-engine branch                                                |
 
-> Pick the vector store by `DATABASE_URL`'s detected engine — don't stand up a
-> second, RAG-only database when the project's own store already fits. Neither
-> embedding generation nor the vector store requires a new provider key: this
-> capability's floor is the LLM key Precast already requires.
+> Put the vectors in the project's own Postgres — don't stand up a second,
+> RAG-only database when the store you already have fits. Neither embedding
+> generation nor the vector store requires a new provider key: this capability's
+> floor is the LLM key Precast already requires.
 
 ---
 

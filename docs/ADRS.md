@@ -26,7 +26,7 @@
 ## ADR-001: `DATABASE_URL` supports Postgres or SQLite, detected from the URL scheme
 
 **Date:** 2026-07-28
-**Status:** Accepted
+**Status:** ~~Accepted~~ **Superseded by [ADR-002](#adr-002-precast-is-postgres-only)** (2026-08-07)
 
 **Context:** Precast originally required `DATABASE_URL` to be a remote/managed
 Postgres connection string — Postgres was deliberately never run locally (see
@@ -76,3 +76,68 @@ alternative to provisioning a managed Postgres, not a local Postgres instance.
   trusting `.href`. Documented in `database.ts`'s own comment.
 - Neutral: Redis is unaffected — `REDIS_URL` stays remote/managed-only, no
   equivalent local-file alternative was requested or added.
+
+---
+
+## ADR-002: Precast is Postgres-only
+
+**Date:** 2026-08-07
+**Status:** Accepted (supersedes ADR-001)
+
+**Context:** ADR-001 let `DATABASE_URL` be either a managed Postgres URL or a
+local SQLite file, with `getDatabaseKind()` branching on the scheme. The
+reasoning was that a prototype shouldn't need to provision Postgres before it
+can persist anything. In practice that optionality cost more than it saved:
+
+- **Provisioning Postgres is already a bootstrap precondition.** It's asked for
+  up front, so the SQLite path optimized away a step nobody was actually
+  skipping — while still having to be supported, documented, and tested.
+- **The two engines aren't interchangeable at the layer that matters.** Every
+  persistence-touching thing a project adds — an ORM, migrations, a vector
+  store — has to branch on `getDatabaseKind()`. ADR-001 itself listed this as a
+  cost; the vector-store table in TECH_STACK.md had already grown one row per
+  engine.
+- **The default failed in the worst direction.** `MASTRA_DB_URL` defaulted to
+  `file:./mastra.db`, and `docker-compose.yml` hardcoded
+  `MASTRA_DB_URL: file:/data/mastra.db` in `environment:` — which *overrides*
+  `env_file`. Agent memory therefore went to a container-local SQLite file even
+  for a project that had correctly configured Postgres, and vanished on the
+  next `pnpm poc agents` rebuild. A silent downgrade to a throwaway file is a
+  worse failure than refusing to boot.
+
+**Decision:** `DATABASE_URL` is **always Postgres** (`postgres://` or
+`postgresql://`). SQLite, libsql, and file URLs are rejected by the env schema
+at boot. `getDatabaseKind()` is replaced by `isPostgresUrl()` /
+`assertPostgresUrl()` in `packages/shared/src/database.ts` — validation, not
+engine detection, because there is no longer anything to detect.
+
+Mastra's own store moves from `@mastra/libsql` to `@mastra/pg`.
+`MASTRA_DB_URL` becomes an **optional** Postgres URL that falls back to
+`DATABASE_URL` (`resolveMastraDbUrl()`), so a project still needs exactly one
+provisioned Postgres to boot; Mastra's tables are namespaced into their own
+schema (`MASTRA_DB_SCHEMA`, default `mastra`) so they can safely share it.
+
+Unchanged from ADR-001: Postgres is still **never run in Docker Compose**
+(CLAUDE.md §4.5). "Always Postgres" is a statement about the engine, not about
+where it runs — point `DATABASE_URL` at a managed instance.
+
+**Consequences:**
+
+- +: One engine to support. No `getDatabaseKind()` branch in any ORM,
+  migration, or vector-store wiring a project adds later.
+- +: Agent memory is durable by default. The `agents` container is now
+  stateless (its `agents-data` volume is gone), so rebuilds no longer discard
+  conversation history.
+- +: A misconfigured `DATABASE_URL` fails loudly at boot with a message naming
+  the offending scheme, instead of silently writing to a local file.
+- +: `pgvector` becomes the single vector-store answer, replacing the
+  per-engine `pgvector`/`sqlite-vec` split.
+- -: No zero-provisioning path. A throwaway prototype must still point at a
+  Postgres instance — mitigated by free managed tiers (Neon, Supabase), but it
+  is a real step that ADR-001 removed and this restores.
+- -: Requires `@mastra/core >= 1.53` (the oldest `@mastra/pg` peer range), so
+  this decision carried a Mastra family bump from 1.49 → 1.57 with it.
+- -: Existing projects on a SQLite `DATABASE_URL` will fail env validation
+  after upgrading. That is intentional and the error explains the fix; the
+  migration is recorded in [MIGRATIONS.md](MIGRATIONS.md).
+- Neutral: Redis is unaffected — `REDIS_URL` stays remote/managed-only.

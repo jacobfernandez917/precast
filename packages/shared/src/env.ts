@@ -1,18 +1,42 @@
 import { z } from 'zod';
+import { isPostgresUrl } from './database.js';
+
+/** Shared `.refine()` for any var that must be a Postgres connection URL. */
+const postgresUrl = (varName: string) =>
+  z.string().refine(isPostgresUrl, {
+    message:
+      `${varName} must be a Postgres URL (postgres:// or postgresql://). ` +
+      `Precast is Postgres-only — SQLite and libsql are not supported (see ADR-002).`,
+  });
 
 /**
  * Shared environment schema.
  *
  * This is the canonical env validation for projects using this boilerplate.
  * Extend this schema with project-specific variables.
+ *
+ * Kept a plain `ZodObject` (no top-level `.transform()`) so downstream projects
+ * can still call `EnvSchema.extend({...})`. Cross-field defaulting therefore
+ * lives in helpers below (see {@link resolveMastraDbUrl}) rather than in the
+ * schema itself.
  */
 export const EnvSchema = z.object({
   // ── Mastra API (agents + Studio) ───────────────────────────────────────────
   MASTRA_PORT: z.coerce.number().default(45000),
   MASTRA_HOST: z.string().default('0.0.0.0'),
-  // Agent memory/thread store. Local SQLite file by default; use a libsql/Turso
-  // URL (libsql://...) or swap for @mastra/pg in production.
-  MASTRA_DB_URL: z.string().default('file:./mastra.db'),
+  // Agent memory/thread store (Mastra's own threads, messages, working memory).
+  // Postgres, like everything else — see ADR-002.
+  //
+  // OPTIONAL, and that is deliberate: when unset it falls back to DATABASE_URL
+  // (via resolveMastraDbUrl), so a project needs exactly ONE provisioned
+  // Postgres to boot. Set it explicitly only when you want agent memory on a
+  // separate instance or schema from your application data — a reasonable
+  // choice, since the two have very different growth and retention profiles.
+  MASTRA_DB_URL: postgresUrl('MASTRA_DB_URL').optional(),
+  // Postgres schema that Mastra creates its own tables in. Namespacing them
+  // keeps agent-memory tables from colliding with the project's own when
+  // MASTRA_DB_URL and DATABASE_URL point at the same database (the default).
+  MASTRA_DB_SCHEMA: z.string().default('mastra'),
 
   // ── Web ──────────────────────────────────────────────────────────────────
   WEB_PORT: z.coerce.number().default(45001),
@@ -47,15 +71,14 @@ export const EnvSchema = z.object({
   DEFAULT_LLM_MODEL: z.string().optional(),
 
   // ── Database ───────────────────────────────────────────────────────────────
-  // One var, either engine — no separate "which engine" var, and no privileged
-  // default. Point this at a managed Postgres (Neon, Supabase, RDS, …) via
-  // postgres://... / postgresql://..., or a local SQLite file via
-  // file:./app.db (or sqlite:./app.db). getDatabaseKind() (database.ts)
-  // identifies which one from the URL's own scheme. Required; no default, so
-  // it fails fast if unset. Precast still doesn't run Postgres *locally* —
-  // that stays remote/managed; local SQLite is the lightweight alternative to
-  // provisioning one, not a local Postgres.
-  DATABASE_URL: z.string().url(),
+  // Postgres, always — see ADR-002. A provisioned Postgres is a precondition of
+  // bootstrapping a Precast project, so there is no SQLite path and no
+  // local-file fallback to branch on. Required with no default: it fails fast
+  // if unset.
+  //
+  // Precast still does not run Postgres in Compose (CLAUDE.md §4.5) — point
+  // this at a managed instance (Neon, Supabase, RDS, Railway, …).
+  DATABASE_URL: postgresUrl('DATABASE_URL'),
 
   // ── Redis (remote / managed) ───────────────────────────────────────────────
   // Point at a managed Redis (Upstash, Redis Cloud, …). The localhost default is
@@ -159,4 +182,16 @@ export function parseDefaultEnv(): Env {
  */
 export function parseApiEnv(): Env {
   return parseEnv(EnvSchema);
+}
+
+/**
+ * The Postgres URL Mastra's own store (threads, messages, working memory)
+ * should use: `MASTRA_DB_URL` when set, otherwise `DATABASE_URL`.
+ *
+ * Falling back keeps the bootstrap requirement at exactly one provisioned
+ * Postgres. Both are validated as Postgres by the schema, so the result is
+ * always a Postgres URL — the caller never has to re-check.
+ */
+export function resolveMastraDbUrl(env: Pick<Env, 'MASTRA_DB_URL' | 'DATABASE_URL'>): string {
+  return env.MASTRA_DB_URL ?? env.DATABASE_URL;
 }

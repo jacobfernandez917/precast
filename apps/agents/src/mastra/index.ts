@@ -1,7 +1,7 @@
 import { Mastra } from '@mastra/core/mastra';
-import { LibSQLStore } from '@mastra/libsql';
 import { PinoLogger } from '@mastra/loggers';
 import { parseApiEnv } from '@precast/shared';
+import { getPrecastStore } from './lib/storage';
 import { agentAuthMiddleware } from './middleware/auth';
 import { exampleAgent } from './agents/example-agent';
 import { summaryAgent } from './agents/summary-agent';
@@ -59,12 +59,10 @@ const LOG_LEVEL_MAP = {
  */
 export const mastra = new Mastra({
   agents: { exampleAgent, summaryAgent },
-  // Durable store for agent memory/threads. Defaults to a local SQLite file;
-  // point MASTRA_DB_URL at libsql/Turso (or swap for @mastra/pg) in production.
-  storage: new LibSQLStore({
-    id: 'precast-store',
-    url: env.MASTRA_DB_URL,
-  }),
+  // Durable Postgres store for everything Mastra persists (threads, messages,
+  // working memory, workflow state). The same instance is handed to each
+  // agent's Memory so the process keeps one connection pool — see lib/storage.ts.
+  storage: getPrecastStore(),
   logger: new PinoLogger({
     name: 'precast-agents',
     level: LOG_LEVEL_MAP[env.LOG_LEVEL],

@@ -63,9 +63,30 @@ Agent: Sure — for when, how long, and how many people?
 
 ## 3. Memory & storage
 
-Agent memory/threads persist via the Mastra `storage` adapter (LibSQL by
-default; see `apps/agents/src/mastra/index.ts` and `MASTRA_DB_URL`). Not durable
-until a real store is configured for production.
+Agent memory persists to Postgres via `@mastra/pg` — durable out of the box (see
+`apps/agents/src/mastra/lib/storage.ts`, `MASTRA_DB_URL`, and ADR-002).
+
+Two scopes, and the distinction matters when specifying an agent:
+
+- **Thread** (`threadId`) — one conversation. Recent turns are replayed into
+  context (`lastMessages`).
+- **Resource** (`resourceId`) — one user, across all their conversations.
+  Working memory lives here: durable facts like a name, preferences, or
+  standing instructions.
+
+Both are derived server-side by the web app (`apps/web/app/lib/agent-context.ts`)
+and travel over A2A as `contextId` and `message.metadata.resourceId`. A call
+with no `contextId` is stateless regardless of configuration.
+
+Attach memory to agents that hold a **conversation**; leave it off agents that
+perform a **transformation** (a summarizer's output should depend only on its
+input). See `apps/agents/src/mastra/lib/memory.ts` for the shared config, and
+why `semanticRecall` is off by default.
+
+**State this agent's memory needs here:** which scope it uses, what belongs in
+working memory, and — importantly — what should *not* live in memory at all
+because it must stay correct (dates, statuses, ownership). Facts that change
+belong behind a tool that reads them from a table, not in recalled conversation.
 
 ## 4. Evaluation (todo)
 

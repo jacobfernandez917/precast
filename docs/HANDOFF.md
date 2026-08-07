@@ -16,8 +16,13 @@
 
 - The Mastra app (`apps/agents`) and Next app (`apps/web`) are intentionally **neutral placeholders**. Real agents/pages/schema come from the feed-forward docs in `templates/` + TECH_STACK.
 - Infra (Postgres/Redis/Keycloak) is **remote/managed** via the root `.env` — not run in Compose.
+- **Postgres-only** ([ADR-002](ADRS.md), supersedes ADR-001): `DATABASE_URL` rejects SQLite/libsql at boot. A provisioned managed Postgres is a bootstrap precondition — the stack will not start without one.
+- **Agent memory is wired and durable.** `example-agent` carries a `Memory` backed by Postgres (`@mastra/pg`); `summary-agent` deliberately has none (transformation, not conversation). The web app derives `resourceId` (httpOnly cookie) and a resource-namespaced `threadId` **server-side** in `apps/web/app/lib/agent-context.ts` and never accepts either from the request body — Mastra otherwise defaults `resourceId` to the agent id, which would put every user in one shared memory bucket.
 
-_Known carry-forwards:_ none.
+_Known carry-forwards:_
+
+- Memory has **not been exercised against a live Postgres** — the baseline is verified by typecheck, 163 unit tests, `mastra build`, and runtime env-validation checks only. First run against a real `DATABASE_URL` should confirm Mastra creates its tables in the `mastra` schema and that a second turn recalls the first.
+- The `resourceId` cookie is **anonymous, not authentication**. Keycloak ships for dev but no OIDC is wired into `apps/web`; swap `resolveResourceId()` for the verified token's `sub` when it is.
 
 ---
 
@@ -27,7 +32,7 @@ No scheduled next task — Precast is a runnable baseline. To start a real proje
 
 1. `pnpm install && pnpm bootstrap` (or `pnpm bootstrap my-project`).
 2. **Write the feed-forward docs first:** copy the relevant `templates/*.md` into `docs/`, replace the example content with your product.
-3. Fill in `docs/PROGRESS.md` §1 (name + mission) and the README title; set **one** LLM provider key in `.env` — Anthropic, OpenAI, Google, xAI, Mistral, DeepSeek, Groq, Cerebras, Perplexity, OpenRouter, or Vercel AI Gateway (the agents auto-detect which; see `apps/agents/src/mastra/lib/default-model.ts`), point `REDIS_URL` / `KEYCLOAK_TOKEN_ISSUER_URI` at your remote/managed services, and set `DATABASE_URL` to either a managed Postgres URL or a local SQLite file (see [.env.example](../.env.example)).
+3. Fill in `docs/PROGRESS.md` §1 (name + mission) and the README title; set **one** LLM provider key in `.env` — Anthropic, OpenAI, Google, xAI, Mistral, DeepSeek, Groq, Cerebras, Perplexity, OpenRouter, or Vercel AI Gateway (the agents auto-detect which; see `apps/agents/src/mastra/lib/default-model.ts`), point `REDIS_URL` / `KEYCLOAK_TOKEN_ISSUER_URI` at your remote/managed services, and set `DATABASE_URL` to a **managed Postgres** URL — Postgres-only since [ADR-002](ADRS.md), and the stack will not boot without it (see [.env.example](../.env.example)).
 4. Build your agents/tools under `apps/agents/src/mastra/` and pages under `apps/web/app/`; extend the env schema in `packages/shared/src/env.ts`.
 
 ---
@@ -91,21 +96,24 @@ docs/INTEGRATION_AGENTBASE.md ← AgentBase integration guide (reference)
 docs/AGENT_SPINUP_PROMPTS.md ← prompts for building agents on Precast (template)
 docs/plans/                 ← LIVE plans directory (create as needed)
 docs/archive/               ← FROZEN, do-not-parse
-apps/agents/src/mastra/index.ts   ← Mastra instance (agents, storage, logger, server:4111)
+apps/agents/src/mastra/index.ts   ← Mastra instance (agents, storage, logger, server:45000)
 apps/agents/src/mastra/agents/    ← example-agent.ts + summary-agent.ts (neutral placeholders; each auto-serves its own A2A card)
 apps/agents/src/mastra/lib/agentbase-model.ts ← resolveAgentModel() — org-admin-configured LLM per imported agent, else the agent's own fallback string
+apps/agents/src/mastra/lib/storage.ts ← getPrecastStore() — the single shared PostgresStore (one connection pool)
+apps/agents/src/mastra/lib/memory.ts  ← createAgentMemory() — Memory config + why semanticRecall is off
 apps/agents/src/mastra/tools/     ← example-tool.ts (+ .spec.ts) — neutral placeholder
 apps/agents/Dockerfile            ← multi-stage build of the Mastra .mastra/output bundle
 apps/web/app/                ← layout.tsx, providers.tsx, page.tsx, AgentChat.tsx, globals.css
-apps/web/app/lib/a2a-client.ts ← server-only callAgent() (A2A; per-agent AGENTBASE_AGENT_URL_<ID>)
+apps/web/app/lib/a2a-client.ts ← server-only callAgent() (A2A; sends contextId + metadata.resourceId)
+apps/web/app/lib/agent-context.ts ← resolveAgentContext() — server-derived resourceId/threadId (multi-tenancy boundary)
 apps/web/app/lib/agentbase-auth.ts ← mints/caches the AgentBase Application's OAuth2 client_credentials JWT
 apps/web/app/api/            ← route handlers: health/route.ts, a2a/[agentId]/route.ts
-apps/web/test/               ← Vitest specs (env schema + fitness guards: a2a-only, docker-build)
+apps/web/test/               ← Vitest specs (env schema + fitness guards: a2a-only, docker-build, agent-context)
 apps/web/e2e/                ← Playwright UI specs (home.spec.ts)
 apps/web/Dockerfile          ← multi-stage build of the Next standalone server
-packages/shared/src/         ← env parser (zod, ESM) + shared types
+packages/shared/src/         ← env parser (zod, ESM) + Postgres-only DATABASE_URL validation + shared types
 templates/                   ← feed-forward planning docs (PRD, DATA_MODEL, AGENT_SPEC, DESIGN_SYSTEM)
-docker/                      ← Docker Compose (agents + web + Keycloak; Postgres/Redis remote via .env; COMPOSE_PROFILES selects services)
+docker/                      ← Docker Compose (agents + web + Keycloak; Postgres/Redis remote via .env; COMPOSE_PROFILES selects services). `agents` is stateless — no volume
 scripts/bootstrap.mjs        ← new-project bootstrap (rename + set-ports + deps + reset docs + blank git)
 scripts/set-ports.mjs        ← retarget Mastra/Next dev ports across env/configs/scripts/compose/docs
 scripts/rename-project.mjs   ← one-shot placeholder rename (walks all source)
