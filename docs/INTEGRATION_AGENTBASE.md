@@ -2,7 +2,7 @@
 
 > **What this is.** A verified integration note describing how an agent built on the **Precast** boilerplate (Mastra API app) is registered and invoked on **AgentBase**. The compatibility claims here were confirmed by booting the Precast `example-agent`, fetching its live A2A card, and running that card through AgentBase's actual registration validator.
 
-**Last Updated:** 2026-07-22
+**Last Updated:** 2026-08-04
 **Status:** Verified against Precast `apps/agents` (Mastra `@mastra/core@1.49`) and AgentBase `apps/api` (A2A registry + **SRCIMP repo import**). AgentBase can now **import this repo directly** — clone → build the Dockerfile → host the container → register the agent(s) — in addition to the original register-an-endpoint flow.
 
 ---
@@ -11,10 +11,10 @@
 
 - **Yes — a Precast Mastra agent runs on AgentBase with no code changes.** There are now **two** ways in, both zero-code:
   - **Path A — Import from repo (recommended).** AgentBase clones this repo, builds `apps/agents/Dockerfile`, **hosts** the container, mints the inbound bearer, and registers the agent(s) it serves. The repo ships an **`agentbase.import.json`** manifest (see §4A / §5b) that makes it import-ready; a manifest-less repo still works via Precast-convention fallback.
-  - **Path B — Register an endpoint (manual).** You deploy the Mastra app yourself and `POST /agents` to AgentBase with the card URL. This is the original flow; still valid (see §4C).
+  - **Path B — Connect an external agent (manual).** You deploy the Mastra app yourself and use Studio's **Connect Agent** flow with the card URL. The underlying registration API remains available to Studio (see §4C).
 - The two systems speak the **same protocol family**: **A2A 0.3.x, JSON-RPC 2.0 over HTTP**. Mastra ships it natively (`@a2a-js/sdk@0.3.13`); AgentBase's registry is built around it.
 - AgentBase already carries a **Mastra-shaped compatibility shim** in its card validator — it explicitly names A2A 0.3.0 (Mastra's dialect) as the case it normalizes.
-- For Path A the connection is a **UI flow** (import from repo); for Path B it's **operational** (deploy reachably, `POST /agents`, approve skills). Either way, **no Precast code changes**.
+- Both paths are Studio flows: **Import from Repo** for Path A and **Connect Agent** for Path B. Either way, **no Precast code changes**.
 
 ---
 
@@ -51,7 +51,7 @@ Common to both:
 
 - **Invoke at runtime:** `POST /a2a` — AgentBase validates the caller, resolves the target agent + skill, injects the agent's declared credential, **strips the inbound caller auth (zero-trust)**, forwards to the agent's service endpoint, streams the response back, and writes an audit record.
 - Registration/sync is gated by the A2A card schema `a2aAgentCardSchema` (in `@agentbase/mcp`), with a normalizer in `apps/api/src/sync/a2a/agentCard.validator.ts`.
-- **Import pipeline** (IMPORTED): `apps/api/src/source-imports/` — a VCS-provider abstraction (GitHub App + generic HTTPS git) acquires the source; the composed deployer builds + hosts it; skills land `DRAFT` for governance, same as Path B.
+- **Import pipeline** (IMPORTED): `apps/api/src/source-imports/` — a VCS-provider abstraction (GitHub App + generic HTTPS git) acquires the source; the composed deployer builds + hosts it; synchronized skills are `APPROVED` by default while preserving any existing status on later sync.
 
 ---
 
@@ -65,7 +65,7 @@ Common to both:
         │ GET /api/.well-known/      │◀──────────────┤    ├─ validateAgentCard()            │
         │   :id/agent-card.json      │               │    │    └─ normalize A2A 0.3.0 shim   │
         │                            │               │    ├─ derive serviceEndpointUrl      │
-        │ POST /api/a2a/:id          │◀──────────────┤    └─ materialize skills (DRAFT)     │
+        │ POST /api/a2a/:id          │◀──────────────┤    └─ materialize skills (APPROVED)  │
         │   (JSON-RPC 2.0)           │  proxied call │                                      │
         └───────────────────────────┘  POST /a2a ──▶│  inject cred · strip inbound · audit │
                                                      └────────────────────────────────────┘
@@ -99,7 +99,7 @@ No deploy, no `POST /agents`, no reachable URL to stand up — AgentBase does it
    - **GitHub:** add a GitHub App connection from the UI via GitHub's App Manifest flow — on your **personal account** or an **organization** (you own the App; multiple connections supported) — install it on the repo, then pick the repo.
    - **Any git URL:** paste the HTTPS clone URL; for a private repo attach a **VCS Deploy Token** credential.
    - Attach **Variables namespaces** (see §4B), choose an **environment** (Development / Staging / Production or a custom one, from the attached namespaces; default Production), and set a branch/tag.
-3. AgentBase reads **`agentbase.import.json`** (§5b), clones the repo, builds `apps/agents/Dockerfile` (repo root as build context), **hosts** the container, injects the chosen environment's values, mints a random inbound bearer into `AGENT_API_TOKEN`, and registers each Mastra agent the container serves. Skills land **`DRAFT`** (approve them, §4C step 4).
+3. AgentBase reads **`agentbase.import.json`** (§5b), clones the repo, builds `apps/agents/Dockerfile` (repo root as build context), **hosts** the container, injects the chosen environment's values, mints a random inbound bearer into `AGENT_API_TOKEN`, and registers each Mastra agent the container serves. Newly discovered skills are **`APPROVED`** by default; review them before publishing.
 4. **Updates are org-initiated** — new commits are *not* auto-deployed. On the imported agent's edit page, **Pull latest & redeploy** re-clones the ref, rebuilds, redeploys, and rotates the inbound token; **Redeploy in environment** switches which environment's values back the live agent. (Webhook auto-deploy is deliberately out of scope for now.)
 
 The repo needs no changes to be import-ready — Precast ships the manifest and a Dockerfile that already match the contract.
@@ -114,7 +114,7 @@ Imported agents get their env from AgentBase **Variables** (Studio → **Variabl
 
 An import runs in a **chosen environment** and gets only that environment's values; the agent's active environment (the one backing the live/registry agent) is set at import and switchable with **Redeploy in environment**. Values are encrypted at rest and injected at **build** (`--build-arg`) and/or **runtime** (container env) per each var's scope. Reserved names AgentBase controls — `AGENT_API_TOKEN`, `PORT`, `MASTRA_PORT`, `MASTRA_HOST` — are rejected. You can bulk-load a namespace's environment by pasting or uploading a **`.env`** file in the Variables editor. This is the AgentBase-side home for what your local `.env` holds — keep committing `.env.example` (documentation), never real `.env` values.
 
-### 4C. Register an endpoint (manual — you host, AgentBase proxies)
+### 4C. Connect an external agent (manual — you host, AgentBase proxies)
 
 #### Step 1 — Deploy the Mastra app reachably
 
@@ -122,7 +122,7 @@ The card's `url` must be reachable by AgentBase's proxy. For real cross-service 
 
 #### Step 2 — Register the agent
 
-`POST /agents` to AgentBase with **either** the card URL **or** an inline card:
+In Studio, open **Agents → Connect Agent** and provide the Agent Card URL. Inline card JSON is available as a fallback. Studio submits the equivalent registration payload:
 
 ```jsonc
 // URL-first (recommended)
@@ -140,9 +140,9 @@ Required: `name`, `version`, and **one of** `agentCardUrl` / `agentCard`. `servi
 
 On create, AgentBase's sync service fetches the card, runs `validateAgentCard` (with the 0.3.0 normalizer), stores the derived `serviceEndpointUrl`, and materializes the agent's **skills**.
 
-#### Step 4 — Approve skills
+#### Step 4 — Review skills
 
-Synced skills land as **`DRAFT`**. Only **`APPROVED`** skills are invocable through the proxy — move them via AgentBase's governance flow.
+Newly synchronized skills land as **`APPROVED`**. Review the imported surface and suspend or change the status of any skill that should not be invocable. Later synchronization preserves existing status and deprecates skills that disappear from the Agent Card.
 
 #### Step 5 — Invoke via the proxy
 
@@ -230,7 +230,7 @@ discovery). Shipping the manifest just makes the contract explicit.
 
 - **Path A hosts; Path B you host.** Under import (Path A) AgentBase builds + runs the container and reachability is its problem. Under Path B the card's `url` must be reachable by AgentBase (production wants TLS); the boilerplate serves plain `http://0.0.0.0:45000`.
 - **Skills are only as good as your tools.** Mastra maps each tool → one A2A skill. Define meaningful tools; the placeholder exposes only `exampleTool`.
-- **Skills start `DRAFT`** (both paths). Governance requires promoting to `APPROVED` before proxy invocation — a process step, not a compatibility gap.
+- **New skills start `APPROVED`** on both paths. Governance still requires reviewing the synchronized surface before publication; later sync preserves existing status and deprecates missing skills.
 - **Updates are org-initiated** (Path A). New commits are not auto-deployed; use **Pull latest & redeploy** on the imported agent's edit page. Webhook auto-deploy is out of scope for now.
 - **Auth.** Precast ships auth-off locally; on import AgentBase mints + injects `AGENT_API_TOKEN` for you. For Path B, register with the matching `declaredAuthScheme` + a `credentialRef`. AgentBase supports `Bearer`, `ApiKey`, `Basic`, `None`, `OAuth2ClientCredentials`; plain `OAuth2` and `mTLS` currently return `501` in the proxy.
 
