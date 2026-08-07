@@ -15,6 +15,7 @@ test-results
 *.db-wal
 .env
 .env.local
+.env.prod
 *.log
 .DS_Store
 .pnpm-store/
