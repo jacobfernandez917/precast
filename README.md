@@ -122,6 +122,8 @@ Any **A2A client can also invoke the agents directly** (JSON-RPC 2.0) at `POST /
 
 **Which LLM an imported agent uses is also org-admin-configurable.** _Locally_ (and in Standalone/External mode) an agent auto-detects its model from whichever provider key is set in `.env` — see `resolveDefaultModel()` above; no single provider is hardcoded. _On AgentBase_ the model is instead set per agent from the org's onboarded models, via Studio's "LLM configuration" card — and an agent with no model set fails loudly rather than reading an env key. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel()` implements this split. See [docs/INTEGRATION_AGENTBASE.md §7.9](docs/INTEGRATION_AGENTBASE.md#79-org-admin-llm-configuration-for-imported-agents).
 
+**Orchestrator crew.** Declare your agents in `apps/agents/src/mastra/crew.ts` (the single source of truth) via `defineCrew({ members: [...] })`. With two or more members you automatically get a `crew-orchestrator` — a single point of contact that routes to the right specialist **in-process** (Mastra Agent Network); each member still serves its own A2A card and is independently invocable, and a single-member project pays no orchestrator hop. On import, `agentbase.import.json`'s `orchestration` block (emitted by `pnpm emit:import-manifest`) lets AgentBase offer **full crew** (register every agent) or **orchestrator only** (register just the front door; members stay internal). See [docs/plans/orchestrator-crew-plan.md](docs/plans/orchestrator-crew-plan.md).
+
 To move ports at any time, run `pnpm set-ports --mastra=45000 --web=45001 --keycloak=45002` (any flag optional), or `pnpm set-ports --auto` to have a fresh free consecutive block picked for you — either way it rewrites `.env`, `.env.example`, config, pnpm scripts, Docker, and the port-stating docs in one pass.
 
 To publish the Docker containers on **different host ports** (without changing the app/container ports), set `AGENTS_HOST_PORT` / `WEB_HOST_PORT` / `KEYCLOAK_HOST_PORT` in the root `.env` — e.g. `AGENTS_HOST_PORT=60000`, `WEB_HOST_PORT=60001`, `KEYCLOAK_HOST_PORT=60002` map host `60000`→`agents`, `60001`→`web`, `60002`→`keycloak`. They default to the app port (Keycloak's container port is always `8080`), and only affect `pnpm docker:up`.
@@ -190,19 +192,19 @@ If you are an agent picking up this repo, read in this exact order **before touc
 
 ## Documentation map
 
-| File                                       | Purpose                                 | Updated when                     |
-| ------------------------------------------ | --------------------------------------- | -------------------------------- |
-| [CLAUDE.md](CLAUDE.md)                     | Project brief + non-negotiable rules    | On structural changes            |
-| [docs/HANDOFF.md](docs/HANDOFF.md)         | Single-page continuity checkpoint       | Every task closure               |
-| [docs/PROGRESS.md](docs/PROGRESS.md)       | Long-form context memory + task tracker | Every meaningful change          |
-| [docs/TECH_STACK.md](docs/TECH_STACK.md)   | Pinned versions + tech inventory        | Every tech-stack change          |
-| [docs/SPEC.md](docs/SPEC.md)               | Canonical structure & conventions       | When structure changes           |
-| [docs/ADRS.md](docs/ADRS.md)               | Architectural decision records          | When a decision is made          |
-| [docs/STYLE_GUIDE.md](docs/STYLE_GUIDE.md) | Code style + naming                     | When conventions change          |
-| [docs/SCRIPTS.md](docs/SCRIPTS.md)         | Operator cheatsheet for `pnpm` scripts  | When scripts change              |
-| [docs/TEST_CASES.md](docs/TEST_CASES.md)   | Test catalog with traceability          | Every new build (tests + status) |
-| [docs/MIGRATIONS.md](docs/MIGRATIONS.md)   | Precast release ledger + upgrade steps  | Every Precast release            |
-| [docs/DESIGN_SYSTEM_APC.md](docs/DESIGN_SYSTEM_APC.md) | APC themes, tokens, re-import       | When the design source changes    |
+| File                                                   | Purpose                                 | Updated when                     |
+| ------------------------------------------------------ | --------------------------------------- | -------------------------------- |
+| [CLAUDE.md](CLAUDE.md)                                 | Project brief + non-negotiable rules    | On structural changes            |
+| [docs/HANDOFF.md](docs/HANDOFF.md)                     | Single-page continuity checkpoint       | Every task closure               |
+| [docs/PROGRESS.md](docs/PROGRESS.md)                   | Long-form context memory + task tracker | Every meaningful change          |
+| [docs/TECH_STACK.md](docs/TECH_STACK.md)               | Pinned versions + tech inventory        | Every tech-stack change          |
+| [docs/SPEC.md](docs/SPEC.md)                           | Canonical structure & conventions       | When structure changes           |
+| [docs/ADRS.md](docs/ADRS.md)                           | Architectural decision records          | When a decision is made          |
+| [docs/STYLE_GUIDE.md](docs/STYLE_GUIDE.md)             | Code style + naming                     | When conventions change          |
+| [docs/SCRIPTS.md](docs/SCRIPTS.md)                     | Operator cheatsheet for `pnpm` scripts  | When scripts change              |
+| [docs/TEST_CASES.md](docs/TEST_CASES.md)               | Test catalog with traceability          | Every new build (tests + status) |
+| [docs/MIGRATIONS.md](docs/MIGRATIONS.md)               | Precast release ledger + upgrade steps  | Every Precast release            |
+| [docs/DESIGN_SYSTEM_APC.md](docs/DESIGN_SYSTEM_APC.md) | APC themes, tokens, re-import           | When the design source changes   |
 
 ---
 

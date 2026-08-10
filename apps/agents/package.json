@@ -22,6 +22,11 @@
     "@mastra/loggers": "^1.2.0",
     "@mastra/memory": "^1.26.0",
     "@mastra/pg": "^1.19.0",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.221.0",
+    "@opentelemetry/instrumentation-http": "^0.221.0",
+    "@opentelemetry/instrumentation-undici": "^0.31.0",
+    "@opentelemetry/sdk-node": "^0.221.0",
     "@precast/shared": "workspace:*",
     "zod": "^3.24.0"
   },

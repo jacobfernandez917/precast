@@ -1,10 +1,13 @@
+// R2 — start OpenTelemetry FIRST, before @mastra/core (and the http it pulls in)
+// is imported, so trace context propagates across the crew's in-process hops and
+// onto egress back to AgentBase. See telemetry/otel.ts.
+import './telemetry/otel';
 import { Mastra } from '@mastra/core/mastra';
 import { PinoLogger } from '@mastra/loggers';
 import { parseApiEnv } from '@precast/shared';
 import { getPrecastStore } from './lib/storage';
 import { agentAuthMiddleware } from './middleware/auth';
-import { exampleAgent } from './agents/example-agent';
-import { summaryAgent } from './agents/summary-agent';
+import { crew, crewAgents } from './crew';
 import { isLlmProviderConfigured } from './lib/default-model';
 
 // Validate env at boot — fail fast on missing/invalid config. The single root
@@ -47,18 +50,21 @@ const LOG_LEVEL_MAP = {
  * agents reach external MCPs/APIs as *tools* (e.g. via `@mastra/mcp`), and
  * Mastra already exposes each agent over A2A. Web/BFF routes live in `apps/web`.
  *
- * `exampleAgent` and `summaryAgent` are neutral placeholders that prove the
- * wiring is multi-agent: each key in `agents` gets its own A2A card at
- * `/api/.well-known/:id/agent-card.json` automatically. Register your project's
- * real agents here, designed from the feed-forward docs (templates/) and
- * TECH_STACK — not from the placeholders.
+ * The registered agents come from `crew.ts` — the single source of truth for
+ * the roster and its orchestrator front door. `crewAgents(crew)` returns the
+ * orchestrator (`crew-orchestrator`, active at 2+ members) plus every member,
+ * de-duplicated; each gets its own A2A card at
+ * `/api/.well-known/:id/agent-card.json` automatically, so members stay
+ * standalone even when fronted by the orchestrator. Add/replace your project's
+ * real agents in `crew.ts`, designed from the feed-forward docs (templates/)
+ * and TECH_STACK — not from the placeholders.
  *
  * Auth: When `AGENT_API_TOKEN` is set, all agent API routes (`/api/a2a/*`,
  * `/agents/*`) are protected by a static bearer token. AgentBase injects this
  * token when proxying requests. Off when unset (local dev).
  */
 export const mastra = new Mastra({
-  agents: { exampleAgent, summaryAgent },
+  agents: crewAgents(crew),
   // Durable Postgres store for everything Mastra persists (threads, messages,
   // working memory, workflow state). The same instance is handed to each
   // agent's Memory so the process keeps one connection pool — see lib/storage.ts.
