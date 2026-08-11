@@ -122,9 +122,9 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
-## v0.3.0 — Postgres-only, and durable agent memory  (2026-08-07)
+## v0.3.0 — Postgres-only, durable agent memory, and the orchestrator crew  (2026-08-11)
 
-**What changed.** Two linked changes.
+**What changed.** Three changes, released together.
 
 **Postgres-only ([ADR-002](ADRS.md), supersedes ADR-001).** `DATABASE_URL` no longer accepts
 SQLite. `getDatabaseKind()` is gone, replaced by `isPostgresUrl()` / `assertPostgresUrl()` —
@@ -141,7 +141,8 @@ derives both ids server-side (`apps/web/app/lib/agent-context.ts`) and never acc
 the request body.
 
 **Handled by `pnpm precast:update`.** `docker/docker-compose.yml` (removes the SQLite override
-and the now-unused `agents-data` volume), `CLAUDE.md` §4.5, `templates/AGENT_SPEC.md`.
+and the now-unused `agents-data` volume), `CLAUDE.md` §4.5, `templates/AGENT_SPEC.md`, and
+`scripts/emit-import-manifest.mjs` (now emits the `orchestration` block).
 
 **Manual steps.**
 
@@ -168,15 +169,45 @@ and the now-unused `agents-data` volume), `CLAUDE.md` §4.5, `templates/AGENT_SP
 7. **Return `conversationId`** from the route handler and have the UI send it back on the next
    turn, or every turn starts a new thread.
 
+**The orchestrator crew.** `apps/agents/src/mastra/crew.ts` is now the single source of truth
+for a project's agent roster. `defineCrew()` scaffolds an in-process `crew-orchestrator` that
+**activates at 2+ members and collapses to the sole member at N=1**, so a single-agent project
+pays no routing hop. Every member keeps its own A2A card and stays independently invocable.
+`emit:import-manifest` derives an `orchestration` block into `agentbase.import.json`, so the
+import contract cannot drift from the wiring, and `telemetry/otel.ts` continues AgentBase's
+inbound `traceparent` across the in-process hops.
+
+**Manual steps — the crew** (continuing the numbering above):
+
+8. **Copy the crew files** into `apps/agents/src/mastra/`: `crew.ts`, `lib/crew.ts`,
+   `agents/orchestrator.ts`, and `telemetry/otel.ts`.
+9. **Register from the crew.** In `mastra/index.ts`, replace the literal
+   `agents: { myAgent, … }` with `agents: crewAgents(crew)`, and declare your real agents as
+   `members` in `crew.ts` instead. `crew-orchestrator` is a **reserved id** — a member may not
+   use it, and a member may not itself be an orchestrator (one flat layer, by design).
+10. **Import telemetry FIRST.** `import './telemetry/otel';` must be the very first line of
+    `mastra/index.ts`, above `@mastra/core`. The ordering is load-bearing: OpenTelemetry has to
+    patch `http` before Mastra pulls it in, or trace context silently stops propagating. Set
+    `OTEL_EXPORTER_OTLP_ENDPOINT` to export spans; unset, it stays inert.
+11. **Regenerate the import manifest:** `pnpm emit:import-manifest`. This writes the
+    `orchestration` block (`orchestrator`, `defaultImport`). Don't hand-edit it — a guard test
+    checks it matches `ORCHESTRATOR_ID`. Choose `defaultImport`: `orchestrator-only` registers
+    just the front door and keeps members internal; `full-crew` registers every agent.
+
 **Advisory files touched.** `package.json` (the Mastra bumps above); `.env.example`
 (`MASTRA_DB_URL` becomes an optional Postgres URL, new `MASTRA_DB_SCHEMA=mastra`);
 `packages/shared/src/{env,database}.ts` (Postgres-only validation, `resolveMastraDbUrl()`);
-the fitness specs `apps/web/test/{a2a-client,agent-context}.spec.ts`.
+the fitness specs `apps/web/test/{a2a-client,agent-context}.spec.ts` and
+`apps/agents/src/mastra/orchestration-manifest.spec.ts`; `agentbase.import.json` (gains the
+`orchestration` block — regenerate rather than copy).
 
 **Verify.** `pnpm verify:poc`, then `pnpm test`. Then `pnpm poc` and, in the chat demo, tell the
 agent your name, send a second message asking for it back, and confirm it answers — that proves
 `contextId` is threading. Press **Start over** and ask again: it should still know your name,
 because that fact lives in resource-scoped working memory rather than the thread.
+
+For the crew: `GET /api/agents` should list `crew-orchestrator` alongside your members once you
+have two or more. With exactly one member it is correctly **absent** — dormant, not broken.
 
 ---
 
