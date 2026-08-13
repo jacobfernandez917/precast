@@ -130,9 +130,18 @@ export const EnvSchema = z.object({
   //     _MODEL_<AGENT_ID> — one set per Mastra agent id (mirrors
   //     AGENTBASE_AGENT_URL_<AGENT_ID> above), read directly from process.env by
   //     apps/agents/src/mastra/lib/agentbase-model.ts, not enumerated here.
+  //   AGENTBASE_MCP_BASE_URL — the MCP proxy root, injected UNCONDITIONALLY on a
+  //     hosted container (unlike the LLM vars, which appear only for a
+  //     configured agent). The agent calls `{base}/subscriptions` to discover
+  //     which MCP servers it may use, then `{base}/:org/:slug/mcp` to call them,
+  //     authenticating with the SAME per-agent Application credentials above —
+  //     the MCP proxy and the LLM gateway share one guard. See
+  //     apps/agents/src/mastra/lib/agentbase-mcp.ts. An empty subscription list
+  //     is a real answer, which is why the var is always present.
   AGENTBASE_HOSTED: z.enum(['0', '1']).optional(),
   AGENTBASE_LLM_BASE_URL: z.string().url().optional(),
   AGENTBASE_LLM_TOKEN_URL: z.string().url().optional(),
+  AGENTBASE_MCP_BASE_URL: z.string().url().optional(),
 
   // ── Mastra API auth ────────────────────────────────────────────────────────
   // Static bearer token required for all inbound agent API requests (A2A and

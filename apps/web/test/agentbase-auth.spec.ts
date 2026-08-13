@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getAgentBaseAccessToken, resetAgentBaseTokenCacheForTests } from '../app/lib/agentbase-auth';
+import {
+  getAgentBaseAccessToken,
+  resetAgentBaseTokenCacheForTests,
+} from '../app/lib/agentbase-auth';
 
 const ENV_KEYS = ['AGENTBASE_TOKEN_URL', 'AGENTBASE_CLIENT_ID', 'AGENTBASE_CLIENT_SECRET'] as const;
 const originalEnv: Record<string, string | undefined> = {};
@@ -19,7 +22,8 @@ afterEach(() => {
 });
 
 function setConfig() {
-  process.env.AGENTBASE_TOKEN_URL = 'https://keycloak.example.com/realms/agentbase/protocol/openid-connect/token';
+  process.env.AGENTBASE_TOKEN_URL =
+    'https://keycloak.example.com/realms/agentbase/protocol/openid-connect/token';
   process.env.AGENTBASE_CLIENT_ID = 'app-client-id';
   process.env.AGENTBASE_CLIENT_SECRET = 'app-client-secret';
 }
@@ -35,16 +39,23 @@ describe('getAgentBaseAccessToken', () => {
     const result = await getAgentBaseAccessToken();
 
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/AGENTBASE_TOKEN_URL|AGENTBASE_CLIENT_ID|AGENTBASE_CLIENT_SECRET/);
+    if (!result.ok)
+      expect(result.error).toMatch(
+        /AGENTBASE_TOKEN_URL|AGENTBASE_CLIENT_ID|AGENTBASE_CLIENT_SECRET/,
+      );
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('mints via the standard OAuth2 client_credentials grant and returns the token', async () => {
     setConfig();
-    const fetchSpy = vi.fn(async () =>
-      new Response(JSON.stringify({ access_token: 'jwt-1', expires_in: 1800, token_type: 'Bearer' }), {
-        status: 200,
-      }),
+    const fetchSpy = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ access_token: 'jwt-1', expires_in: 1800, token_type: 'Bearer' }),
+          {
+            status: 200,
+          },
+        ),
     );
     vi.stubGlobal('fetch', fetchSpy);
 
@@ -62,8 +73,9 @@ describe('getAgentBaseAccessToken', () => {
 
   it('caches the token and does not re-mint before expiry', async () => {
     setConfig();
-    const fetchSpy = vi.fn(async () =>
-      new Response(JSON.stringify({ access_token: 'jwt-1', expires_in: 1800 }), { status: 200 }),
+    const fetchSpy = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ access_token: 'jwt-1', expires_in: 1800 }), { status: 200 }),
     );
     vi.stubGlobal('fetch', fetchSpy);
 
@@ -80,7 +92,9 @@ describe('getAgentBaseAccessToken', () => {
     let call = 0;
     const fetchSpy = vi.fn(async () => {
       call += 1;
-      return new Response(JSON.stringify({ access_token: `jwt-${call}`, expires_in: 60 }), { status: 200 });
+      return new Response(JSON.stringify({ access_token: `jwt-${call}`, expires_in: 60 }), {
+        status: 200,
+      });
     });
     vi.stubGlobal('fetch', fetchSpy);
 

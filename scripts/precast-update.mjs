@@ -41,7 +41,15 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync, cpSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+  rmSync,
+  cpSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -238,7 +246,9 @@ function report(plan, { from, to, apply, force }) {
   if (!apply) {
     console.log(
       `\nThis was a check — nothing was written.` +
-        (writable.length ? `\n   Take the ${writable.length} safe change(s):  pnpm precast:update --apply` : ''),
+        (writable.length
+          ? `\n   Take the ${writable.length} safe change(s):  pnpm precast:update --apply`
+          : ''),
     );
   }
   if (blocked.length && !force) {
@@ -288,17 +298,21 @@ async function main() {
   const from = flag('from');
   if (!repo && !from) die('No Precast repository known — pass --repo=<url> or --from=<path>.');
 
-  const ref = flag('ref') ?? (from ? 'local' : latestTag(repo) ?? manifest?.branch ?? 'develop');
-  const projectName = lock?.projectName ?? JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf-8')).name;
+  const ref = flag('ref') ?? (from ? 'local' : (latestTag(repo) ?? manifest?.branch ?? 'develop'));
+  const projectName =
+    lock?.projectName ?? JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf-8')).name;
   if (!projectName || projectName === 'precast') {
-    die('Could not determine this project\'s name — is this Precast itself rather than a derived project?');
+    die(
+      "Could not determine this project's name — is this Precast itself rather than a derived project?",
+    );
   }
 
   const tmp = mkdtempSync(join(tmpdir(), 'precast-upstream-'));
   try {
     const commit = fetchUpstream({ repo, ref, from: typeof from === 'string' ? from : null, tmp });
     const upstreamManifest = readManifest(tmp);
-    if (!upstreamManifest) die('The fetched Precast has no precast.manifest.json — too old to sync from.');
+    if (!upstreamManifest)
+      die('The fetched Precast has no precast.manifest.json — too old to sync from.');
 
     transformUpstream(tmp, projectName, readPorts(rootDir));
 
@@ -364,11 +378,15 @@ async function main() {
       ...(pending.length ? { pendingReview: pending } : {}),
     });
 
-    console.log(`\n✅ Wrote ${written} file(s); ${LOCK_FILE} now records Precast ${upstreamManifest.version}.`);
+    console.log(
+      `\n✅ Wrote ${written} file(s); ${LOCK_FILE} now records Precast ${upstreamManifest.version}.`,
+    );
     if (pending.length) {
       console.log(`   Still needing review (baseline left at the old version): ${pending.length}`);
     }
-    console.log('   Review with `git diff`, then run `pnpm install` if scripts or configs changed.');
+    console.log(
+      '   Review with `git diff`, then run `pnpm install` if scripts or configs changed.',
+    );
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { SUPPORTED_LLM_ENV_VARS, isLlmProviderConfigured, resolveDefaultModel } from './default-model';
+import {
+  SUPPORTED_LLM_ENV_VARS,
+  isLlmProviderConfigured,
+  resolveDefaultModel,
+} from './default-model';
 
 /**
  * Every env var the module can read — the canonical ones plus the non-canonical
@@ -88,7 +92,10 @@ describe('resolveDefaultModel', () => {
     await expect(
       result.doGenerate({ prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }] }),
     ).rejects.toThrow(
-      new RegExp(SUPPORTED_LLM_ENV_VARS.map((v) => `(?=.*${v})`).join('') + '.*DEFAULT_LLM_MODEL', 's'),
+      new RegExp(
+        SUPPORTED_LLM_ENV_VARS.map((v) => `(?=.*${v})`).join('') + '.*DEFAULT_LLM_MODEL',
+        's',
+      ),
     );
   });
 });

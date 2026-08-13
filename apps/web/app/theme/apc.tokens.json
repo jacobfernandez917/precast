@@ -13,49 +13,49 @@
       "300": { "$type": "color", "$value": "#B4B6BB" },
       "200": { "$type": "color", "$value": "#DADBDD" },
       "100": { "$type": "color", "$value": "#ECEDEE" },
-      "50":  { "$type": "color", "$value": "#F5F6F6" },
-      "25":  { "$type": "color", "$value": "#FCFCFC" },
-      "10":  { "$type": "color", "$value": "#FFFFFF" }
+      "50": { "$type": "color", "$value": "#F5F6F6" },
+      "25": { "$type": "color", "$value": "#FCFCFC" },
+      "10": { "$type": "color", "$value": "#FFFFFF" }
     },
     "validation": {
       "$description": "Shared status ramps, used by Stockholm, Prague, Nova Scotia, and Melbourne. Arctic Night overrides these — see arctic.validation.",
       "lime": {
         "200": { "$type": "color", "$value": "#2B893C" },
         "100": { "$type": "color", "$value": "#43D75E" },
-        "50":  { "$type": "color", "$value": "#8CEC7F" },
-        "10":  { "$type": "color", "$value": "#CDFFC7" }
+        "50": { "$type": "color", "$value": "#8CEC7F" },
+        "10": { "$type": "color", "$value": "#CDFFC7" }
       },
       "bright-rose": {
         "200": { "$type": "color", "$value": "#9A001C" },
         "100": { "$type": "color", "$value": "#EC183F" },
-        "50":  { "$type": "color", "$value": "#FF738D" },
-        "10":  { "$type": "color", "$value": "#FFDFE5" }
+        "50": { "$type": "color", "$value": "#FF738D" },
+        "10": { "$type": "color", "$value": "#FFDFE5" }
       },
       "daisy": {
         "200": { "$type": "color", "$value": "#A76F00" },
         "100": { "$type": "color", "$value": "#FF9900" },
-        "50":  { "$type": "color", "$value": "#FFD28A" },
-        "10":  { "$type": "color", "$value": "#FFF0C6" }
+        "50": { "$type": "color", "$value": "#FFD28A" },
+        "10": { "$type": "color", "$value": "#FFF0C6" }
       }
     },
     "space": {
-      "4":   { "$type": "dimension", "$value": "4px" },
-      "8":   { "$type": "dimension", "$value": "8px" },
-      "16":  { "$type": "dimension", "$value": "16px" },
-      "24":  { "$type": "dimension", "$value": "24px" },
-      "32":  { "$type": "dimension", "$value": "32px" },
-      "40":  { "$type": "dimension", "$value": "40px" },
-      "48":  { "$type": "dimension", "$value": "48px" },
-      "64":  { "$type": "dimension", "$value": "64px" },
-      "80":  { "$type": "dimension", "$value": "80px" },
-      "96":  { "$type": "dimension", "$value": "96px" },
+      "4": { "$type": "dimension", "$value": "4px" },
+      "8": { "$type": "dimension", "$value": "8px" },
+      "16": { "$type": "dimension", "$value": "16px" },
+      "24": { "$type": "dimension", "$value": "24px" },
+      "32": { "$type": "dimension", "$value": "32px" },
+      "40": { "$type": "dimension", "$value": "40px" },
+      "48": { "$type": "dimension", "$value": "48px" },
+      "64": { "$type": "dimension", "$value": "64px" },
+      "80": { "$type": "dimension", "$value": "80px" },
+      "96": { "$type": "dimension", "$value": "96px" },
       "128": { "$type": "dimension", "$value": "128px" },
       "160": { "$type": "dimension", "$value": "160px" }
     },
     "radius": {
-      "4":  { "$type": "dimension", "$value": "4px" },
-      "6":  { "$type": "dimension", "$value": "6px" },
-      "8":  { "$type": "dimension", "$value": "8px" },
+      "4": { "$type": "dimension", "$value": "4px" },
+      "6": { "$type": "dimension", "$value": "6px" },
+      "8": { "$type": "dimension", "$value": "8px" },
       "10": { "$type": "dimension", "$value": "10px" },
       "12": { "$type": "dimension", "$value": "12px" },
       "16": { "$type": "dimension", "$value": "16px" },
@@ -63,7 +63,11 @@
       "full": { "$type": "dimension", "$value": "9999px" }
     },
     "size": {
-      "lg": { "$type": "dimension", "$value": "54px", "$description": "Sanctioned off-grid exception." },
+      "lg": {
+        "$type": "dimension",
+        "$value": "54px",
+        "$description": "Sanctioned off-grid exception."
+      },
       "md": { "$type": "dimension", "$value": "40px" },
       "sm": { "$type": "dimension", "$value": "24px" },
       "row": { "$type": "dimension", "$value": "56px" },
@@ -74,216 +78,1012 @@
       "icon-sm": { "$type": "dimension", "$value": "14px" }
     },
     "grid": {
-      "wide":    { "columns": { "$type": "number", "$value": 12 }, "margin": { "$type": "dimension", "$value": "56px" }, "gutter": { "$type": "dimension", "$value": "24px" }, "max": { "$type": "dimension", "$value": "1440px" } },
-      "desktop": { "columns": { "$type": "number", "$value": 12 }, "margin": { "$type": "dimension", "$value": "32px" }, "gutter": { "$type": "dimension", "$value": "24px" } },
-      "tablet":  { "columns": { "$type": "number", "$value": 8 },  "margin": { "$type": "dimension", "$value": "24px" }, "gutter": { "$type": "dimension", "$value": "24px" } },
-      "mobile":  { "columns": { "$type": "number", "$value": 4 },  "margin": { "$type": "dimension", "$value": "16px" }, "gutter": { "$type": "dimension", "$value": "24px" } }
+      "wide": {
+        "columns": { "$type": "number", "$value": 12 },
+        "margin": { "$type": "dimension", "$value": "56px" },
+        "gutter": { "$type": "dimension", "$value": "24px" },
+        "max": { "$type": "dimension", "$value": "1440px" }
+      },
+      "desktop": {
+        "columns": { "$type": "number", "$value": 12 },
+        "margin": { "$type": "dimension", "$value": "32px" },
+        "gutter": { "$type": "dimension", "$value": "24px" }
+      },
+      "tablet": {
+        "columns": { "$type": "number", "$value": 8 },
+        "margin": { "$type": "dimension", "$value": "24px" },
+        "gutter": { "$type": "dimension", "$value": "24px" }
+      },
+      "mobile": {
+        "columns": { "$type": "number", "$value": 4 },
+        "margin": { "$type": "dimension", "$value": "16px" },
+        "gutter": { "$type": "dimension", "$value": "24px" }
+      }
     },
     "duration": {
-      "fast":    { "$type": "duration", "$value": "120ms" },
+      "fast": { "$type": "duration", "$value": "120ms" },
       "default": { "$type": "duration", "$value": "140ms" },
-      "slow":    { "$type": "duration", "$value": "160ms" },
-      "tooltip-in":  { "$type": "duration", "$value": "300ms" },
+      "slow": { "$type": "duration", "$value": "160ms" },
+      "tooltip-in": { "$type": "duration", "$value": "300ms" },
       "tooltip-out": { "$type": "duration", "$value": "100ms" }
     }
   },
 
   "stockholm": {
     "$description": "APC Stockholm Primitives — brand family + type. Uses core.validation.",
-    "neptune":        { "$type": "color", "$value": "#103F58" },
-    "neptune-hover":  { "$type": "color", "$value": "#0B2D40" },
+    "neptune": { "$type": "color", "$value": "#103F58" },
+    "neptune-hover": { "$type": "color", "$value": "#0B2D40" },
     "neptune-active": { "$type": "color", "$value": "#071F2C" },
-    "lime":           { "$type": "color", "$value": "#D4F553" },
-    "lime-hover":     { "$type": "color", "$value": "#C7EB3C" },
-    "lime-active":    { "$type": "color", "$value": "#B6DA2A" },
-    "spritz":         { "$type": "color", "$value": "#B8CEE1" },
-    "spritz-hover":   { "$type": "color", "$value": "#A6C1DA" },
-    "spritz-active":  { "$type": "color", "$value": "#93B4D1" },
-    "spritz-10":      { "$type": "color", "$value": "#EDF3F8" },
-    "spritz-20":      { "$type": "color", "$value": "#DDE8F1" },
-    "fog":            { "$type": "color", "$value": "#BEB9C2" },
-    "sand":           { "$type": "color", "$value": "#EDEAE1" },
+    "lime": { "$type": "color", "$value": "#D4F553" },
+    "lime-hover": { "$type": "color", "$value": "#C7EB3C" },
+    "lime-active": { "$type": "color", "$value": "#B6DA2A" },
+    "spritz": { "$type": "color", "$value": "#B8CEE1" },
+    "spritz-hover": { "$type": "color", "$value": "#A6C1DA" },
+    "spritz-active": { "$type": "color", "$value": "#93B4D1" },
+    "spritz-10": { "$type": "color", "$value": "#EDF3F8" },
+    "spritz-20": { "$type": "color", "$value": "#DDE8F1" },
+    "fog": { "$type": "color", "$value": "#BEB9C2" },
+    "sand": { "$type": "color", "$value": "#EDEAE1" },
     "font": {
       "heading": { "$type": "fontFamily", "$value": "Plus Jakarta Sans" },
-      "body":    { "$type": "fontFamily", "$value": "Plus Jakarta Sans" },
-      "mono":    { "$type": "fontFamily", "$value": "Fira Code" }
+      "body": { "$type": "fontFamily", "$value": "Plus Jakarta Sans" },
+      "mono": { "$type": "fontFamily", "$value": "Fira Code" }
     }
   },
 
   "prague": {
     "$description": "APC Prague Primitives. Uses core.validation.",
-    "nightfall":        { "$type": "color", "$value": "#0A0E45" },
-    "nightfall-hover":  { "$type": "color", "$value": "#060A33" },
+    "nightfall": { "$type": "color", "$value": "#0A0E45" },
+    "nightfall-hover": { "$type": "color", "$value": "#060A33" },
     "nightfall-active": { "$type": "color", "$value": "#04061F" },
-    "glow":             { "$type": "color", "$value": "#F88514" },
-    "glow-hover":       { "$type": "color", "$value": "#E07208" },
-    "glow-active":      { "$type": "color", "$value": "#C86206" },
-    "dusk":             { "$type": "color", "$value": "#949FF0" },
-    "stone":            { "$type": "color", "$value": "#99B3C4" },
-    "stone-hover":      { "$type": "color", "$value": "#88A5B9" },
-    "stone-active":     { "$type": "color", "$value": "#7797AE" },
-    "concrete":         { "$type": "color", "$value": "#B6B7A4" },
-    "sunday-paper":     { "$type": "color", "$value": "#EDECE9" },
-    "light-glow":       { "$type": "color", "$value": "#FFC097" },
-    "warm-grey":        { "$type": "color", "$value": "#F5F1EB" },
+    "glow": { "$type": "color", "$value": "#F88514" },
+    "glow-hover": { "$type": "color", "$value": "#E07208" },
+    "glow-active": { "$type": "color", "$value": "#C86206" },
+    "dusk": { "$type": "color", "$value": "#949FF0" },
+    "stone": { "$type": "color", "$value": "#99B3C4" },
+    "stone-hover": { "$type": "color", "$value": "#88A5B9" },
+    "stone-active": { "$type": "color", "$value": "#7797AE" },
+    "concrete": { "$type": "color", "$value": "#B6B7A4" },
+    "sunday-paper": { "$type": "color", "$value": "#EDECE9" },
+    "light-glow": { "$type": "color", "$value": "#FFC097" },
+    "warm-grey": { "$type": "color", "$value": "#F5F1EB" },
     "font": {
       "heading": { "$type": "fontFamily", "$value": "Space Grotesk" },
-      "body":    { "$type": "fontFamily", "$value": "Space Grotesk" },
-      "mono":    { "$type": "fontFamily", "$value": "Cascadia Code" }
+      "body": { "$type": "fontFamily", "$value": "Space Grotesk" },
+      "mono": { "$type": "fontFamily", "$value": "Cascadia Code" }
     }
   },
 
   "arctic": {
     "$description": "APC Arctic Night Primitives. The only theme that overrides the status ramps — bind Semantic state/* to arctic.validation in the Arctic modes.",
-    "cast":          { "$type": "color", "$value": "#192D75" },
-    "cast-hover":    { "$type": "color", "$value": "#14235C" },
-    "cast-active":   { "$type": "color", "$value": "#0E1943" },
-    "glacier":       { "$type": "color", "$value": "#87D9D0" },
+    "cast": { "$type": "color", "$value": "#192D75" },
+    "cast-hover": { "$type": "color", "$value": "#14235C" },
+    "cast-active": { "$type": "color", "$value": "#0E1943" },
+    "glacier": { "$type": "color", "$value": "#87D9D0" },
     "glacier-hover": { "$type": "color", "$value": "#72C9C0" },
-    "glacier-active":{ "$type": "color", "$value": "#5DB6AD" },
-    "slumber":       { "$type": "color", "$value": "#7D549C" },
-    "fur":           { "$type": "color", "$value": "#E2E8E0" },
-    "fur-hover":     { "$type": "color", "$value": "#D3DBD0" },
-    "fur-active":    { "$type": "color", "$value": "#C3CDBF" },
-    "fur-10":        { "$type": "color", "$value": "#F1F4F0" },
-    "fur-20":        { "$type": "color", "$value": "#DCE3DA" },
+    "glacier-active": { "$type": "color", "$value": "#5DB6AD" },
+    "slumber": { "$type": "color", "$value": "#7D549C" },
+    "fur": { "$type": "color", "$value": "#E2E8E0" },
+    "fur-hover": { "$type": "color", "$value": "#D3DBD0" },
+    "fur-active": { "$type": "color", "$value": "#C3CDBF" },
+    "fur-10": { "$type": "color", "$value": "#F1F4F0" },
+    "fur-20": { "$type": "color", "$value": "#DCE3DA" },
     "validation": {
       "seafoam": {
         "200": { "$type": "color", "$value": "#0BAB7B" },
         "100": { "$type": "color", "$value": "#12DFA2" },
-        "50":  { "$type": "color", "$value": "#7ACDB4" },
-        "10":  { "$type": "color", "$value": "#C3F0E3" }
+        "50": { "$type": "color", "$value": "#7ACDB4" },
+        "10": { "$type": "color", "$value": "#C3F0E3" }
       },
       "marmalade": {
         "200": { "$type": "color", "$value": "#962500" },
         "100": { "$type": "color", "$value": "#EC4D18" },
-        "50":  { "$type": "color", "$value": "#FF8056" },
-        "10":  { "$type": "color", "$value": "#FFCDBC" }
+        "50": { "$type": "color", "$value": "#FF8056" },
+        "10": { "$type": "color", "$value": "#FFCDBC" }
       },
       "honey-bee": {
         "200": { "$type": "color", "$value": "#CF7200" },
         "100": { "$type": "color", "$value": "#FFBE34" },
-        "50":  { "$type": "color", "$value": "#FFDF9A" },
-        "10":  { "$type": "color", "$value": "#FFF1D4" }
+        "50": { "$type": "color", "$value": "#FFDF9A" },
+        "10": { "$type": "color", "$value": "#FFF1D4" }
       }
     },
     "font": {
       "heading": { "$type": "fontFamily", "$value": "Instrument Serif" },
-      "body":    { "$type": "fontFamily", "$value": "Instrument Sans" },
-      "mono":    { "$type": "fontFamily", "$value": "Fira Code" }
+      "body": { "$type": "fontFamily", "$value": "Instrument Sans" },
+      "mono": { "$type": "fontFamily", "$value": "Fira Code" }
     }
   },
 
   "nova": {
     "$description": "APC Nova Scotia Primitives — a twin of Stockholm. Same type pairing, uses core.validation. Focus moves off the secondary onto Lupin.",
-    "midnight-sea":        { "$type": "color", "$value": "#014751" },
-    "midnight-sea-hover":  { "$type": "color", "$value": "#013A42" },
+    "midnight-sea": { "$type": "color", "$value": "#014751" },
+    "midnight-sea-hover": { "$type": "color", "$value": "#013A42" },
     "midnight-sea-active": { "$type": "color", "$value": "#012C33" },
-    "spring-green":        { "$type": "color", "$value": "#08F08D" },
-    "spring-green-hover":  { "$type": "color", "$value": "#06D77D" },
+    "spring-green": { "$type": "color", "$value": "#08F08D" },
+    "spring-green-hover": { "$type": "color", "$value": "#06D77D" },
     "spring-green-active": { "$type": "color", "$value": "#05BB6C" },
-    "lupin":               { "$type": "color", "$value": "#9740FF", "$description": "Focus ring only in product UI." },
-    "lavender":            { "$type": "color", "$value": "#C8BDF4" },
-    "lavender-hover":      { "$type": "color", "$value": "#B7A9F0" },
-    "lavender-active":     { "$type": "color", "$value": "#A695EB" },
-    "lavender-10":         { "$type": "color", "$value": "#F1EEFC" },
-    "lavender-20":         { "$type": "color", "$value": "#E3DDF8" },
-    "lavender-grey":       { "$type": "color", "$value": "#A7A8BD" },
-    "gainsboro":           { "$type": "color", "$value": "#DBDBDB", "$description": "Brand surface grey. Within one step of core.neutral.200 — use Neutral 200 for borders so the two do not drift." },
-    "jellybean":           { "$type": "color", "$value": "#EAFFD8" },
-    "coal":                { "$type": "color", "$value": "#131B1A", "$description": "Brand black for marketing surfaces. Product UI keeps core.neutral.900." },
+    "lupin": {
+      "$type": "color",
+      "$value": "#9740FF",
+      "$description": "Focus ring only in product UI."
+    },
+    "lavender": { "$type": "color", "$value": "#C8BDF4" },
+    "lavender-hover": { "$type": "color", "$value": "#B7A9F0" },
+    "lavender-active": { "$type": "color", "$value": "#A695EB" },
+    "lavender-10": { "$type": "color", "$value": "#F1EEFC" },
+    "lavender-20": { "$type": "color", "$value": "#E3DDF8" },
+    "lavender-grey": { "$type": "color", "$value": "#A7A8BD" },
+    "gainsboro": {
+      "$type": "color",
+      "$value": "#DBDBDB",
+      "$description": "Brand surface grey. Within one step of core.neutral.200 — use Neutral 200 for borders so the two do not drift."
+    },
+    "jellybean": { "$type": "color", "$value": "#EAFFD8" },
+    "coal": {
+      "$type": "color",
+      "$value": "#131B1A",
+      "$description": "Brand black for marketing surfaces. Product UI keeps core.neutral.900."
+    },
     "font": {
       "heading": { "$type": "fontFamily", "$value": "Plus Jakarta Sans" },
-      "body":    { "$type": "fontFamily", "$value": "Plus Jakarta Sans" },
-      "mono":    { "$type": "fontFamily", "$value": "Fira Code" }
+      "body": { "$type": "fontFamily", "$value": "Plus Jakarta Sans" },
+      "mono": { "$type": "fontFamily", "$value": "Fira Code" }
     }
   },
 
   "melbourne": {
     "$description": "APC Melbourne Primitives. Shares Prague's type pairing and core.validation.",
-    "dark-blue":         { "$type": "color", "$value": "#000432" },
-    "dark-blue-hover":   { "$type": "color", "$value": "#000225" },
-    "dark-blue-active":  { "$type": "color", "$value": "#000118" },
-    "mustard":           { "$type": "color", "$value": "#ECC847" },
-    "mustard-hover":     { "$type": "color", "$value": "#DCB534" },
-    "mustard-active":    { "$type": "color", "$value": "#C49E24" },
-    "glass":             { "$type": "color", "$value": "#A2BDBD" },
-    "glass-10":          { "$type": "color", "$value": "#EDF2F2", "$description": "Derived — Melbourne's source has no light step." },
-    "glass-20":          { "$type": "color", "$value": "#DCE6E6", "$description": "Derived pressed tint." },
-    "sweater":           { "$type": "color", "$value": "#D9D5CF" },
-    "sweater-hover":     { "$type": "color", "$value": "#CAC5BD" },
-    "sweater-active":    { "$type": "color", "$value": "#BAB4AB" },
-    "prussian-blue":     { "$type": "color", "$value": "#004262", "$description": "Alternate inverse surface for marketing. Not bound in product UI." },
-    "cool-brown":        { "$type": "color", "$value": "#715263", "$description": "Decorative only." },
-    "warm-brown":        { "$type": "color", "$value": "#AD855D", "$description": "Decorative only — avatars, illustration, chart series." },
-    "warm-grey":         { "$type": "color", "$value": "#F5F1EB" },
+    "dark-blue": { "$type": "color", "$value": "#000432" },
+    "dark-blue-hover": { "$type": "color", "$value": "#000225" },
+    "dark-blue-active": { "$type": "color", "$value": "#000118" },
+    "mustard": { "$type": "color", "$value": "#ECC847" },
+    "mustard-hover": { "$type": "color", "$value": "#DCB534" },
+    "mustard-active": { "$type": "color", "$value": "#C49E24" },
+    "glass": { "$type": "color", "$value": "#A2BDBD" },
+    "glass-10": {
+      "$type": "color",
+      "$value": "#EDF2F2",
+      "$description": "Derived — Melbourne's source has no light step."
+    },
+    "glass-20": { "$type": "color", "$value": "#DCE6E6", "$description": "Derived pressed tint." },
+    "sweater": { "$type": "color", "$value": "#D9D5CF" },
+    "sweater-hover": { "$type": "color", "$value": "#CAC5BD" },
+    "sweater-active": { "$type": "color", "$value": "#BAB4AB" },
+    "prussian-blue": {
+      "$type": "color",
+      "$value": "#004262",
+      "$description": "Alternate inverse surface for marketing. Not bound in product UI."
+    },
+    "cool-brown": { "$type": "color", "$value": "#715263", "$description": "Decorative only." },
+    "warm-brown": {
+      "$type": "color",
+      "$value": "#AD855D",
+      "$description": "Decorative only — avatars, illustration, chart series."
+    },
+    "warm-grey": { "$type": "color", "$value": "#F5F1EB" },
     "font": {
       "heading": { "$type": "fontFamily", "$value": "Space Grotesk" },
-      "body":    { "$type": "fontFamily", "$value": "Space Grotesk" },
-      "mono":    { "$type": "fontFamily", "$value": "Cascadia Code" }
+      "body": { "$type": "fontFamily", "$value": "Space Grotesk" },
+      "mono": { "$type": "fontFamily", "$value": "Cascadia Code" }
     }
   },
 
   "semantic": {
     "$description": "APC Semantic — 10 modes. $value is Stockholm Light; $extensions.apc holds the other nine (sl-dark, pr-light, pr-dark, ar-light, ar-dark, nv-light, nv-dark, mb-light, mb-dark). Bind ALL components here.",
     "text": {
-      "primary":   { "$type": "color", "$value": "{core.neutral.900}", "$extensions": { "apc": { "sl-dark": "{core.neutral.10}", "pr-light": "{core.neutral.900}", "pr-dark": "{core.neutral.10}", "ar-light": "{core.neutral.900}", "ar-dark": "{core.neutral.10}", "nv-light": "{core.neutral.900}", "nv-dark": "{core.neutral.10}", "mb-light": "{core.neutral.900}", "mb-dark": "{core.neutral.10}" } } },
-      "secondary": { "$type": "color", "$value": "{core.neutral.600}", "$extensions": { "apc": { "sl-dark": "{core.neutral.200}", "pr-light": "{core.neutral.600}", "pr-dark": "{core.neutral.200}", "ar-light": "{core.neutral.600}", "ar-dark": "{core.neutral.200}", "nv-light": "{core.neutral.600}", "nv-dark": "{core.neutral.200}", "mb-light": "{core.neutral.600}", "mb-dark": "{core.neutral.200}" } } },
-      "muted":     { "$type": "color", "$value": "{core.neutral.400}", "$extensions": { "apc": { "sl-dark": "{core.neutral.400}", "pr-light": "{core.neutral.400}", "pr-dark": "{core.neutral.400}", "ar-light": "{core.neutral.400}", "ar-dark": "{core.neutral.400}", "nv-light": "{core.neutral.400}", "nv-dark": "{core.neutral.400}", "mb-light": "{core.neutral.400}", "mb-dark": "{core.neutral.400}" } } },
-      "disabled":  { "$type": "color", "$value": "{core.neutral.300}", "$extensions": { "apc": { "sl-dark": "{core.neutral.500}", "pr-light": "{core.neutral.300}", "pr-dark": "{core.neutral.500}", "ar-light": "{core.neutral.300}", "ar-dark": "{core.neutral.500}", "nv-light": "{core.neutral.300}", "nv-dark": "{core.neutral.500}", "mb-light": "{core.neutral.300}", "mb-dark": "{core.neutral.500}" } } },
-      "on-brand":  { "$type": "color", "$value": "{core.neutral.10}",  "$extensions": { "apc": { "sl-dark": "{core.neutral.10}", "pr-light": "{core.neutral.10}", "pr-dark": "{core.neutral.10}", "ar-light": "{core.neutral.10}", "ar-dark": "{core.neutral.10}", "nv-light": "{core.neutral.10}", "nv-dark": "{core.neutral.10}", "mb-light": "{core.neutral.10}", "mb-dark": "{core.neutral.10}" } } },
-      "on-accent": { "$type": "color", "$value": "{core.neutral.900}", "$extensions": { "apc": { "sl-dark": "{core.neutral.900}", "pr-light": "{core.neutral.900}", "pr-dark": "{core.neutral.900}", "ar-light": "{core.neutral.900}", "ar-dark": "{core.neutral.900}", "nv-light": "{core.neutral.900}", "nv-dark": "{core.neutral.900}", "mb-light": "{core.neutral.900}", "mb-dark": "{core.neutral.900}" } }, "$description": "Every theme's accent takes dark ink — Lime, Glow, and Glacier all fail AA with white." },
-      "link":      { "$type": "color", "$value": "{stockholm.neptune}", "$extensions": { "apc": { "sl-dark": "{stockholm.spritz}", "pr-light": "{prague.nightfall}", "pr-dark": "{prague.dusk}", "ar-light": "{arctic.cast}", "ar-dark": "{arctic.fur}", "nv-light": "{nova.midnight-sea}", "nv-dark": "{nova.lavender}", "mb-light": "{melbourne.dark-blue}", "mb-dark": "{melbourne.glass}" } } },
-      "code":      { "$type": "color", "$value": "{core.neutral.900}", "$extensions": { "apc": { "sl-dark": "{core.neutral.100}", "pr-light": "{core.neutral.900}", "pr-dark": "{core.neutral.100}", "ar-light": "{core.neutral.900}", "ar-dark": "{core.neutral.100}", "nv-light": "{core.neutral.900}", "nv-dark": "{core.neutral.100}", "mb-light": "{core.neutral.900}", "mb-dark": "{core.neutral.100}" } } }
+      "primary": {
+        "$type": "color",
+        "$value": "{core.neutral.900}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.10}",
+            "pr-light": "{core.neutral.900}",
+            "pr-dark": "{core.neutral.10}",
+            "ar-light": "{core.neutral.900}",
+            "ar-dark": "{core.neutral.10}",
+            "nv-light": "{core.neutral.900}",
+            "nv-dark": "{core.neutral.10}",
+            "mb-light": "{core.neutral.900}",
+            "mb-dark": "{core.neutral.10}"
+          }
+        }
+      },
+      "secondary": {
+        "$type": "color",
+        "$value": "{core.neutral.600}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.200}",
+            "pr-light": "{core.neutral.600}",
+            "pr-dark": "{core.neutral.200}",
+            "ar-light": "{core.neutral.600}",
+            "ar-dark": "{core.neutral.200}",
+            "nv-light": "{core.neutral.600}",
+            "nv-dark": "{core.neutral.200}",
+            "mb-light": "{core.neutral.600}",
+            "mb-dark": "{core.neutral.200}"
+          }
+        }
+      },
+      "muted": {
+        "$type": "color",
+        "$value": "{core.neutral.400}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.400}",
+            "pr-light": "{core.neutral.400}",
+            "pr-dark": "{core.neutral.400}",
+            "ar-light": "{core.neutral.400}",
+            "ar-dark": "{core.neutral.400}",
+            "nv-light": "{core.neutral.400}",
+            "nv-dark": "{core.neutral.400}",
+            "mb-light": "{core.neutral.400}",
+            "mb-dark": "{core.neutral.400}"
+          }
+        }
+      },
+      "disabled": {
+        "$type": "color",
+        "$value": "{core.neutral.300}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.500}",
+            "pr-light": "{core.neutral.300}",
+            "pr-dark": "{core.neutral.500}",
+            "ar-light": "{core.neutral.300}",
+            "ar-dark": "{core.neutral.500}",
+            "nv-light": "{core.neutral.300}",
+            "nv-dark": "{core.neutral.500}",
+            "mb-light": "{core.neutral.300}",
+            "mb-dark": "{core.neutral.500}"
+          }
+        }
+      },
+      "on-brand": {
+        "$type": "color",
+        "$value": "{core.neutral.10}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.10}",
+            "pr-light": "{core.neutral.10}",
+            "pr-dark": "{core.neutral.10}",
+            "ar-light": "{core.neutral.10}",
+            "ar-dark": "{core.neutral.10}",
+            "nv-light": "{core.neutral.10}",
+            "nv-dark": "{core.neutral.10}",
+            "mb-light": "{core.neutral.10}",
+            "mb-dark": "{core.neutral.10}"
+          }
+        }
+      },
+      "on-accent": {
+        "$type": "color",
+        "$value": "{core.neutral.900}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.900}",
+            "pr-light": "{core.neutral.900}",
+            "pr-dark": "{core.neutral.900}",
+            "ar-light": "{core.neutral.900}",
+            "ar-dark": "{core.neutral.900}",
+            "nv-light": "{core.neutral.900}",
+            "nv-dark": "{core.neutral.900}",
+            "mb-light": "{core.neutral.900}",
+            "mb-dark": "{core.neutral.900}"
+          }
+        },
+        "$description": "Every theme's accent takes dark ink — Lime, Glow, and Glacier all fail AA with white."
+      },
+      "link": {
+        "$type": "color",
+        "$value": "{stockholm.neptune}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{stockholm.spritz}",
+            "pr-light": "{prague.nightfall}",
+            "pr-dark": "{prague.dusk}",
+            "ar-light": "{arctic.cast}",
+            "ar-dark": "{arctic.fur}",
+            "nv-light": "{nova.midnight-sea}",
+            "nv-dark": "{nova.lavender}",
+            "mb-light": "{melbourne.dark-blue}",
+            "mb-dark": "{melbourne.glass}"
+          }
+        }
+      },
+      "code": {
+        "$type": "color",
+        "$value": "{core.neutral.900}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.100}",
+            "pr-light": "{core.neutral.900}",
+            "pr-dark": "{core.neutral.100}",
+            "ar-light": "{core.neutral.900}",
+            "ar-dark": "{core.neutral.100}",
+            "nv-light": "{core.neutral.900}",
+            "nv-dark": "{core.neutral.100}",
+            "mb-light": "{core.neutral.900}",
+            "mb-dark": "{core.neutral.100}"
+          }
+        }
+      }
     },
     "surface": {
-      "page":     { "$type": "color", "$value": "{core.neutral.50}",  "$extensions": { "apc": { "sl-dark": "{core.neutral.900}", "pr-light": "{prague.warm-grey}", "pr-dark": "{core.neutral.900}", "ar-light": "{core.neutral.50}", "ar-dark": "{core.neutral.900}", "nv-light": "{core.neutral.50}", "nv-dark": "{core.neutral.900}", "mb-light": "{melbourne.warm-grey}", "mb-dark": "{core.neutral.900}" } } },
-      "raised":   { "$type": "color", "$value": "{core.neutral.10}",  "$extensions": { "apc": { "sl-dark": "{core.neutral.800}", "pr-light": "{core.neutral.10}", "pr-dark": "{core.neutral.800}", "ar-light": "{core.neutral.10}", "ar-dark": "{core.neutral.800}", "nv-light": "{core.neutral.10}", "nv-dark": "{core.neutral.800}", "mb-light": "{core.neutral.10}", "mb-dark": "{core.neutral.800}" } } },
-      "sunken":   { "$type": "color", "$value": "{core.neutral.25}",  "$extensions": { "apc": { "sl-dark": "{core.neutral.900}", "pr-light": "{core.neutral.25}", "pr-dark": "{core.neutral.900}", "ar-light": "{core.neutral.25}", "ar-dark": "{core.neutral.900}", "nv-light": "{core.neutral.25}", "nv-dark": "{core.neutral.900}", "mb-light": "{core.neutral.25}", "mb-dark": "{core.neutral.900}" } } },
-      "hover":    { "$type": "color", "$value": "{core.neutral.50}",  "$extensions": { "apc": { "sl-dark": "{core.neutral.700}", "pr-light": "{core.neutral.50}", "pr-dark": "{core.neutral.700}", "ar-light": "{core.neutral.50}", "ar-dark": "{core.neutral.700}", "nv-light": "{core.neutral.50}", "nv-dark": "{core.neutral.700}", "mb-light": "{core.neutral.50}", "mb-dark": "{core.neutral.700}" } } },
-      "selected": { "$type": "color", "$value": "{stockholm.spritz-10}", "$extensions": { "apc": { "sl-dark": "{stockholm.lime}", "pr-light": "{prague.sunday-paper}", "pr-dark": "{prague.glow}", "ar-light": "{arctic.fur-10}", "ar-dark": "{arctic.glacier}", "nv-light": "{nova.lavender-10}", "nv-dark": "{nova.spring-green}", "mb-light": "{melbourne.glass-10}", "mb-dark": "{melbourne.mustard}", "darkOpacity": 0.1 } }, "$description": "Dark modes apply the accent at 10% opacity on the fill." },
-      "inverse":  { "$type": "color", "$value": "{stockholm.neptune}", "$extensions": { "apc": { "sl-dark": "{core.neutral.100}", "pr-light": "{prague.nightfall}", "pr-dark": "{core.neutral.100}", "ar-light": "{arctic.cast}", "ar-dark": "{core.neutral.100}", "nv-light": "{nova.midnight-sea}", "nv-dark": "{core.neutral.100}", "mb-light": "{melbourne.dark-blue}", "mb-dark": "{core.neutral.100}" } } },
-      "code":     { "$type": "color", "$value": "{core.neutral.25}",  "$extensions": { "apc": { "sl-dark": "{core.neutral.900}", "pr-light": "{core.neutral.25}", "pr-dark": "{core.neutral.900}", "ar-light": "{core.neutral.25}", "ar-dark": "{core.neutral.900}", "nv-light": "{core.neutral.25}", "nv-dark": "{core.neutral.900}", "mb-light": "{core.neutral.25}", "mb-dark": "{core.neutral.900}" } } },
-      "tooltip":  { "$type": "color", "$value": "{core.neutral.900}", "$extensions": { "apc": { "sl-dark": "{core.neutral.100}", "pr-light": "{core.neutral.900}", "pr-dark": "{core.neutral.100}", "ar-light": "{core.neutral.900}", "ar-dark": "{core.neutral.100}", "nv-light": "{core.neutral.900}", "nv-dark": "{core.neutral.100}", "mb-light": "{core.neutral.900}", "mb-dark": "{core.neutral.100}" } } }
+      "page": {
+        "$type": "color",
+        "$value": "{core.neutral.50}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.900}",
+            "pr-light": "{prague.warm-grey}",
+            "pr-dark": "{core.neutral.900}",
+            "ar-light": "{core.neutral.50}",
+            "ar-dark": "{core.neutral.900}",
+            "nv-light": "{core.neutral.50}",
+            "nv-dark": "{core.neutral.900}",
+            "mb-light": "{melbourne.warm-grey}",
+            "mb-dark": "{core.neutral.900}"
+          }
+        }
+      },
+      "raised": {
+        "$type": "color",
+        "$value": "{core.neutral.10}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.800}",
+            "pr-light": "{core.neutral.10}",
+            "pr-dark": "{core.neutral.800}",
+            "ar-light": "{core.neutral.10}",
+            "ar-dark": "{core.neutral.800}",
+            "nv-light": "{core.neutral.10}",
+            "nv-dark": "{core.neutral.800}",
+            "mb-light": "{core.neutral.10}",
+            "mb-dark": "{core.neutral.800}"
+          }
+        }
+      },
+      "sunken": {
+        "$type": "color",
+        "$value": "{core.neutral.25}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.900}",
+            "pr-light": "{core.neutral.25}",
+            "pr-dark": "{core.neutral.900}",
+            "ar-light": "{core.neutral.25}",
+            "ar-dark": "{core.neutral.900}",
+            "nv-light": "{core.neutral.25}",
+            "nv-dark": "{core.neutral.900}",
+            "mb-light": "{core.neutral.25}",
+            "mb-dark": "{core.neutral.900}"
+          }
+        }
+      },
+      "hover": {
+        "$type": "color",
+        "$value": "{core.neutral.50}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.700}",
+            "pr-light": "{core.neutral.50}",
+            "pr-dark": "{core.neutral.700}",
+            "ar-light": "{core.neutral.50}",
+            "ar-dark": "{core.neutral.700}",
+            "nv-light": "{core.neutral.50}",
+            "nv-dark": "{core.neutral.700}",
+            "mb-light": "{core.neutral.50}",
+            "mb-dark": "{core.neutral.700}"
+          }
+        }
+      },
+      "selected": {
+        "$type": "color",
+        "$value": "{stockholm.spritz-10}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{stockholm.lime}",
+            "pr-light": "{prague.sunday-paper}",
+            "pr-dark": "{prague.glow}",
+            "ar-light": "{arctic.fur-10}",
+            "ar-dark": "{arctic.glacier}",
+            "nv-light": "{nova.lavender-10}",
+            "nv-dark": "{nova.spring-green}",
+            "mb-light": "{melbourne.glass-10}",
+            "mb-dark": "{melbourne.mustard}",
+            "darkOpacity": 0.1
+          }
+        },
+        "$description": "Dark modes apply the accent at 10% opacity on the fill."
+      },
+      "inverse": {
+        "$type": "color",
+        "$value": "{stockholm.neptune}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.100}",
+            "pr-light": "{prague.nightfall}",
+            "pr-dark": "{core.neutral.100}",
+            "ar-light": "{arctic.cast}",
+            "ar-dark": "{core.neutral.100}",
+            "nv-light": "{nova.midnight-sea}",
+            "nv-dark": "{core.neutral.100}",
+            "mb-light": "{melbourne.dark-blue}",
+            "mb-dark": "{core.neutral.100}"
+          }
+        }
+      },
+      "code": {
+        "$type": "color",
+        "$value": "{core.neutral.25}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.900}",
+            "pr-light": "{core.neutral.25}",
+            "pr-dark": "{core.neutral.900}",
+            "ar-light": "{core.neutral.25}",
+            "ar-dark": "{core.neutral.900}",
+            "nv-light": "{core.neutral.25}",
+            "nv-dark": "{core.neutral.900}",
+            "mb-light": "{core.neutral.25}",
+            "mb-dark": "{core.neutral.900}"
+          }
+        }
+      },
+      "tooltip": {
+        "$type": "color",
+        "$value": "{core.neutral.900}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.100}",
+            "pr-light": "{core.neutral.900}",
+            "pr-dark": "{core.neutral.100}",
+            "ar-light": "{core.neutral.900}",
+            "ar-dark": "{core.neutral.100}",
+            "nv-light": "{core.neutral.900}",
+            "nv-dark": "{core.neutral.100}",
+            "mb-light": "{core.neutral.900}",
+            "mb-dark": "{core.neutral.100}"
+          }
+        }
+      }
     },
     "border": {
-      "default":  { "$type": "color", "$value": "{core.neutral.200}", "$extensions": { "apc": { "sl-dark": "{core.neutral.700}", "pr-light": "{core.neutral.200}", "pr-dark": "{core.neutral.700}", "ar-light": "{core.neutral.200}", "ar-dark": "{core.neutral.700}", "nv-light": "{core.neutral.200}", "nv-dark": "{core.neutral.700}", "mb-light": "{core.neutral.200}", "mb-dark": "{core.neutral.700}", "nv-light": "{core.neutral.200}", "nv-dark": "{core.neutral.700}", "mb-light": "{core.neutral.200}", "mb-dark": "{core.neutral.700}" } } },
-      "strong":   { "$type": "color", "$value": "{core.neutral.400}", "$extensions": { "apc": { "sl-dark": "{core.neutral.600}", "pr-light": "{core.neutral.400}", "pr-dark": "{core.neutral.600}", "ar-light": "{core.neutral.400}", "ar-dark": "{core.neutral.600}", "nv-light": "{core.neutral.400}", "nv-dark": "{core.neutral.600}", "mb-light": "{core.neutral.400}", "mb-dark": "{core.neutral.600}" } } },
-      "divider":  { "$type": "color", "$value": "{core.neutral.100}", "$extensions": { "apc": { "sl-dark": "{core.neutral.700}", "pr-light": "{core.neutral.100}", "pr-dark": "{core.neutral.700}", "ar-light": "{core.neutral.100}", "ar-dark": "{core.neutral.700}", "nv-light": "{core.neutral.100}", "nv-dark": "{core.neutral.700}", "mb-light": "{core.neutral.100}", "mb-dark": "{core.neutral.700}" } } },
-      "focus":    { "$type": "color", "$value": "{stockholm.spritz}", "$extensions": { "apc": { "sl-dark": "{stockholm.spritz}", "pr-light": "{prague.dusk}", "pr-dark": "{prague.dusk}", "ar-light": "{arctic.slumber}", "ar-dark": "{arctic.slumber}", "nv-light": "{nova.lupin}", "nv-dark": "{nova.lupin}", "mb-light": "{melbourne.glass}", "mb-dark": "{melbourne.glass}", "darkOpacity": 0.32 } }, "$description": "3px ring at 2px offset. Dark modes apply it at ~32% opacity." },
-      "selected": { "$type": "color", "$value": "{stockholm.neptune}", "$extensions": { "apc": { "sl-dark": "{stockholm.lime}", "pr-light": "{prague.nightfall}", "pr-dark": "{prague.glow}", "ar-light": "{arctic.cast}", "ar-dark": "{arctic.glacier}", "nv-light": "{nova.midnight-sea}", "nv-dark": "{nova.spring-green}", "mb-light": "{melbourne.dark-blue}", "mb-dark": "{melbourne.mustard}" } } }
+      "default": {
+        "$type": "color",
+        "$value": "{core.neutral.200}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.700}",
+            "pr-light": "{core.neutral.200}",
+            "pr-dark": "{core.neutral.700}",
+            "ar-light": "{core.neutral.200}",
+            "ar-dark": "{core.neutral.700}",
+            "nv-light": "{core.neutral.200}",
+            "nv-dark": "{core.neutral.700}",
+            "mb-light": "{core.neutral.200}",
+            "mb-dark": "{core.neutral.700}",
+            "nv-light": "{core.neutral.200}",
+            "nv-dark": "{core.neutral.700}",
+            "mb-light": "{core.neutral.200}",
+            "mb-dark": "{core.neutral.700}"
+          }
+        }
+      },
+      "strong": {
+        "$type": "color",
+        "$value": "{core.neutral.400}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.600}",
+            "pr-light": "{core.neutral.400}",
+            "pr-dark": "{core.neutral.600}",
+            "ar-light": "{core.neutral.400}",
+            "ar-dark": "{core.neutral.600}",
+            "nv-light": "{core.neutral.400}",
+            "nv-dark": "{core.neutral.600}",
+            "mb-light": "{core.neutral.400}",
+            "mb-dark": "{core.neutral.600}"
+          }
+        }
+      },
+      "divider": {
+        "$type": "color",
+        "$value": "{core.neutral.100}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.700}",
+            "pr-light": "{core.neutral.100}",
+            "pr-dark": "{core.neutral.700}",
+            "ar-light": "{core.neutral.100}",
+            "ar-dark": "{core.neutral.700}",
+            "nv-light": "{core.neutral.100}",
+            "nv-dark": "{core.neutral.700}",
+            "mb-light": "{core.neutral.100}",
+            "mb-dark": "{core.neutral.700}"
+          }
+        }
+      },
+      "focus": {
+        "$type": "color",
+        "$value": "{stockholm.spritz}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{stockholm.spritz}",
+            "pr-light": "{prague.dusk}",
+            "pr-dark": "{prague.dusk}",
+            "ar-light": "{arctic.slumber}",
+            "ar-dark": "{arctic.slumber}",
+            "nv-light": "{nova.lupin}",
+            "nv-dark": "{nova.lupin}",
+            "mb-light": "{melbourne.glass}",
+            "mb-dark": "{melbourne.glass}",
+            "darkOpacity": 0.32
+          }
+        },
+        "$description": "3px ring at 2px offset. Dark modes apply it at ~32% opacity."
+      },
+      "selected": {
+        "$type": "color",
+        "$value": "{stockholm.neptune}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{stockholm.lime}",
+            "pr-light": "{prague.nightfall}",
+            "pr-dark": "{prague.glow}",
+            "ar-light": "{arctic.cast}",
+            "ar-dark": "{arctic.glacier}",
+            "nv-light": "{nova.midnight-sea}",
+            "nv-dark": "{nova.spring-green}",
+            "mb-light": "{melbourne.dark-blue}",
+            "mb-dark": "{melbourne.mustard}"
+          }
+        }
+      }
     },
     "action": {
-      "primary":        { "$type": "color", "$value": "{stockholm.neptune}", "$extensions": { "apc": { "sl-dark": "{stockholm.lime}", "pr-light": "{prague.nightfall}", "pr-dark": "{prague.glow}", "ar-light": "{arctic.cast}", "ar-dark": "{arctic.glacier}", "nv-light": "{nova.midnight-sea}", "nv-dark": "{nova.spring-green}", "mb-light": "{melbourne.dark-blue}", "mb-dark": "{melbourne.mustard}" } }, "$description": "Flips to the accent on dark in every theme — the brand navy has no contrast on Neutral 800." },
-      "primary-hover":  { "$type": "color", "$value": "{stockholm.neptune-hover}", "$extensions": { "apc": { "sl-dark": "{stockholm.lime-hover}", "pr-light": "{prague.nightfall-hover}", "pr-dark": "{prague.glow-hover}", "ar-light": "{arctic.cast-hover}", "ar-dark": "{arctic.glacier-hover}", "nv-light": "{nova.midnight-sea-hover}", "nv-dark": "{nova.spring-green-hover}", "mb-light": "{melbourne.dark-blue-hover}", "mb-dark": "{melbourne.mustard-hover}" } } },
-      "primary-active": { "$type": "color", "$value": "{stockholm.neptune-active}", "$extensions": { "apc": { "sl-dark": "{stockholm.lime-active}", "pr-light": "{prague.nightfall-active}", "pr-dark": "{prague.glow-active}", "ar-light": "{arctic.cast-active}", "ar-dark": "{arctic.glacier-active}", "nv-light": "{nova.midnight-sea-active}", "nv-dark": "{nova.spring-green-active}", "mb-light": "{melbourne.dark-blue-active}", "mb-dark": "{melbourne.mustard-active}" } } },
-      "secondary":      { "$type": "color", "$value": "{stockholm.spritz}", "$extensions": { "apc": { "sl-dark": "{core.neutral.700}", "pr-light": "{prague.stone}", "pr-dark": "{core.neutral.700}", "ar-light": "{arctic.fur}", "ar-dark": "{core.neutral.700}", "nv-light": "{nova.lavender}", "nv-dark": "{core.neutral.700}", "mb-light": "{melbourne.sweater}", "mb-dark": "{core.neutral.700}" } } },
-      "accent":         { "$type": "color", "$value": "{stockholm.lime}", "$extensions": { "apc": { "sl-dark": "{stockholm.lime}", "pr-light": "{prague.glow}", "pr-dark": "{prague.glow}", "ar-light": "{arctic.glacier}", "ar-dark": "{arctic.glacier}", "nv-light": "{nova.spring-green}", "nv-dark": "{nova.spring-green}", "mb-light": "{melbourne.mustard}", "mb-dark": "{melbourne.mustard}" } } },
-      "destructive":    { "$type": "color", "$value": "{core.validation.bright-rose.100}", "$extensions": { "apc": { "sl-dark": "{core.validation.bright-rose.100}", "pr-light": "{core.validation.bright-rose.100}", "pr-dark": "{core.validation.bright-rose.100}", "ar-light": "{arctic.validation.marmalade.100}", "ar-dark": "{arctic.validation.marmalade.100}", "nv-light": "{core.validation.bright-rose.100}", "nv-dark": "{core.validation.bright-rose.100}", "mb-light": "{core.validation.bright-rose.100}", "mb-dark": "{core.validation.bright-rose.100}" } }, "$description": "Never flips to the accent on dark — the accent reads as approval." },
-      "disabled":       { "$type": "color", "$value": "{core.neutral.200}", "$extensions": { "apc": { "sl-dark": "{core.neutral.700}", "pr-light": "{core.neutral.200}", "pr-dark": "{core.neutral.700}", "ar-light": "{core.neutral.200}", "ar-dark": "{core.neutral.700}", "nv-light": "{core.neutral.200}", "nv-dark": "{core.neutral.700}", "mb-light": "{core.neutral.200}", "mb-dark": "{core.neutral.700}", "nv-light": "{core.neutral.200}", "nv-dark": "{core.neutral.700}", "mb-light": "{core.neutral.200}", "mb-dark": "{core.neutral.700}" } } }
+      "primary": {
+        "$type": "color",
+        "$value": "{stockholm.neptune}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{stockholm.lime}",
+            "pr-light": "{prague.nightfall}",
+            "pr-dark": "{prague.glow}",
+            "ar-light": "{arctic.cast}",
+            "ar-dark": "{arctic.glacier}",
+            "nv-light": "{nova.midnight-sea}",
+            "nv-dark": "{nova.spring-green}",
+            "mb-light": "{melbourne.dark-blue}",
+            "mb-dark": "{melbourne.mustard}"
+          }
+        },
+        "$description": "Flips to the accent on dark in every theme — the brand navy has no contrast on Neutral 800."
+      },
+      "primary-hover": {
+        "$type": "color",
+        "$value": "{stockholm.neptune-hover}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{stockholm.lime-hover}",
+            "pr-light": "{prague.nightfall-hover}",
+            "pr-dark": "{prague.glow-hover}",
+            "ar-light": "{arctic.cast-hover}",
+            "ar-dark": "{arctic.glacier-hover}",
+            "nv-light": "{nova.midnight-sea-hover}",
+            "nv-dark": "{nova.spring-green-hover}",
+            "mb-light": "{melbourne.dark-blue-hover}",
+            "mb-dark": "{melbourne.mustard-hover}"
+          }
+        }
+      },
+      "primary-active": {
+        "$type": "color",
+        "$value": "{stockholm.neptune-active}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{stockholm.lime-active}",
+            "pr-light": "{prague.nightfall-active}",
+            "pr-dark": "{prague.glow-active}",
+            "ar-light": "{arctic.cast-active}",
+            "ar-dark": "{arctic.glacier-active}",
+            "nv-light": "{nova.midnight-sea-active}",
+            "nv-dark": "{nova.spring-green-active}",
+            "mb-light": "{melbourne.dark-blue-active}",
+            "mb-dark": "{melbourne.mustard-active}"
+          }
+        }
+      },
+      "secondary": {
+        "$type": "color",
+        "$value": "{stockholm.spritz}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.700}",
+            "pr-light": "{prague.stone}",
+            "pr-dark": "{core.neutral.700}",
+            "ar-light": "{arctic.fur}",
+            "ar-dark": "{core.neutral.700}",
+            "nv-light": "{nova.lavender}",
+            "nv-dark": "{core.neutral.700}",
+            "mb-light": "{melbourne.sweater}",
+            "mb-dark": "{core.neutral.700}"
+          }
+        }
+      },
+      "accent": {
+        "$type": "color",
+        "$value": "{stockholm.lime}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{stockholm.lime}",
+            "pr-light": "{prague.glow}",
+            "pr-dark": "{prague.glow}",
+            "ar-light": "{arctic.glacier}",
+            "ar-dark": "{arctic.glacier}",
+            "nv-light": "{nova.spring-green}",
+            "nv-dark": "{nova.spring-green}",
+            "mb-light": "{melbourne.mustard}",
+            "mb-dark": "{melbourne.mustard}"
+          }
+        }
+      },
+      "destructive": {
+        "$type": "color",
+        "$value": "{core.validation.bright-rose.100}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.validation.bright-rose.100}",
+            "pr-light": "{core.validation.bright-rose.100}",
+            "pr-dark": "{core.validation.bright-rose.100}",
+            "ar-light": "{arctic.validation.marmalade.100}",
+            "ar-dark": "{arctic.validation.marmalade.100}",
+            "nv-light": "{core.validation.bright-rose.100}",
+            "nv-dark": "{core.validation.bright-rose.100}",
+            "mb-light": "{core.validation.bright-rose.100}",
+            "mb-dark": "{core.validation.bright-rose.100}"
+          }
+        },
+        "$description": "Never flips to the accent on dark — the accent reads as approval."
+      },
+      "disabled": {
+        "$type": "color",
+        "$value": "{core.neutral.200}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.700}",
+            "pr-light": "{core.neutral.200}",
+            "pr-dark": "{core.neutral.700}",
+            "ar-light": "{core.neutral.200}",
+            "ar-dark": "{core.neutral.700}",
+            "nv-light": "{core.neutral.200}",
+            "nv-dark": "{core.neutral.700}",
+            "mb-light": "{core.neutral.200}",
+            "mb-dark": "{core.neutral.700}",
+            "nv-light": "{core.neutral.200}",
+            "nv-dark": "{core.neutral.700}",
+            "mb-light": "{core.neutral.200}",
+            "mb-dark": "{core.neutral.700}"
+          }
+        }
+      }
     },
     "state": {
       "$description": "Stockholm and Prague read core.validation; Arctic Night reads arctic.validation.",
-      "success":         { "$type": "color", "$value": "{core.validation.lime.100}", "$extensions": { "apc": { "sl-dark": "{core.validation.lime.50}", "pr-light": "{core.validation.lime.100}", "pr-dark": "{core.validation.lime.50}", "ar-light": "{arctic.validation.seafoam.100}", "ar-dark": "{arctic.validation.seafoam.50}", "nv-light": "{core.validation.lime.100}", "nv-dark": "{core.validation.lime.50}", "mb-light": "{core.validation.lime.100}", "mb-dark": "{core.validation.lime.50}" } } },
-      "success-text":    { "$type": "color", "$value": "{core.validation.lime.200}", "$extensions": { "apc": { "sl-dark": "{core.validation.lime.50}", "pr-light": "{core.validation.lime.200}", "pr-dark": "{core.validation.lime.50}", "ar-light": "{arctic.validation.seafoam.200}", "ar-dark": "{arctic.validation.seafoam.50}", "nv-light": "{core.validation.lime.200}", "nv-dark": "{core.validation.lime.50}", "mb-light": "{core.validation.lime.200}", "mb-dark": "{core.validation.lime.50}" } } },
-      "success-surface": { "$type": "color", "$value": "{core.validation.lime.10}", "$extensions": { "apc": { "sl-dark": "{core.validation.lime.100}", "pr-light": "{core.validation.lime.10}", "pr-dark": "{core.validation.lime.100}", "ar-light": "{arctic.validation.seafoam.10}", "ar-dark": "{arctic.validation.seafoam.100}", "nv-light": "{core.validation.lime.10}", "nv-dark": "{core.validation.lime.100}", "mb-light": "{core.validation.lime.10}", "mb-dark": "{core.validation.lime.100}", "darkOpacity": 0.14 } } },
-      "error":           { "$type": "color", "$value": "{core.validation.bright-rose.100}", "$extensions": { "apc": { "sl-dark": "{core.validation.bright-rose.50}", "pr-light": "{core.validation.bright-rose.100}", "pr-dark": "{core.validation.bright-rose.50}", "ar-light": "{arctic.validation.marmalade.100}", "ar-dark": "{arctic.validation.marmalade.50}", "nv-light": "{core.validation.bright-rose.100}", "nv-dark": "{core.validation.bright-rose.50}", "mb-light": "{core.validation.bright-rose.100}", "mb-dark": "{core.validation.bright-rose.50}" } } },
-      "error-text":      { "$type": "color", "$value": "{core.validation.bright-rose.200}", "$extensions": { "apc": { "sl-dark": "{core.validation.bright-rose.50}", "pr-light": "{core.validation.bright-rose.200}", "pr-dark": "{core.validation.bright-rose.50}", "ar-light": "{arctic.validation.marmalade.200}", "ar-dark": "{arctic.validation.marmalade.50}", "nv-light": "{core.validation.bright-rose.200}", "nv-dark": "{core.validation.bright-rose.50}", "mb-light": "{core.validation.bright-rose.200}", "mb-dark": "{core.validation.bright-rose.50}" } } },
-      "error-surface":   { "$type": "color", "$value": "{core.validation.bright-rose.10}", "$extensions": { "apc": { "sl-dark": "{core.validation.bright-rose.100}", "pr-light": "{core.validation.bright-rose.10}", "pr-dark": "{core.validation.bright-rose.100}", "ar-light": "{arctic.validation.marmalade.10}", "ar-dark": "{arctic.validation.marmalade.100}", "nv-light": "{core.validation.bright-rose.10}", "nv-dark": "{core.validation.bright-rose.100}", "mb-light": "{core.validation.bright-rose.10}", "mb-dark": "{core.validation.bright-rose.100}", "darkOpacity": 0.16 } } },
-      "warning":         { "$type": "color", "$value": "{core.validation.daisy.100}", "$extensions": { "apc": { "sl-dark": "{core.validation.daisy.50}", "pr-light": "{core.validation.daisy.100}", "pr-dark": "{core.validation.daisy.50}", "ar-light": "{arctic.validation.honey-bee.100}", "ar-dark": "{arctic.validation.honey-bee.50}", "nv-light": "{core.validation.daisy.100}", "nv-dark": "{core.validation.daisy.50}", "mb-light": "{core.validation.daisy.100}", "mb-dark": "{core.validation.daisy.50}" } } },
-      "warning-text":    { "$type": "color", "$value": "{core.validation.daisy.200}", "$extensions": { "apc": { "sl-dark": "{core.validation.daisy.50}", "pr-light": "{core.validation.daisy.200}", "pr-dark": "{core.validation.daisy.50}", "ar-light": "{arctic.validation.honey-bee.200}", "ar-dark": "{arctic.validation.honey-bee.50}", "nv-light": "{core.validation.daisy.200}", "nv-dark": "{core.validation.daisy.50}", "mb-light": "{core.validation.daisy.200}", "mb-dark": "{core.validation.daisy.50}" } } },
-      "warning-surface": { "$type": "color", "$value": "{core.validation.daisy.10}", "$extensions": { "apc": { "sl-dark": "{core.validation.daisy.100}", "pr-light": "{core.validation.daisy.10}", "pr-dark": "{core.validation.daisy.100}", "ar-light": "{arctic.validation.honey-bee.10}", "ar-dark": "{arctic.validation.honey-bee.100}", "nv-light": "{core.validation.daisy.10}", "nv-dark": "{core.validation.daisy.100}", "mb-light": "{core.validation.daisy.10}", "mb-dark": "{core.validation.daisy.100}", "darkOpacity": 0.14 } } },
-      "info":            { "$type": "color", "$value": "{stockholm.neptune}", "$extensions": { "apc": { "sl-dark": "{stockholm.spritz}", "pr-light": "{prague.nightfall}", "pr-dark": "{prague.dusk}", "ar-light": "{arctic.cast}", "ar-dark": "{arctic.fur}", "nv-light": "{nova.midnight-sea}", "nv-dark": "{nova.lavender}", "mb-light": "{melbourne.dark-blue}", "mb-dark": "{melbourne.glass}" } } },
-      "info-surface":    { "$type": "color", "$value": "{stockholm.spritz-10}", "$extensions": { "apc": { "sl-dark": "{stockholm.spritz}", "pr-light": "{prague.sunday-paper}", "pr-dark": "{prague.dusk}", "ar-light": "{arctic.fur-10}", "ar-dark": "{arctic.fur}", "nv-light": "{nova.lavender-10}", "nv-dark": "{nova.lavender}", "mb-light": "{melbourne.glass-10}", "mb-dark": "{melbourne.glass}", "darkOpacity": 0.14 } } }
+      "success": {
+        "$type": "color",
+        "$value": "{core.validation.lime.100}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.validation.lime.50}",
+            "pr-light": "{core.validation.lime.100}",
+            "pr-dark": "{core.validation.lime.50}",
+            "ar-light": "{arctic.validation.seafoam.100}",
+            "ar-dark": "{arctic.validation.seafoam.50}",
+            "nv-light": "{core.validation.lime.100}",
+            "nv-dark": "{core.validation.lime.50}",
+            "mb-light": "{core.validation.lime.100}",
+            "mb-dark": "{core.validation.lime.50}"
+          }
+        }
+      },
+      "success-text": {
+        "$type": "color",
+        "$value": "{core.validation.lime.200}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.validation.lime.50}",
+            "pr-light": "{core.validation.lime.200}",
+            "pr-dark": "{core.validation.lime.50}",
+            "ar-light": "{arctic.validation.seafoam.200}",
+            "ar-dark": "{arctic.validation.seafoam.50}",
+            "nv-light": "{core.validation.lime.200}",
+            "nv-dark": "{core.validation.lime.50}",
+            "mb-light": "{core.validation.lime.200}",
+            "mb-dark": "{core.validation.lime.50}"
+          }
+        }
+      },
+      "success-surface": {
+        "$type": "color",
+        "$value": "{core.validation.lime.10}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.validation.lime.100}",
+            "pr-light": "{core.validation.lime.10}",
+            "pr-dark": "{core.validation.lime.100}",
+            "ar-light": "{arctic.validation.seafoam.10}",
+            "ar-dark": "{arctic.validation.seafoam.100}",
+            "nv-light": "{core.validation.lime.10}",
+            "nv-dark": "{core.validation.lime.100}",
+            "mb-light": "{core.validation.lime.10}",
+            "mb-dark": "{core.validation.lime.100}",
+            "darkOpacity": 0.14
+          }
+        }
+      },
+      "error": {
+        "$type": "color",
+        "$value": "{core.validation.bright-rose.100}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.validation.bright-rose.50}",
+            "pr-light": "{core.validation.bright-rose.100}",
+            "pr-dark": "{core.validation.bright-rose.50}",
+            "ar-light": "{arctic.validation.marmalade.100}",
+            "ar-dark": "{arctic.validation.marmalade.50}",
+            "nv-light": "{core.validation.bright-rose.100}",
+            "nv-dark": "{core.validation.bright-rose.50}",
+            "mb-light": "{core.validation.bright-rose.100}",
+            "mb-dark": "{core.validation.bright-rose.50}"
+          }
+        }
+      },
+      "error-text": {
+        "$type": "color",
+        "$value": "{core.validation.bright-rose.200}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.validation.bright-rose.50}",
+            "pr-light": "{core.validation.bright-rose.200}",
+            "pr-dark": "{core.validation.bright-rose.50}",
+            "ar-light": "{arctic.validation.marmalade.200}",
+            "ar-dark": "{arctic.validation.marmalade.50}",
+            "nv-light": "{core.validation.bright-rose.200}",
+            "nv-dark": "{core.validation.bright-rose.50}",
+            "mb-light": "{core.validation.bright-rose.200}",
+            "mb-dark": "{core.validation.bright-rose.50}"
+          }
+        }
+      },
+      "error-surface": {
+        "$type": "color",
+        "$value": "{core.validation.bright-rose.10}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.validation.bright-rose.100}",
+            "pr-light": "{core.validation.bright-rose.10}",
+            "pr-dark": "{core.validation.bright-rose.100}",
+            "ar-light": "{arctic.validation.marmalade.10}",
+            "ar-dark": "{arctic.validation.marmalade.100}",
+            "nv-light": "{core.validation.bright-rose.10}",
+            "nv-dark": "{core.validation.bright-rose.100}",
+            "mb-light": "{core.validation.bright-rose.10}",
+            "mb-dark": "{core.validation.bright-rose.100}",
+            "darkOpacity": 0.16
+          }
+        }
+      },
+      "warning": {
+        "$type": "color",
+        "$value": "{core.validation.daisy.100}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.validation.daisy.50}",
+            "pr-light": "{core.validation.daisy.100}",
+            "pr-dark": "{core.validation.daisy.50}",
+            "ar-light": "{arctic.validation.honey-bee.100}",
+            "ar-dark": "{arctic.validation.honey-bee.50}",
+            "nv-light": "{core.validation.daisy.100}",
+            "nv-dark": "{core.validation.daisy.50}",
+            "mb-light": "{core.validation.daisy.100}",
+            "mb-dark": "{core.validation.daisy.50}"
+          }
+        }
+      },
+      "warning-text": {
+        "$type": "color",
+        "$value": "{core.validation.daisy.200}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.validation.daisy.50}",
+            "pr-light": "{core.validation.daisy.200}",
+            "pr-dark": "{core.validation.daisy.50}",
+            "ar-light": "{arctic.validation.honey-bee.200}",
+            "ar-dark": "{arctic.validation.honey-bee.50}",
+            "nv-light": "{core.validation.daisy.200}",
+            "nv-dark": "{core.validation.daisy.50}",
+            "mb-light": "{core.validation.daisy.200}",
+            "mb-dark": "{core.validation.daisy.50}"
+          }
+        }
+      },
+      "warning-surface": {
+        "$type": "color",
+        "$value": "{core.validation.daisy.10}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.validation.daisy.100}",
+            "pr-light": "{core.validation.daisy.10}",
+            "pr-dark": "{core.validation.daisy.100}",
+            "ar-light": "{arctic.validation.honey-bee.10}",
+            "ar-dark": "{arctic.validation.honey-bee.100}",
+            "nv-light": "{core.validation.daisy.10}",
+            "nv-dark": "{core.validation.daisy.100}",
+            "mb-light": "{core.validation.daisy.10}",
+            "mb-dark": "{core.validation.daisy.100}",
+            "darkOpacity": 0.14
+          }
+        }
+      },
+      "info": {
+        "$type": "color",
+        "$value": "{stockholm.neptune}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{stockholm.spritz}",
+            "pr-light": "{prague.nightfall}",
+            "pr-dark": "{prague.dusk}",
+            "ar-light": "{arctic.cast}",
+            "ar-dark": "{arctic.fur}",
+            "nv-light": "{nova.midnight-sea}",
+            "nv-dark": "{nova.lavender}",
+            "mb-light": "{melbourne.dark-blue}",
+            "mb-dark": "{melbourne.glass}"
+          }
+        }
+      },
+      "info-surface": {
+        "$type": "color",
+        "$value": "{stockholm.spritz-10}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{stockholm.spritz}",
+            "pr-light": "{prague.sunday-paper}",
+            "pr-dark": "{prague.dusk}",
+            "ar-light": "{arctic.fur-10}",
+            "ar-dark": "{arctic.fur}",
+            "nv-light": "{nova.lavender-10}",
+            "nv-dark": "{nova.lavender}",
+            "mb-light": "{melbourne.glass-10}",
+            "mb-dark": "{melbourne.glass}",
+            "darkOpacity": 0.14
+          }
+        }
+      }
     },
     "code": {
-      "plain":       { "$type": "color", "$value": "{core.neutral.900}", "$extensions": { "apc": { "sl-dark": "{core.neutral.100}", "pr-light": "{core.neutral.900}", "pr-dark": "{core.neutral.100}", "ar-light": "{core.neutral.900}", "ar-dark": "{core.neutral.100}", "nv-light": "{core.neutral.900}", "nv-dark": "{core.neutral.100}", "mb-light": "{core.neutral.900}", "mb-dark": "{core.neutral.100}" } } },
-      "keyword":     { "$type": "color", "$value": "{stockholm.neptune}", "$extensions": { "apc": { "sl-dark": "{stockholm.spritz}", "pr-light": "{prague.nightfall}", "pr-dark": "{prague.stone}", "ar-light": "{arctic.cast}", "ar-dark": "{arctic.fur}", "nv-light": "{nova.midnight-sea}", "nv-dark": "{nova.lavender}", "mb-light": "{melbourne.dark-blue}", "mb-dark": "{melbourne.glass}" } } },
-      "function":    { "$type": "color", "$value": "{core.validation.bright-rose.200}", "$extensions": { "apc": { "sl-dark": "{stockholm.lime}", "pr-light": "{core.validation.bright-rose.200}", "pr-dark": "{prague.glow}", "ar-light": "{arctic.validation.marmalade.200}", "ar-dark": "{arctic.glacier}", "nv-light": "{core.validation.bright-rose.200}", "nv-dark": "{nova.spring-green}", "mb-light": "{core.validation.bright-rose.200}", "mb-dark": "{melbourne.mustard}" } } },
-      "string":      { "$type": "color", "$value": "{core.validation.lime.200}", "$extensions": { "apc": { "sl-dark": "{core.validation.lime.50}", "pr-light": "{core.validation.lime.200}", "pr-dark": "{core.validation.lime.50}", "ar-light": "{arctic.validation.seafoam.200}", "ar-dark": "{arctic.validation.seafoam.50}", "nv-light": "{core.validation.lime.200}", "nv-dark": "{core.validation.lime.50}", "mb-light": "{core.validation.lime.200}", "mb-dark": "{core.validation.lime.50}" } } },
-      "number":      { "$type": "color", "$value": "{core.validation.daisy.200}", "$extensions": { "apc": { "sl-dark": "{core.validation.daisy.50}", "pr-light": "{core.validation.daisy.200}", "pr-dark": "{core.validation.daisy.50}", "ar-light": "{arctic.validation.honey-bee.200}", "ar-dark": "{arctic.validation.honey-bee.50}", "nv-light": "{core.validation.daisy.200}", "nv-dark": "{core.validation.daisy.50}", "mb-light": "{core.validation.daisy.200}", "mb-dark": "{core.validation.daisy.50}" } } },
-      "comment":     { "$type": "color", "$value": "{core.neutral.500}", "$extensions": { "apc": { "sl-dark": "{core.neutral.400}", "pr-light": "{core.neutral.500}", "pr-dark": "{core.neutral.400}", "ar-light": "{core.neutral.500}", "ar-dark": "{core.neutral.400}", "nv-light": "{core.neutral.500}", "nv-dark": "{core.neutral.400}", "mb-light": "{core.neutral.500}", "mb-dark": "{core.neutral.400}" } } },
-      "punctuation": { "$type": "color", "$value": "{core.neutral.600}", "$extensions": { "apc": { "sl-dark": "{core.neutral.300}", "pr-light": "{core.neutral.600}", "pr-dark": "{core.neutral.300}", "ar-light": "{core.neutral.600}", "ar-dark": "{core.neutral.300}", "nv-light": "{core.neutral.600}", "nv-dark": "{core.neutral.300}", "mb-light": "{core.neutral.600}", "mb-dark": "{core.neutral.300}" } } }
+      "plain": {
+        "$type": "color",
+        "$value": "{core.neutral.900}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.100}",
+            "pr-light": "{core.neutral.900}",
+            "pr-dark": "{core.neutral.100}",
+            "ar-light": "{core.neutral.900}",
+            "ar-dark": "{core.neutral.100}",
+            "nv-light": "{core.neutral.900}",
+            "nv-dark": "{core.neutral.100}",
+            "mb-light": "{core.neutral.900}",
+            "mb-dark": "{core.neutral.100}"
+          }
+        }
+      },
+      "keyword": {
+        "$type": "color",
+        "$value": "{stockholm.neptune}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{stockholm.spritz}",
+            "pr-light": "{prague.nightfall}",
+            "pr-dark": "{prague.stone}",
+            "ar-light": "{arctic.cast}",
+            "ar-dark": "{arctic.fur}",
+            "nv-light": "{nova.midnight-sea}",
+            "nv-dark": "{nova.lavender}",
+            "mb-light": "{melbourne.dark-blue}",
+            "mb-dark": "{melbourne.glass}"
+          }
+        }
+      },
+      "function": {
+        "$type": "color",
+        "$value": "{core.validation.bright-rose.200}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{stockholm.lime}",
+            "pr-light": "{core.validation.bright-rose.200}",
+            "pr-dark": "{prague.glow}",
+            "ar-light": "{arctic.validation.marmalade.200}",
+            "ar-dark": "{arctic.glacier}",
+            "nv-light": "{core.validation.bright-rose.200}",
+            "nv-dark": "{nova.spring-green}",
+            "mb-light": "{core.validation.bright-rose.200}",
+            "mb-dark": "{melbourne.mustard}"
+          }
+        }
+      },
+      "string": {
+        "$type": "color",
+        "$value": "{core.validation.lime.200}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.validation.lime.50}",
+            "pr-light": "{core.validation.lime.200}",
+            "pr-dark": "{core.validation.lime.50}",
+            "ar-light": "{arctic.validation.seafoam.200}",
+            "ar-dark": "{arctic.validation.seafoam.50}",
+            "nv-light": "{core.validation.lime.200}",
+            "nv-dark": "{core.validation.lime.50}",
+            "mb-light": "{core.validation.lime.200}",
+            "mb-dark": "{core.validation.lime.50}"
+          }
+        }
+      },
+      "number": {
+        "$type": "color",
+        "$value": "{core.validation.daisy.200}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.validation.daisy.50}",
+            "pr-light": "{core.validation.daisy.200}",
+            "pr-dark": "{core.validation.daisy.50}",
+            "ar-light": "{arctic.validation.honey-bee.200}",
+            "ar-dark": "{arctic.validation.honey-bee.50}",
+            "nv-light": "{core.validation.daisy.200}",
+            "nv-dark": "{core.validation.daisy.50}",
+            "mb-light": "{core.validation.daisy.200}",
+            "mb-dark": "{core.validation.daisy.50}"
+          }
+        }
+      },
+      "comment": {
+        "$type": "color",
+        "$value": "{core.neutral.500}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.400}",
+            "pr-light": "{core.neutral.500}",
+            "pr-dark": "{core.neutral.400}",
+            "ar-light": "{core.neutral.500}",
+            "ar-dark": "{core.neutral.400}",
+            "nv-light": "{core.neutral.500}",
+            "nv-dark": "{core.neutral.400}",
+            "mb-light": "{core.neutral.500}",
+            "mb-dark": "{core.neutral.400}"
+          }
+        }
+      },
+      "punctuation": {
+        "$type": "color",
+        "$value": "{core.neutral.600}",
+        "$extensions": {
+          "apc": {
+            "sl-dark": "{core.neutral.300}",
+            "pr-light": "{core.neutral.600}",
+            "pr-dark": "{core.neutral.300}",
+            "ar-light": "{core.neutral.600}",
+            "ar-dark": "{core.neutral.300}",
+            "nv-light": "{core.neutral.600}",
+            "nv-dark": "{core.neutral.300}",
+            "mb-light": "{core.neutral.600}",
+            "mb-dark": "{core.neutral.300}"
+          }
+        }
+      }
     }
   },
 
@@ -291,105 +1091,690 @@
     "$description": "19 text styles per theme, prefixed by theme. Line height and letter spacing are percentages, exactly as entered in Figma.",
     "stockholm": {
       "heading": {
-        "page-header":   { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 700, "fontSize": "46px", "lineHeight": "107%", "letterSpacing": "-4%", "textCase": "none" } },
-        "inner-page":    { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 600, "fontSize": "36px", "lineHeight": "125%", "letterSpacing": "-2%", "textCase": "none" } },
-        "general-title": { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 600, "fontSize": "28px", "lineHeight": "125%", "letterSpacing": "-2%", "textCase": "none" } },
-        "element-title": { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 500, "fontSize": "22px", "lineHeight": "125%", "letterSpacing": "-1%", "textCase": "none" } }
+        "page-header": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 700,
+            "fontSize": "46px",
+            "lineHeight": "107%",
+            "letterSpacing": "-4%",
+            "textCase": "none"
+          }
+        },
+        "inner-page": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 600,
+            "fontSize": "36px",
+            "lineHeight": "125%",
+            "letterSpacing": "-2%",
+            "textCase": "none"
+          }
+        },
+        "general-title": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 600,
+            "fontSize": "28px",
+            "lineHeight": "125%",
+            "letterSpacing": "-2%",
+            "textCase": "none"
+          }
+        },
+        "element-title": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 500,
+            "fontSize": "22px",
+            "lineHeight": "125%",
+            "letterSpacing": "-1%",
+            "textCase": "none"
+          }
+        }
       },
       "body": {
-        "lg-bold":  { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 700, "fontSize": "18px", "lineHeight": "150%", "letterSpacing": "0%" } },
-        "lg":       { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 400, "fontSize": "18px", "lineHeight": "160%", "letterSpacing": "0%" } },
-        "lg-light": { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 300, "fontSize": "18px", "lineHeight": "160%", "letterSpacing": "0%" } },
-        "md-bold":  { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 700, "fontSize": "16px", "lineHeight": "125%", "letterSpacing": "0%" } },
-        "md":       { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 400, "fontSize": "16px", "lineHeight": "160%", "letterSpacing": "0%" } },
-        "sm-bold":  { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 700, "fontSize": "14px", "lineHeight": "125%", "letterSpacing": "-1%" } },
-        "sm":       { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 400, "fontSize": "14px", "lineHeight": "150%", "letterSpacing": "0%" } }
+        "lg-bold": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 700,
+            "fontSize": "18px",
+            "lineHeight": "150%",
+            "letterSpacing": "0%"
+          }
+        },
+        "lg": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 400,
+            "fontSize": "18px",
+            "lineHeight": "160%",
+            "letterSpacing": "0%"
+          }
+        },
+        "lg-light": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 300,
+            "fontSize": "18px",
+            "lineHeight": "160%",
+            "letterSpacing": "0%"
+          }
+        },
+        "md-bold": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 700,
+            "fontSize": "16px",
+            "lineHeight": "125%",
+            "letterSpacing": "0%"
+          }
+        },
+        "md": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 400,
+            "fontSize": "16px",
+            "lineHeight": "160%",
+            "letterSpacing": "0%"
+          }
+        },
+        "sm-bold": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 700,
+            "fontSize": "14px",
+            "lineHeight": "125%",
+            "letterSpacing": "-1%"
+          }
+        },
+        "sm": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 400,
+            "fontSize": "14px",
+            "lineHeight": "150%",
+            "letterSpacing": "0%"
+          }
+        }
       },
       "link": {
-        "lg":      { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 400, "fontSize": "18px", "lineHeight": "150%", "textDecoration": "underline" } },
-        "md":      { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 400, "fontSize": "16px", "lineHeight": "150%", "textDecoration": "underline" } },
-        "sm":      { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 400, "fontSize": "14px", "lineHeight": "160%", "textDecoration": "underline" } },
-        "caption": { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 400, "fontSize": "12px", "lineHeight": "150%", "textDecoration": "underline" } }
+        "lg": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 400,
+            "fontSize": "18px",
+            "lineHeight": "150%",
+            "textDecoration": "underline"
+          }
+        },
+        "md": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 400,
+            "fontSize": "16px",
+            "lineHeight": "150%",
+            "textDecoration": "underline"
+          }
+        },
+        "sm": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 400,
+            "fontSize": "14px",
+            "lineHeight": "160%",
+            "textDecoration": "underline"
+          }
+        },
+        "caption": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 400,
+            "fontSize": "12px",
+            "lineHeight": "150%",
+            "textDecoration": "underline"
+          }
+        }
       },
       "misc": {
-        "caption":    { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 400, "fontSize": "12px", "lineHeight": "150%", "letterSpacing": "1%" } },
-        "overline":   { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 600, "fontSize": "11px", "lineHeight": "16px", "letterSpacing": "12%", "textCase": "uppercase" } },
-        "microlabel": { "$type": "typography", "$value": { "fontFamily": "Plus Jakarta Sans", "fontWeight": 500, "fontSize": "10px", "lineHeight": "150%", "letterSpacing": "1%" } },
-        "code":       { "$type": "typography", "$value": { "fontFamily": "Fira Code", "fontWeight": 400, "fontSize": "13px", "lineHeight": "170%", "letterSpacing": "0%" } }
+        "caption": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 400,
+            "fontSize": "12px",
+            "lineHeight": "150%",
+            "letterSpacing": "1%"
+          }
+        },
+        "overline": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 600,
+            "fontSize": "11px",
+            "lineHeight": "16px",
+            "letterSpacing": "12%",
+            "textCase": "uppercase"
+          }
+        },
+        "microlabel": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontWeight": 500,
+            "fontSize": "10px",
+            "lineHeight": "150%",
+            "letterSpacing": "1%"
+          }
+        },
+        "code": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Fira Code",
+            "fontWeight": 400,
+            "fontSize": "13px",
+            "lineHeight": "170%",
+            "letterSpacing": "0%"
+          }
+        }
       }
     },
-    "melbourne": { "$description": "Melbourne reuses Prague's 19 text styles verbatim — Space Grotesk and Cascadia Code, same values. Duplicate the prague/* group as melbourne/*." },
-    "nova": { "$description": "Nova Scotia reuses Stockholm's 19 text styles verbatim — same families, weights, sizes, and tracking. Duplicate the stockholm/* group as nova/* rather than authoring new values." },
+    "melbourne": {
+      "$description": "Melbourne reuses Prague's 19 text styles verbatim — Space Grotesk and Cascadia Code, same values. Duplicate the prague/* group as melbourne/*."
+    },
+    "nova": {
+      "$description": "Nova Scotia reuses Stockholm's 19 text styles verbatim — same families, weights, sizes, and tracking. Duplicate the stockholm/* group as nova/* rather than authoring new values."
+    },
     "prague": {
       "$description": "Space Grotesk has no 600 or 800 — every Semibold role is 500, Extrabold is 700. Headings take an extra 0.5% negative tracking.",
       "heading": {
-        "page-header":   { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 700, "fontSize": "46px", "lineHeight": "107%", "letterSpacing": "-4.5%", "textCase": "none" } },
-        "inner-page":    { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 500, "fontSize": "36px", "lineHeight": "125%", "letterSpacing": "-2.5%", "textCase": "none" } },
-        "general-title": { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 500, "fontSize": "28px", "lineHeight": "125%", "letterSpacing": "-2.5%", "textCase": "none" } },
-        "element-title": { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 500, "fontSize": "22px", "lineHeight": "125%", "letterSpacing": "-1.5%", "textCase": "none" } }
+        "page-header": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 700,
+            "fontSize": "46px",
+            "lineHeight": "107%",
+            "letterSpacing": "-4.5%",
+            "textCase": "none"
+          }
+        },
+        "inner-page": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 500,
+            "fontSize": "36px",
+            "lineHeight": "125%",
+            "letterSpacing": "-2.5%",
+            "textCase": "none"
+          }
+        },
+        "general-title": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 500,
+            "fontSize": "28px",
+            "lineHeight": "125%",
+            "letterSpacing": "-2.5%",
+            "textCase": "none"
+          }
+        },
+        "element-title": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 500,
+            "fontSize": "22px",
+            "lineHeight": "125%",
+            "letterSpacing": "-1.5%",
+            "textCase": "none"
+          }
+        }
       },
       "body": {
-        "lg-bold":  { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 700, "fontSize": "18px", "lineHeight": "150%", "letterSpacing": "0%" } },
-        "lg":       { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 400, "fontSize": "18px", "lineHeight": "160%", "letterSpacing": "0%" } },
-        "lg-light": { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 300, "fontSize": "18px", "lineHeight": "160%", "letterSpacing": "0%" } },
-        "md-bold":  { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 700, "fontSize": "16px", "lineHeight": "125%", "letterSpacing": "0%" } },
-        "md":       { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 400, "fontSize": "16px", "lineHeight": "160%", "letterSpacing": "0%" } },
-        "sm-bold":  { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 700, "fontSize": "14px", "lineHeight": "125%", "letterSpacing": "-1%" } },
-        "sm":       { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 400, "fontSize": "14px", "lineHeight": "150%", "letterSpacing": "0%" } }
+        "lg-bold": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 700,
+            "fontSize": "18px",
+            "lineHeight": "150%",
+            "letterSpacing": "0%"
+          }
+        },
+        "lg": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 400,
+            "fontSize": "18px",
+            "lineHeight": "160%",
+            "letterSpacing": "0%"
+          }
+        },
+        "lg-light": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 300,
+            "fontSize": "18px",
+            "lineHeight": "160%",
+            "letterSpacing": "0%"
+          }
+        },
+        "md-bold": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 700,
+            "fontSize": "16px",
+            "lineHeight": "125%",
+            "letterSpacing": "0%"
+          }
+        },
+        "md": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 400,
+            "fontSize": "16px",
+            "lineHeight": "160%",
+            "letterSpacing": "0%"
+          }
+        },
+        "sm-bold": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 700,
+            "fontSize": "14px",
+            "lineHeight": "125%",
+            "letterSpacing": "-1%"
+          }
+        },
+        "sm": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 400,
+            "fontSize": "14px",
+            "lineHeight": "150%",
+            "letterSpacing": "0%"
+          }
+        }
       },
       "link": {
-        "lg":      { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 400, "fontSize": "18px", "lineHeight": "150%", "textDecoration": "underline" } },
-        "md":      { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 400, "fontSize": "16px", "lineHeight": "150%", "textDecoration": "underline" } },
-        "sm":      { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 400, "fontSize": "14px", "lineHeight": "160%", "textDecoration": "underline" } },
-        "caption": { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 400, "fontSize": "12px", "lineHeight": "150%", "textDecoration": "underline" } }
+        "lg": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 400,
+            "fontSize": "18px",
+            "lineHeight": "150%",
+            "textDecoration": "underline"
+          }
+        },
+        "md": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 400,
+            "fontSize": "16px",
+            "lineHeight": "150%",
+            "textDecoration": "underline"
+          }
+        },
+        "sm": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 400,
+            "fontSize": "14px",
+            "lineHeight": "160%",
+            "textDecoration": "underline"
+          }
+        },
+        "caption": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 400,
+            "fontSize": "12px",
+            "lineHeight": "150%",
+            "textDecoration": "underline"
+          }
+        }
       },
       "misc": {
-        "caption":    { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 400, "fontSize": "12px", "lineHeight": "150%", "letterSpacing": "1%" } },
-        "overline":   { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 500, "fontSize": "11px", "lineHeight": "16px", "letterSpacing": "14%", "textCase": "uppercase" } },
-        "microlabel": { "$type": "typography", "$value": { "fontFamily": "Space Grotesk", "fontWeight": 500, "fontSize": "10px", "lineHeight": "150%", "letterSpacing": "1%" } },
-        "code":       { "$type": "typography", "$value": { "fontFamily": "Cascadia Code", "fontWeight": 400, "fontSize": "13px", "lineHeight": "170%", "letterSpacing": "0%" } }
+        "caption": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 400,
+            "fontSize": "12px",
+            "lineHeight": "150%",
+            "letterSpacing": "1%"
+          }
+        },
+        "overline": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 500,
+            "fontSize": "11px",
+            "lineHeight": "16px",
+            "letterSpacing": "14%",
+            "textCase": "uppercase"
+          }
+        },
+        "microlabel": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Space Grotesk",
+            "fontWeight": 500,
+            "fontSize": "10px",
+            "lineHeight": "150%",
+            "letterSpacing": "1%"
+          }
+        },
+        "code": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Cascadia Code",
+            "fontWeight": 400,
+            "fontSize": "13px",
+            "lineHeight": "170%",
+            "letterSpacing": "0%"
+          }
+        }
       }
     },
     "arctic": {
       "$description": "Headings are Instrument Serif at its only weight, 400 — hierarchy is size alone, and sizes step up ~10%. 24px is the serif floor; everything smaller is Instrument Sans. Instrument Sans has no 300, so body/lg-light is 400 with text/muted.",
       "heading": {
-        "page-header":   { "$type": "typography", "$value": { "fontFamily": "Instrument Serif", "fontWeight": 400, "fontSize": "96px", "lineHeight": "92%", "letterSpacing": "-2%", "textCase": "none" } },
-        "inner-page":    { "$type": "typography", "$value": { "fontFamily": "Instrument Serif", "fontWeight": 400, "fontSize": "40px", "lineHeight": "115%", "letterSpacing": "-1.2%", "textCase": "none" } },
-        "general-title": { "$type": "typography", "$value": { "fontFamily": "Instrument Serif", "fontWeight": 400, "fontSize": "32px", "lineHeight": "120%", "letterSpacing": "-1.2%", "textCase": "none" } },
-        "element-title": { "$type": "typography", "$value": { "fontFamily": "Instrument Serif", "fontWeight": 400, "fontSize": "24px", "lineHeight": "125%", "letterSpacing": "-0.8%", "textCase": "none" } }
+        "page-header": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Serif",
+            "fontWeight": 400,
+            "fontSize": "96px",
+            "lineHeight": "92%",
+            "letterSpacing": "-2%",
+            "textCase": "none"
+          }
+        },
+        "inner-page": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Serif",
+            "fontWeight": 400,
+            "fontSize": "40px",
+            "lineHeight": "115%",
+            "letterSpacing": "-1.2%",
+            "textCase": "none"
+          }
+        },
+        "general-title": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Serif",
+            "fontWeight": 400,
+            "fontSize": "32px",
+            "lineHeight": "120%",
+            "letterSpacing": "-1.2%",
+            "textCase": "none"
+          }
+        },
+        "element-title": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Serif",
+            "fontWeight": 400,
+            "fontSize": "24px",
+            "lineHeight": "125%",
+            "letterSpacing": "-0.8%",
+            "textCase": "none"
+          }
+        }
       },
       "body": {
-        "lg-bold":  { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 700, "fontSize": "18px", "lineHeight": "150%", "letterSpacing": "0%" } },
-        "lg":       { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 400, "fontSize": "18px", "lineHeight": "160%", "letterSpacing": "0%" } },
-        "lg-light": { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 400, "fontSize": "18px", "lineHeight": "160%", "letterSpacing": "0%" } },
-        "md-bold":  { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 700, "fontSize": "16px", "lineHeight": "125%", "letterSpacing": "0%" } },
-        "md":       { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 400, "fontSize": "16px", "lineHeight": "160%", "letterSpacing": "0%" } },
-        "sm-bold":  { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 700, "fontSize": "14px", "lineHeight": "125%", "letterSpacing": "-1%" } },
-        "sm":       { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 400, "fontSize": "14px", "lineHeight": "150%", "letterSpacing": "0%" } }
+        "lg-bold": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 700,
+            "fontSize": "18px",
+            "lineHeight": "150%",
+            "letterSpacing": "0%"
+          }
+        },
+        "lg": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 400,
+            "fontSize": "18px",
+            "lineHeight": "160%",
+            "letterSpacing": "0%"
+          }
+        },
+        "lg-light": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 400,
+            "fontSize": "18px",
+            "lineHeight": "160%",
+            "letterSpacing": "0%"
+          }
+        },
+        "md-bold": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 700,
+            "fontSize": "16px",
+            "lineHeight": "125%",
+            "letterSpacing": "0%"
+          }
+        },
+        "md": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 400,
+            "fontSize": "16px",
+            "lineHeight": "160%",
+            "letterSpacing": "0%"
+          }
+        },
+        "sm-bold": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 700,
+            "fontSize": "14px",
+            "lineHeight": "125%",
+            "letterSpacing": "-1%"
+          }
+        },
+        "sm": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 400,
+            "fontSize": "14px",
+            "lineHeight": "150%",
+            "letterSpacing": "0%"
+          }
+        }
       },
       "link": {
-        "lg":      { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 400, "fontSize": "18px", "lineHeight": "150%", "textDecoration": "underline" } },
-        "md":      { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 400, "fontSize": "16px", "lineHeight": "150%", "textDecoration": "underline" } },
-        "sm":      { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 400, "fontSize": "14px", "lineHeight": "160%", "textDecoration": "underline" } },
-        "caption": { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 400, "fontSize": "12px", "lineHeight": "150%", "textDecoration": "underline" } }
+        "lg": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 400,
+            "fontSize": "18px",
+            "lineHeight": "150%",
+            "textDecoration": "underline"
+          }
+        },
+        "md": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 400,
+            "fontSize": "16px",
+            "lineHeight": "150%",
+            "textDecoration": "underline"
+          }
+        },
+        "sm": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 400,
+            "fontSize": "14px",
+            "lineHeight": "160%",
+            "textDecoration": "underline"
+          }
+        },
+        "caption": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 400,
+            "fontSize": "12px",
+            "lineHeight": "150%",
+            "textDecoration": "underline"
+          }
+        }
       },
       "misc": {
-        "caption":    { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 400, "fontSize": "12px", "lineHeight": "150%", "letterSpacing": "1%" } },
-        "overline":   { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 600, "fontSize": "11px", "lineHeight": "16px", "letterSpacing": "12%", "textCase": "uppercase" } },
-        "microlabel": { "$type": "typography", "$value": { "fontFamily": "Instrument Sans", "fontWeight": 500, "fontSize": "10px", "lineHeight": "150%", "letterSpacing": "1%" } },
-        "code":       { "$type": "typography", "$value": { "fontFamily": "Fira Code", "fontWeight": 400, "fontSize": "13px", "lineHeight": "170%", "letterSpacing": "0%" } }
+        "caption": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 400,
+            "fontSize": "12px",
+            "lineHeight": "150%",
+            "letterSpacing": "1%"
+          }
+        },
+        "overline": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 600,
+            "fontSize": "11px",
+            "lineHeight": "16px",
+            "letterSpacing": "12%",
+            "textCase": "uppercase"
+          }
+        },
+        "microlabel": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Instrument Sans",
+            "fontWeight": 500,
+            "fontSize": "10px",
+            "lineHeight": "150%",
+            "letterSpacing": "1%"
+          }
+        },
+        "code": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Fira Code",
+            "fontWeight": 400,
+            "fontSize": "13px",
+            "lineHeight": "170%",
+            "letterSpacing": "0%"
+          }
+        }
       }
     }
   },
 
   "effect": {
     "$description": "Figma effect styles — shared by all themes except the focus ring, which reads border/focus from Semantic.",
-    "focus-ring":   { "$type": "shadow", "$value": { "color": "{semantic.border.focus}", "offsetX": "0", "offsetY": "0", "blur": "0", "spread": "3px" } },
-    "menu":         { "$type": "shadow", "$value": { "color": "#11121520", "offsetX": "0", "offsetY": "12px", "blur": "32px", "spread": "0" } },
-    "dialog-light": { "$type": "shadow", "$value": { "color": "#1112152E", "offsetX": "0", "offsetY": "24px", "blur": "64px", "spread": "0" } },
-    "dialog-dark":  { "$type": "shadow", "$value": { "color": "#00000099", "offsetX": "0", "offsetY": "24px", "blur": "64px", "spread": "0" } },
-    "tooltip":      { "$type": "shadow", "$value": { "color": "#11121533", "offsetX": "0", "offsetY": "8px", "blur": "20px", "spread": "0" } },
-    "scrim-light":  { "$type": "color", "$value": "#111215", "$extensions": { "apc": { "opacity": 0.56 } } },
-    "scrim-dark":   { "$type": "color", "$value": "#111215", "$extensions": { "apc": { "opacity": 0.72 } } }
+    "focus-ring": {
+      "$type": "shadow",
+      "$value": {
+        "color": "{semantic.border.focus}",
+        "offsetX": "0",
+        "offsetY": "0",
+        "blur": "0",
+        "spread": "3px"
+      }
+    },
+    "menu": {
+      "$type": "shadow",
+      "$value": {
+        "color": "#11121520",
+        "offsetX": "0",
+        "offsetY": "12px",
+        "blur": "32px",
+        "spread": "0"
+      }
+    },
+    "dialog-light": {
+      "$type": "shadow",
+      "$value": {
+        "color": "#1112152E",
+        "offsetX": "0",
+        "offsetY": "24px",
+        "blur": "64px",
+        "spread": "0"
+      }
+    },
+    "dialog-dark": {
+      "$type": "shadow",
+      "$value": {
+        "color": "#00000099",
+        "offsetX": "0",
+        "offsetY": "24px",
+        "blur": "64px",
+        "spread": "0"
+      }
+    },
+    "tooltip": {
+      "$type": "shadow",
+      "$value": {
+        "color": "#11121533",
+        "offsetX": "0",
+        "offsetY": "8px",
+        "blur": "20px",
+        "spread": "0"
+      }
+    },
+    "scrim-light": {
+      "$type": "color",
+      "$value": "#111215",
+      "$extensions": { "apc": { "opacity": 0.56 } }
+    },
+    "scrim-dark": {
+      "$type": "color",
+      "$value": "#111215",
+      "$extensions": { "apc": { "opacity": 0.72 } }
+    }
   }
 }

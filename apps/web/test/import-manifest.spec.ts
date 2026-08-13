@@ -22,7 +22,8 @@ const RESERVED = new Set([
 ]);
 
 function requiredFromSchema(): string[] {
-  const shape = (EnvSchema as unknown as { shape: Record<string, { isOptional(): boolean }> }).shape;
+  const shape = (EnvSchema as unknown as { shape: Record<string, { isOptional(): boolean }> })
+    .shape;
   return Object.entries(shape)
     .filter(([, field]) => !field.isOptional())
     .map(([name]) => name)

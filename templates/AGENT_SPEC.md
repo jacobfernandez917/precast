@@ -84,7 +84,7 @@ input). See `apps/agents/src/mastra/lib/memory.ts` for the shared config, and
 why `semanticRecall` is off by default.
 
 **State this agent's memory needs here:** which scope it uses, what belongs in
-working memory, and — importantly — what should *not* live in memory at all
+working memory, and — importantly — what should _not_ live in memory at all
 because it must stay correct (dates, statuses, ownership). Facts that change
 belong behind a tool that reads them from a table, not in recalled conversation.
 

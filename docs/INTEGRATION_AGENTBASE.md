@@ -100,7 +100,7 @@ No deploy, no `POST /agents`, no reachable URL to stand up — AgentBase does it
    - **Any git URL:** paste the HTTPS clone URL; for a private repo attach a **VCS Deploy Token** credential.
    - Attach **Variables namespaces** (see §4B), choose an **environment** (Development / Staging / Production or a custom one, from the attached namespaces; default Production), and set a branch/tag.
 3. AgentBase reads **`agentbase.import.json`** (§5b), clones the repo, builds `apps/agents/Dockerfile` (repo root as build context), **hosts** the container, injects the chosen environment's values, mints a random inbound bearer into `AGENT_API_TOKEN`, and registers each Mastra agent the container serves. Newly discovered skills are **`APPROVED`** by default; review them before publishing.
-4. **Updates are org-initiated** — new commits are *not* auto-deployed. On the imported agent's edit page, **Pull latest & redeploy** re-clones the ref, rebuilds, redeploys, and rotates the inbound token; **Redeploy in environment** switches which environment's values back the live agent. (Webhook auto-deploy is deliberately out of scope for now.)
+4. **Updates are org-initiated** — new commits are _not_ auto-deployed. On the imported agent's edit page, **Pull latest & redeploy** re-clones the ref, rebuilds, redeploys, and rotates the inbound token; **Redeploy in environment** switches which environment's values back the live agent. (Webhook auto-deploy is deliberately out of scope for now.)
 
 The repo needs no changes to be import-ready — Precast ships the manifest and a Dockerfile that already match the contract.
 
@@ -186,9 +186,9 @@ Path A (§4A) reads a manifest at the **repo root**. Precast ships one:
 ```jsonc
 {
   "dockerfile": "apps/agents/Dockerfile", // built with the repo ROOT as context
-  "port": 45000,                            // the container's listen port
-  "authEnv": "AGENT_API_TOKEN",            // env var AgentBase mints the inbound bearer into
-  "requiredEnv": ["DATABASE_URL"]          // must be settled before build (derived; see below)
+  "port": 45000, // the container's listen port
+  "authEnv": "AGENT_API_TOKEN", // env var AgentBase mints the inbound bearer into
+  "requiredEnv": ["DATABASE_URL"], // must be settled before build (derived; see below)
   // "agents": [...] intentionally omitted — see below
 }
 ```
@@ -262,13 +262,13 @@ ENABLE_AGENTBASE=0  (direct mode — explicit opt-out)
 
 ### 7.1 Routing
 
-| Layer                        | Route                                        | Description                                                        |
-| ---------------------------- | -------------------------------------------- | ------------------------------------------------------------------ |
-| **Client component**         | `POST /api/a2a/:agentId`                     | Client sends message → route handler                               |
-| **Next.js route handler**    | `POST /api/a2a/:agentId`                     | Validates input, calls `callAgent()`, returns a normalized reply   |
-| **Server util**              | `callAgent()`                                | Branches on `ENABLE_AGENTBASE` (see modes below)                   |
+| Layer                        | Route                                        | Description                                                       |
+| ---------------------------- | -------------------------------------------- | ----------------------------------------------------------------- |
+| **Client component**         | `POST /api/a2a/:agentId`                     | Client sends message → route handler                              |
+| **Next.js route handler**    | `POST /api/a2a/:agentId`                     | Validates input, calls `callAgent()`, returns a normalized reply  |
+| **Server util**              | `callAgent()`                                | Branches on `ENABLE_AGENTBASE` (see modes below)                  |
 | **Proxy mode** (default, ≠0) | `POST $AGENTBASE_AGENT_URL_<AGENT_ID>`       | The plain A2A `message/send` envelope; `Bearer <Application JWT>` |
-| **Direct mode** (`=0`)       | `POST $MASTRA_INTERNAL_URL/api/a2a/:agentId` | A2A `message/send`; `Bearer AGENT_API_TOKEN`                       |
+| **Direct mode** (`=0`)       | `POST $MASTRA_INTERNAL_URL/api/a2a/:agentId` | A2A `message/send`; `Bearer AGENT_API_TOKEN`                      |
 
 `callAgent()` returns a normalized `{ ok, text, error?, via, raw }`. Both modes actually send the **same request body** and share the same response shape: AgentBase's per-agent proxy takes the plain A2A `message/send` envelope as-is (org + agent are already encoded in the URL, so there's no wrapper object) and **relays Mastra's real A2A response verbatim** — `buildA2aMessageEnvelope()` in `a2a-client.ts` is shared by both modes. **Guard rail:** if AgentBase mode is active but the target agent's `AGENTBASE_AGENT_URL_<AGENT_ID>` isn't set, or the Application credentials (`AGENTBASE_CLIENT_ID`/`_SECRET`/`AGENTBASE_TOKEN_URL`) aren't fully set, `callAgent()` returns a clear error reply instead of a broken request.
 
@@ -330,14 +330,14 @@ Next route handler → POST $MASTRA_INTERNAL_URL/api/a2a/:agentId
 Mastra agent  (verifies Bearer <AGENT_API_TOKEN>)
 ```
 
-| Mode   | Token the web app sends                        | Reaches Mastra as                   |
+| Mode   | Token the web app sends                         | Reaches Mastra as                   |
 | ------ | ----------------------------------------------- | ----------------------------------- |
 | Proxy  | Application JWT it minted itself (to AgentBase) | AgentBase injects `AGENT_API_TOKEN` |
 | Direct | `AGENT_API_TOKEN` (straight to Mastra)          | `AGENT_API_TOKEN`                   |
 
 **Key points:**
 
-- **Set up once, in AgentBase Studio:** create a developer **Application**; copy its `clientId`/`clientSecret`/`tokenUrl` (the secret is shown once) into `.env`. **Subscribe that Application to each agent's registry listing** — this is required even to call your *own* imported agent; there's no same-org exemption.
+- **Set up once, in AgentBase Studio:** create a developer **Application**; copy its `clientId`/`clientSecret`/`tokenUrl` (the secret is shown once) into `.env`. **Subscribe that Application to each agent's registry listing** — this is required even to call your _own_ imported agent; there's no same-org exemption.
 - The web app **mints its own token** on demand (`agentbase-auth.ts`) and caches it in memory per server process, refreshing ~30s before expiry. **Never** paste a copied/static JWT into `.env` — it would go stale in ~30 minutes.
 - In **proxy** mode the web app never knows `AGENT_API_TOKEN` — AgentBase strips inbound auth (zero-trust) and injects the agent's declared credential.
 - In **direct** mode the web app holds `AGENT_API_TOKEN` and sends it as the bearer itself.
@@ -370,9 +370,9 @@ The second integration axis — registering the Mastra agent itself on AgentBase
 
 This is a **third, separate integration axis** from §7 (which covers Next ↔ Mastra) — it's about **which model each imported Mastra agent itself calls**, and who controls that choice.
 
-**The rule:** *locally* (and in Standalone/External deployment mode) an agent uses `resolveDefaultModel()` (`apps/agents/src/mastra/lib/default-model.ts`), which auto-detects a model from whichever provider key is set in this repo's own `.env` — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_GENERATIVE_AI_API_KEY` — or reads an explicit `DEFAULT_LLM_MODEL` override; no provider is hardcoded. *On AgentBase* (an imported, AgentBase-hosted container) the model is instead **set per agent from the org's onboarded models** — and an agent with no model set does **not** silently read an env key; it fails loudly until configured.
+**The rule:** _locally_ (and in Standalone/External deployment mode) an agent uses `resolveDefaultModel()` (`apps/agents/src/mastra/lib/default-model.ts`), which auto-detects a model from whichever provider key is set in this repo's own `.env` — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_GENERATIVE_AI_API_KEY` — or reads an explicit `DEFAULT_LLM_MODEL` override; no provider is hardcoded. _On AgentBase_ (an imported, AgentBase-hosted container) the model is instead **set per agent from the org's onboarded models** — and an agent with no model set does **not** silently read an env key; it fails loudly until configured.
 
-1. Import the repo (§4A). AgentBase always injects `AGENTBASE_HOSTED=1` into the container. On the **first** deploy no model can be set yet (see the one-deploy lag below) — the container still boots and its agents are discoverable, but *calling* an unconfigured agent returns a clear error telling you to set its model in Studio (it never falls back to an env key on AgentBase).
+1. Import the repo (§4A). AgentBase always injects `AGENTBASE_HOSTED=1` into the container. On the **first** deploy no model can be set yet (see the one-deploy lag below) — the container still boots and its agents are discoverable, but _calling_ an unconfigured agent returns a clear error telling you to set its model in Studio (it never falls back to an env key on AgentBase).
 2. In Studio, open the agent → **LLM configuration** → pick one of the org's already-onboarded models (from the **Models** page — that's where the org's own provider key lives) → **Save**.
 3. **Redeploy** ("Pull latest & redeploy"). AgentBase mints this agent a fresh service Application and injects its gateway env into the container (reserved, never read from this repo's `.env`/Variables):
 
@@ -387,9 +387,43 @@ This is a **third, separate integration axis** from §7 (which covers Next ↔ M
 
    `<AGENT_ID>` is the agent's own Mastra `id` (uppercased/underscored — same convention as `AGENTBASE_AGENT_URL_<AGENT_ID>` in §7), since one container can host several agents, each with its own choice.
 
-4. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel(agentId, fallback)` implements the rule: when both `AGENTBASE_LLM_BASE_URL` and this agent's `AGENTBASE_LLM_MODEL_<AGENT_ID>` are set, it builds an OpenAI-compatible model (`@ai-sdk/openai-compatible`) pointed at the gateway, minting/caching its own client_credentials bearer per call (mirrors `agentbase-auth.ts`'s pattern) — the org's real provider key never reaches the container. When `AGENTBASE_HOSTED=1` but this agent has no model, it returns a model that **fails at call time** with an actionable message (never an env key). Only when *not* AgentBase-hosted does it return `fallback` unchanged — each agent passes `resolveDefaultModel()`'s result as that `fallback` (see §7.9 above).
+4. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel(agentId, fallback)` implements the rule: when both `AGENTBASE_LLM_BASE_URL` and this agent's `AGENTBASE_LLM_MODEL_<AGENT_ID>` are set, it builds an OpenAI-compatible model (`@ai-sdk/openai-compatible`) pointed at the gateway, minting/caching its own client_credentials bearer per call (mirrors `agentbase-auth.ts`'s pattern) — the org's real provider key never reaches the container. When `AGENTBASE_HOSTED=1` but this agent has no model, it returns a model that **fails at call time** with an actionable message (never an env key). Only when _not_ AgentBase-hosted does it return `fallback` unchanged — each agent passes `resolveDefaultModel()`'s result as that `fallback` (see §7.9 above).
 
-**Note the one-deploy lag:** a brand-new agent's own Mastra `id` isn't knowable to AgentBase until its first container boots and gets probed (for manifest-less repos) — so gateway wiring only takes effect starting from the deploy *after* the agent is first known to the registry, once an admin has configured it. This is why the fail-fast is at **call time**, not boot time: crashing at construction would stop the container from booting and deadlock that first discovery deploy. It's a one-time bootstrapping gap per agent, not an ongoing one.
+**Note the one-deploy lag:** a brand-new agent's own Mastra `id` isn't knowable to AgentBase until its first container boots and gets probed (for manifest-less repos) — so gateway wiring only takes effect starting from the deploy _after_ the agent is first known to the registry, once an admin has configured it. This is why the fail-fast is at **call time**, not boot time: crashing at construction would stop the container from booting and deadlock that first discovery deploy. It's a one-time bootstrapping gap per agent, not an ongoing one.
+
+---
+
+### 7.10 Runtime MCP discovery for imported agents
+
+The MCP counterpart to §7.9. An imported agent learns **which MCP servers it may call** at
+runtime, rather than having their URLs hardcoded in this repo's `.env`.
+
+AgentBase already proxies MCP: `POST /proxy/mcp/:org/:slug/mcp` sits behind the same
+`PublicProxyGuard` as the LLM gateway, injects the upstream credential, and enforces the
+subscription. The missing piece was discovery — knowing _which_ `:org/:slug` pairs this agent
+is entitled to. That lived only behind `/developer/subscriptions`, which requires a human
+developer token.
+
+1. AgentBase injects **`AGENTBASE_MCP_BASE_URL`** into every hosted container —
+   unconditionally, unlike the per-agent LLM vars. An agent with no subscriptions gets an
+   empty list, which is a real answer rather than a missing variable.
+2. The agent calls **`GET {AGENTBASE_MCP_BASE_URL}/subscriptions`** with the _same_ per-agent
+   Application credentials minted for the LLM gateway — one guard, one credential, no second
+   secret to manage.
+3. The response carries only `{org, slug, title, scopes, url}`. **Never `baseUrl`, never
+   `authConfig`.** The proxy is what enforces subscription, rate limits, metering and audit,
+   so discovery must not hand out anything that could be used to bypass it.
+4. `apps/agents/src/mastra/lib/agentbase-mcp.ts`'s `resolveAgentMcpTools(agentId)` builds an
+   `MCPClient` against those proxied endpoints and returns the namespaced toolset. It uses
+   `listToolsWithErrors()` and **throws** if any subscribed server fails to connect — a
+   partially-connected agent must not present as one that simply has fewer tools.
+
+**Unlike §7.9, this fails at BOOT, not at call time.** The toolset is part of the agent's
+identity and has to be settled before its A2A card is served, so it is resolved with a
+top-level `await`. On a hosted container a discovery failure therefore fails the deploy —
+loudly, in the build/runtime logs — instead of serving an agent that is quietly missing half
+its capabilities. Off AgentBase (`AGENTBASE_HOSTED` unset) the whole path is inert: `{}`, no
+network call, no throw.
 
 ---
 

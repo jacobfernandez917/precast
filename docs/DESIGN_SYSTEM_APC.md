@@ -10,8 +10,8 @@
 **Generated artefact:** `apps/web/app/theme/apc-themes.css`
 
 > **Easiest path — ask your coding agent.** The Precast plugin ships a **`design-system`** skill
-> that drives everything here: say *"APC design system"*, *"switch the theme"*, or
-> *"style this with APC"* (or `/precast:design-system`). It also knows how to pull the
+> that drives everything here: say _"APC design system"_, _"switch the theme"_, or
+> _"style this with APC"_ (or `/precast:design-system`). It also knows how to pull the
 > per-component specs — geometry, state matrices, usage rules — out of the Claude Design
 > project when you're building a screen.
 
@@ -19,13 +19,13 @@
 
 ## 1. The five themes
 
-| Theme | Id | Character |
-| --- | --- | --- |
+| Theme         | Id          | Character                                     |
+| ------------- | ----------- | --------------------------------------------- |
 | **Stockholm** | `stockholm` | The base. Deep navy brand with a lime accent. |
-| **Prague** | `prague` | Nightfall blues with a warm glow accent. |
-| **Arctic** | `arctic` | Cool cast/glacier blues; its own status ramp. |
-| **Nova** | `nova` | Midnight sea with spring-green and lavender. |
-| **Melbourne** | `melbourne` | Dark blue with mustard. |
+| **Prague**    | `prague`    | Nightfall blues with a warm glow accent.      |
+| **Arctic**    | `arctic`    | Cool cast/glacier blues; its own status ramp. |
+| **Nova**      | `nova`      | Midnight sea with spring-green and lavender.  |
+| **Melbourne** | `melbourne` | Dark blue with mustard.                       |
 
 Stockholm is the default. It has no `Stockholm *.dc.html` component files in the design
 project because the plain `APC *.dc.html` files **are** Stockholm.
@@ -68,7 +68,7 @@ Three details that are load-bearing — change them and the theming silently sto
    APC must come after `astryx-theme`, so it wins without specificity tricks.
 2. **The selector targets Astryx's nested provider too.** Astryx's `<Theme>` renders a nested
    `data-astryx-theme` element that re-declares every token. Layer order only settles
-   conflicts on the *same* element, so the generated CSS matches both
+   conflicts on the _same_ element, so the generated CSS matches both
    `[data-apc-theme='x']` and `[data-apc-theme='x'] [data-astryx-theme]`. Matching only
    `<html>` loses by inheritance proximity and every APC colour is ignored below the provider.
 3. **Light/dark uses CSS `light-dark()`.** Astryx already opts into `color-scheme`, so each
@@ -84,12 +84,12 @@ primary action and on the page background, in both modes, for all five themes.
 
 APC is richer than Astryx in a few places. These are deliberate, not oversights:
 
-| APC role | Status | Why |
-| --- | --- | --- |
-| `action.destructive` | unmapped | Astryx has a single `--color-error` covering alerts, validation text and danger buttons. `state.error` owns it as the broader use. |
-| `text.on-accent` | mode-scoped | Feeds `--color-on-accent` in **dark** only. `action.primary` is a dark brand colour in light mode and a bright accent in dark, so the readable foreground flips — see `COMPOSITE` in the generator. |
-| `border.selected` | unmapped | Astryx has one blue border token; the focus ring is the higher-value use. |
-| Component geometry | not ported | We keep Astryx's component shapes (option chosen: APC themes **on top of** Astryx). Colour, typography and surfaces are APC; radii/padding remain Astryx's. |
+| APC role             | Status      | Why                                                                                                                                                                                                 |
+| -------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `action.destructive` | unmapped    | Astryx has a single `--color-error` covering alerts, validation text and danger buttons. `state.error` owns it as the broader use.                                                                  |
+| `text.on-accent`     | mode-scoped | Feeds `--color-on-accent` in **dark** only. `action.primary` is a dark brand colour in light mode and a bright accent in dark, so the readable foreground flips — see `COMPOSITE` in the generator. |
+| `border.selected`    | unmapped    | Astryx has one blue border token; the focus ring is the higher-value use.                                                                                                                           |
+| Component geometry   | not ported  | We keep Astryx's component shapes (option chosen: APC themes **on top of** Astryx). Colour, typography and surfaces are APC; radii/padding remain Astryx's.                                         |
 
 The generator **fails the build** if two APC roles claim the same Astryx variable with
 different values, so the mapping can't silently drift. If you extend `MAP`, that guard is what

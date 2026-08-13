@@ -123,11 +123,15 @@ describe('cache key', () => {
     // packageManager from each manifest. If a future edit folds `name` in,
     // every renamed project loses the cache forever and nobody notices.
     const src = readFileSync(join(REPO_ROOT, 'scripts/deps-image.mjs'), 'utf8');
-    const body = src.slice(src.indexOf('export function lockHash'), src.indexOf('export function tagFor'));
-    expect(body).toContain('dependencies');
-    expect(body, 'lockHash must not hash package names — a rename is not a graph change').not.toMatch(
-      /pkg\.name/,
+    const body = src.slice(
+      src.indexOf('export function lockHash'),
+      src.indexOf('export function tagFor'),
     );
+    expect(body).toContain('dependencies');
+    expect(
+      body,
+      'lockHash must not hash package names — a rename is not a graph change',
+    ).not.toMatch(/pkg\.name/);
   });
 
   it('has a lockfile to hash', () => {

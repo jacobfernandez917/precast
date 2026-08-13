@@ -99,7 +99,7 @@ can persist anything. In practice that optionality cost more than it saved:
   engine.
 - **The default failed in the worst direction.** `MASTRA_DB_URL` defaulted to
   `file:./mastra.db`, and `docker-compose.yml` hardcoded
-  `MASTRA_DB_URL: file:/data/mastra.db` in `environment:` — which *overrides*
+  `MASTRA_DB_URL: file:/data/mastra.db` in `environment:` — which _overrides_
   `env_file`. Agent memory therefore went to a container-local SQLite file even
   for a project that had correctly configured Postgres, and vanished on the
   next `pnpm poc agents` rebuild. A silent downgrade to a throwaway file is a

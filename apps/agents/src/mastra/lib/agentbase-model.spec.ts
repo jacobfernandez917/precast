@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getAgentBaseLlmToken, resetAgentBaseLlmTokenCacheForTests, resolveAgentModel } from './agentbase-model';
+import {
+  getAgentBaseLlmToken,
+  resetAgentBaseLlmTokenCacheForTests,
+  resolveAgentModel,
+} from './agentbase-model';
 
 const ENV_KEYS = [
   'AGENTBASE_HOSTED',
@@ -27,7 +31,8 @@ afterEach(() => {
 
 function setConfig() {
   process.env.AGENTBASE_LLM_BASE_URL = 'https://agentbase.example.com/llm/v1';
-  process.env.AGENTBASE_LLM_TOKEN_URL = 'https://keycloak.example.com/realms/agentbase/protocol/openid-connect/token';
+  process.env.AGENTBASE_LLM_TOKEN_URL =
+    'https://keycloak.example.com/realms/agentbase/protocol/openid-connect/token';
   process.env.AGENTBASE_LLM_CLIENT_ID_EXAMPLE_AGENT = 'svc-client-id';
   process.env.AGENTBASE_LLM_CLIENT_SECRET_EXAMPLE_AGENT = 'svc-client-secret';
   process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT = 'google/gemini-2.5-flash';
@@ -38,14 +43,18 @@ describe('resolveAgentModel', () => {
     delete process.env.AGENTBASE_HOSTED;
     delete process.env.AGENTBASE_LLM_BASE_URL;
     delete process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT;
-    expect(resolveAgentModel('example-agent', 'google/gemini-2.5-flash')).toBe('google/gemini-2.5-flash');
+    expect(resolveAgentModel('example-agent', 'google/gemini-2.5-flash')).toBe(
+      'google/gemini-2.5-flash',
+    );
   });
 
   it('falls back (local) when only the base URL is set but this agent has no model chosen', () => {
     delete process.env.AGENTBASE_HOSTED;
     process.env.AGENTBASE_LLM_BASE_URL = 'https://agentbase.example.com/llm/v1';
     delete process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT;
-    expect(resolveAgentModel('example-agent', 'google/gemini-2.5-flash')).toBe('google/gemini-2.5-flash');
+    expect(resolveAgentModel('example-agent', 'google/gemini-2.5-flash')).toBe(
+      'google/gemini-2.5-flash',
+    );
   });
 
   it('builds a gateway-backed model when both are set, keyed to this specific agent id', () => {
@@ -60,7 +69,9 @@ describe('resolveAgentModel', () => {
   it('does not use another agent’s env vars (one config per agent id)', () => {
     setConfig(); // only *_EXAMPLE_AGENT is set; not AgentBase-hosted
     delete process.env.AGENTBASE_HOSTED;
-    expect(resolveAgentModel('summary-agent', 'anthropic/claude-sonnet-5')).toBe('anthropic/claude-sonnet-5');
+    expect(resolveAgentModel('summary-agent', 'anthropic/claude-sonnet-5')).toBe(
+      'anthropic/claude-sonnet-5',
+    );
   });
 
   it('on an AgentBase-hosted container, an unconfigured agent does NOT fall back to the env key', () => {
@@ -91,13 +102,18 @@ describe('getAgentBaseLlmToken', () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
 
-    await expect(getAgentBaseLlmToken('example-agent')).rejects.toThrow(/AGENTBASE_LLM_CLIENT_ID_EXAMPLE_AGENT/);
+    await expect(getAgentBaseLlmToken('example-agent')).rejects.toThrow(
+      /AGENTBASE_LLM_CLIENT_ID_EXAMPLE_AGENT/,
+    );
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('mints via the standard OAuth2 client_credentials grant, keyed to this agent id', async () => {
     setConfig();
-    const fetchSpy = vi.fn(async () => new Response(JSON.stringify({ access_token: 'jwt-1', expires_in: 1800 }), { status: 200 }));
+    const fetchSpy = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ access_token: 'jwt-1', expires_in: 1800 }), { status: 200 }),
+    );
     vi.stubGlobal('fetch', fetchSpy);
 
     const token = await getAgentBaseLlmToken('example-agent');
@@ -115,7 +131,9 @@ describe('getAgentBaseLlmToken', () => {
     let call = 0;
     const fetchSpy = vi.fn(async () => {
       call += 1;
-      return new Response(JSON.stringify({ access_token: `jwt-${call}`, expires_in: 60 }), { status: 200 });
+      return new Response(JSON.stringify({ access_token: `jwt-${call}`, expires_in: 60 }), {
+        status: 200,
+      });
     });
     vi.stubGlobal('fetch', fetchSpy);
 
@@ -130,7 +148,10 @@ describe('getAgentBaseLlmToken', () => {
 
   it('throws a clear error on a non-ok token response', async () => {
     setConfig();
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('invalid_client', { status: 401 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('invalid_client', { status: 401 })),
+    );
     await expect(getAgentBaseLlmToken('example-agent')).rejects.toThrow(/401/);
   });
 });

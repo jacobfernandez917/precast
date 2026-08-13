@@ -25,7 +25,7 @@ This is a **monorepo boilerplate** — a curated, opinionated starting point for
 | Web (template)        | **Next.js** (App Router) with route handlers                                  |
 | Design system         | **Astryx** (`@astryxdesign/core`, web UI)                                     |
 | Shared                | **TypeScript** packages with zod validation                                   |
-| Database              | **Postgres** (remote/managed) — one `DATABASE_URL`, always Postgres (ADR-002)  |
+| Database              | **Postgres** (remote/managed) — one `DATABASE_URL`, always Postgres (ADR-002) |
 | Identity              | **Keycloak** / OIDC — **Docker Compose (dev)** or remote                      |
 | Cache                 | **Redis** — **remote/managed**                                                |
 | Containers            | **Docker Compose** (apps + Keycloak; Postgres/Redis never run here)           |

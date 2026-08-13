@@ -41,9 +41,10 @@ describe('precast.manifest.json', () => {
 
   it('never claims the same path as both managed and advisory', () => {
     const overlap = manifest.advisory.filter((p: string) => manifest.managed.includes(p));
-    expect(overlap, `a path cannot be both auto-synced and advisory: ${overlap.join(', ')}`).toEqual(
-      [],
-    );
+    expect(
+      overlap,
+      `a path cannot be both auto-synced and advisory: ${overlap.join(', ')}`,
+    ).toEqual([]);
   });
 
   it('keeps the files a derived project always customizes out of `managed`', () => {

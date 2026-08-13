@@ -3,6 +3,7 @@ import { exampleTool } from '../tools/example-tool';
 import { resolveAgentModel } from '../lib/agentbase-model';
 import { resolveDefaultModel } from '../lib/default-model';
 import { createAgentMemory } from '../lib/memory';
+import { resolveAgentMcpTools } from '../lib/agentbase-mcp';
 
 const AGENT_ID = 'example-agent';
 
@@ -28,7 +29,15 @@ export const exampleAgent = new Agent({
   // auto-detects from whichever provider key is set in this repo's own
   // `.env` (Anthropic, OpenAI, or Google — see default-model.ts).
   model: resolveAgentModel(AGENT_ID, resolveDefaultModel()),
-  tools: { exampleTool },
+  // Local tools, plus whatever MCP servers AgentBase says this agent is
+  // subscribed to. TOP-LEVEL AWAIT is deliberate: the toolset is part of the
+  // agent's identity, so it must be settled before the agent is constructed and
+  // its A2A card is served. On a hosted container a discovery failure therefore
+  // fails the BOOT — loudly, in AgentBase's build/runtime logs — rather than
+  // quietly serving an agent that is missing half its capabilities and will
+  // answer confidently without them. Off AgentBase this resolves to `{}` and
+  // costs nothing (see lib/agentbase-mcp.ts).
+  tools: { exampleTool, ...(await resolveAgentMcpTools(AGENT_ID)) },
   // Durable, Postgres-backed conversation memory. Engages only when the caller
   // sends an A2A `contextId` (→ threadId) — see lib/memory.ts for why, and for
   // why the caller must also send a real `resourceId`.

@@ -56,7 +56,11 @@ describe('text-wrap declarations', () => {
   });
 
   it('declares the components layer after Astryx’s, so these rules win', () => {
-    const order = css.match(/@layer\s+([^;]+);/)?.[1].split(',').map((s) => s.trim()) ?? [];
+    const order =
+      css
+        .match(/@layer\s+([^;]+);/)?.[1]
+        .split(',')
+        .map((s) => s.trim()) ?? [];
     expect(order).toContain('components');
     expect(
       order.indexOf('components'),

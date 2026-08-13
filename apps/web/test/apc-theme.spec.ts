@@ -36,7 +36,11 @@ function blockFor(id: string): string {
 }
 
 function declaration(id: string, prop: string): string | null {
-  return blockFor(id).match(new RegExp(`${prop}:\\s*([^;]+);`))?.[1].trim() ?? null;
+  return (
+    blockFor(id)
+      .match(new RegExp(`${prop}:\\s*([^;]+);`))?.[1]
+      .trim() ?? null
+  );
 }
 
 /** Split `light-dark(a, b)` into its branches; a plain value is used for both. */

@@ -18,10 +18,10 @@ upstream, so `git merge upstream/develop` isn't available.
 
 Two mechanisms replace it:
 
-| | Mechanism | Covers |
-| --- | --- | --- |
-| **File sync** | `pnpm precast:update` — 3-way comparison against the hashes in `precast.lock.json` | The framework surface: `scripts/`, `.githooks/`, `docker/`, `templates/`, the lint/TS/Turbo configs, `CLAUDE.md` |
-| **This ledger** | Per-release notes with concrete edits | Everything the sync can't touch: `apps/`, `packages/`, `package.json`, `.env.example` — i.e. anywhere your project has real code |
+|                 | Mechanism                                                                          | Covers                                                                                                                           |
+| --------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **File sync**   | `pnpm precast:update` — 3-way comparison against the hashes in `precast.lock.json` | The framework surface: `scripts/`, `.githooks/`, `docker/`, `templates/`, the lint/TS/Turbo configs, `CLAUDE.md`                 |
+| **This ledger** | Per-release notes with concrete edits                                              | Everything the sync can't touch: `apps/`, `packages/`, `package.json`, `.env.example` — i.e. anywhere your project has real code |
 
 The sync handles the mechanical majority. The ledger handles the rest, and an agent reading
 it can adapt an instruction like "add X to the A2A client" onto code you've since restructured.
@@ -31,7 +31,7 @@ it can adapt an instruction like "add X to the A2A client" onto code you've sinc
 ## 2. Upgrading, start to finish
 
 > **Easiest path — ask your coding agent.** The Precast plugin ships an **`upgrade`** skill
-> that drives this whole section: say *"upgrade precast"* (or `/precast:upgrade`) and it reads
+> that drives this whole section: say _"upgrade precast"_ (or `/precast:upgrade`) and it reads
 > your lock file, runs the check, summarizes the releases in between, applies the safe set,
 > then works the manual steps below against your actual codebase. The steps here are what it
 > follows — and what to do by hand if you'd rather.
@@ -45,7 +45,7 @@ pnpm precast:update --apply --force # also overwrite conflicts (keeps a .precast
 1. **Check first.** The plan classifies every managed file as `Update` (you never touched it —
    safe), `Yours` (you customized it, upstream didn't change — left alone), `CONFLICT` (both
    sides moved), `New`, or `Already current`.
-2. **Apply the safe set.** Conflicts are skipped and their baseline is deliberately *not*
+2. **Apply the safe set.** Conflicts are skipped and their baseline is deliberately _not_
    advanced, so they keep reporting until you deal with them rather than going quiet.
 3. **Read this ledger** for every version between your old and new `precastVersion`, and do
    the manual steps — that's the `apps/`/`packages/` work the sync won't attempt.
@@ -70,12 +70,12 @@ plan to review, not a wrong result.
 
 ### Useful flags
 
-| Flag | Effect |
-| --- | --- |
-| `--ref=v0.3.0` | Target a specific tag, branch, or commit (default: the newest semver tag) |
-| `--from=../precast` | Compare against a local checkout — no network, useful for testing |
-| `--repo=<url>` | Point at a fork |
-| `--force` | Overwrite conflicts, writing `<file>.precast-bak` first |
+| Flag                | Effect                                                                    |
+| ------------------- | ------------------------------------------------------------------------- |
+| `--ref=v0.3.0`      | Target a specific tag, branch, or commit (default: the newest semver tag) |
+| `--from=../precast` | Compare against a local checkout — no network, useful for testing         |
+| `--repo=<url>`      | Point at a fork                                                           |
+| `--force`           | Overwrite conflicts, writing `<file>.precast-bak` first                   |
 
 ### What is never written automatically
 
@@ -122,7 +122,69 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
-## v0.4.0 — Prebuilt dependency image, and two image-layer fixes  (2026-08-11)
+## v0.5.0 — MCP tools discovered from AgentBase at runtime (2026-08-14)
+
+**What changed.** An AgentBase-hosted agent now learns which **MCP servers** it may call
+_at runtime_, instead of having them hardcoded in `.env`. This is the MCP counterpart to
+ADR-016, which did the same for models.
+
+AgentBase already had everything except the last mile: `POST /proxy/mcp/:org/:slug/mcp`
+proxies MCP calls behind `PublicProxyGuard`, injecting the upstream credential and enforcing
+the subscription. What an agent could not do was learn _which_ `:org/:slug` pairs it was
+entitled to — that lived only behind `/developer/subscriptions`, which requires a human
+developer token. AgentBase gains `GET /proxy/mcp/subscriptions`, answered for the **calling
+application** and returning only `{org, slug, title, scopes, url}` — never `baseUrl`, never
+`authConfig`. The proxy stays the only way to reach an MCP, so subscription enforcement,
+metering and audit cannot be routed around.
+
+**Handled by `pnpm precast:update`.** Nothing — this release is entirely `apps/` and
+`packages/` code.
+
+**Manual steps.**
+
+1. **Copy `apps/agents/src/mastra/lib/agentbase-mcp.ts`.** It exports `discoverMcpServers()`
+   and `resolveAgentMcpTools()`, and reuses `getAgentBaseLlmToken()` from `agentbase-model.ts`
+   — the MCP proxy and the LLM gateway share one guard, so the token minted for one
+   authenticates the other. No second credential is needed or wanted.
+2. **Add the dependency:** `pnpm -F <your-agents-app> add @mastra/mcp` (`^1.16`).
+3. **Wire it into your conversational agents** with a **top-level `await`**:
+
+   ```ts
+   tools: { myTool, ...(await resolveAgentMcpTools(AGENT_ID)) },
+   ```
+
+   The `await` is deliberate and load-bearing. The toolset is part of the agent's identity, so
+   it must be settled before the agent is constructed and its A2A card is served. On a hosted
+   container a discovery failure therefore fails the **boot** — visible immediately in
+   AgentBase's build and runtime logs — rather than quietly serving an agent that is missing
+   half its capabilities and will answer confidently without them. Verified to survive
+   `mastra build`. Attach it to agents that _use_ tools; a pure transformation agent
+   (a summariser) should not get them, for the same reason it should not get memory.
+
+4. **Add `AGENTBASE_MCP_BASE_URL`** to your env schema as an optional URL
+   (`packages/shared/src/env.ts`). AgentBase injects it on hosted containers; it is absent
+   locally, which is what makes the whole path inert off-platform.
+
+**Advisory files touched.** `package.json` (the `@mastra/mcp` dependency);
+`packages/shared/src/env.ts`; the new `apps/agents/src/mastra/lib/agentbase-mcp.spec.ts`.
+Also `.prettierignore` now excludes `apps/web/app/theme/apc-themes.css` — Prettier was
+reformatting a generated file and breaking APC-002 on every `pnpm format`.
+
+**Requires AgentBase** at a version that serves `GET /proxy/mcp/subscriptions` and injects
+`AGENTBASE_MCP_BASE_URL`. Against an older AgentBase the discovery call 404s and, per the
+fail-loud design, the container will refuse to boot — so upgrade the platform first, or leave
+`resolveAgentMcpTools()` unwired until you have.
+
+**Verify.**
+
+```bash
+pnpm test          # AGT-007 covers inert-off-platform and loud-on-failure
+pnpm build:agents  # proves the top-level await survives bundling
+```
+
+---
+
+## v0.4.0 — Prebuilt dependency image, and two image-layer fixes (2026-08-11)
 
 **What changed.**
 
@@ -134,7 +196,7 @@ agents container could not boot. The `/data` dir and its `mkdir` are gone too; t
 has been stateless since agent memory moved to Postgres.
 
 **A shared dependency image.** A fresh scaffold ran **three** full installs of a ~970-package,
-~1.1 GB graph: once on the host and once inside *each* app Dockerfile, which share no layers.
+~1.1 GB graph: once on the host and once inside _each_ app Dockerfile, which share no layers.
 `docker/deps.Dockerfile` now resolves that graph once — in CI, natively per architecture — and
 publishes it to `ghcr.io/<owner>/precast-deps:lock-<hash>`. The app Dockerfiles take
 `ARG BASE_IMAGE`, and `pnpm poc` swaps in the published image **only when its tag matches this
@@ -170,6 +232,7 @@ that, `ghcr.io/<owner>/precast-deps` became `…/<yourproject>-deps` on the firs
    that cannot reach it. Add `--store-dir "${PNPM_STORE_DIR:-/pnpm/store}"` to the
    `pnpm install` in that stage, or the warm store in the base image is invisible and you
    silently re-download everything.
+
 3. **Publish your own image** (optional but the point of the feature). Copy
    `.github/workflows/deps-image.yml` — it publishes under **your** `github.repository_owner`,
    needs `permissions: { packages: write }`, and builds on native amd64 + arm64 runners rather
@@ -193,7 +256,7 @@ pnpm poc            # should print URLs; agents must reach healthy
 
 ---
 
-## v0.3.0 — Postgres-only, durable agent memory, and the orchestrator crew  (2026-08-11)
+## v0.3.0 — Postgres-only, durable agent memory, and the orchestrator crew (2026-08-11)
 
 **What changed.** Three changes, released together.
 
@@ -206,8 +269,8 @@ configured for Postgres — and vanished on every `pnpm poc agents` rebuild.
 
 **Agent memory is wired up.** Precast previously shipped no `Memory` on any agent, and the
 `sessionId` plumbing from the web app was dead — nothing consumed it. Mastra only engages
-memory when the A2A message carries a `contextId`, and it defaults `resourceId` to the *agent
-id*, which would put every user of a deployment into one shared memory bucket. The web app now
+memory when the A2A message carries a `contextId`, and it defaults `resourceId` to the _agent
+id_, which would put every user of a deployment into one shared memory bucket. The web app now
 derives both ids server-side (`apps/web/app/lib/agent-context.ts`) and never accepts them from
 the request body.
 
@@ -235,7 +298,7 @@ and the now-unused `agents-data` volume), `CLAUDE.md` §4.5, `templates/AGENT_SP
    handler, replace any `body.sessionId` with `resolveAgentContext(body.conversationId)` and
    pass `{ threadId, resourceId }` to `callAgent()`. **This is a security fix** — if you already
    keyed memory off a client-supplied id, users could read each other's threads.
-6. **Update `callAgent()`** to send `contextId` *and* `message.metadata.resourceId`. Omitting
+6. **Update `callAgent()`** to send `contextId` _and_ `message.metadata.resourceId`. Omitting
    the latter silently collapses all users into one memory bucket.
 7. **Return `conversationId`** from the route handler and have the UI send it back on the next
    turn, or every turn starts a new thread.
@@ -282,7 +345,7 @@ have two or more. With exactly one member it is correctly **absent** — dormant
 
 ---
 
-## v0.2.0 — APC Design System themes + narrower port range  (2026-08-06)
+## v0.2.0 — APC Design System themes + narrower port range (2026-08-06)
 
 **What changed.** The web app now ships the **APC Design System**'s five themes — Stockholm
 (default), Prague, Arctic, Nova, Melbourne — layered onto Astryx as token overrides rather
@@ -301,7 +364,7 @@ the updated `scripts/bootstrap.mjs` and `scripts/set-ports.mjs`, plus the genera
      `astryx-theme`, and `@import './theme/apc-themes.css';` after the Astryx theme import.
    - `apps/web/app/layout.tsx` — `import { APC_THEME } from './theme/apc-theme';` and render
      `<html lang="en" data-apc-theme={APC_THEME}>`.
-   - Copy `apps/web/app/theme/apc-theme.ts` across (it holds *your* theme choice, so the sync
+   - Copy `apps/web/app/theme/apc-theme.ts` across (it holds _your_ theme choice, so the sync
      reports it as advisory rather than overwriting it).
 2. **Pick a theme:** `pnpm set-theme <name>`, or keep the Stockholm default.
 3. **Audit hard-coded colours.** Any literal hex in your components will look correct in one
@@ -333,7 +396,7 @@ pnpm poc web               # look at it
 
 ---
 
-## v0.1.0 — Provenance and the upgrade path  *(never tagged — shipped inside v0.2.0)*
+## v0.1.0 — Provenance and the upgrade path _(never tagged — shipped inside v0.2.0)_
 
 > **Not a release you can target.** This work landed on `develop` and was published as part
 > of **v0.2.0**; there is no `v0.1.0` tag. It is kept as a separate entry because it is a
@@ -348,7 +411,7 @@ commit, project name, and a hash baseline for every managed file), `scripts/prec
 
 Everything before this point is untagged history with no provenance record.
 
-**Handled by `pnpm precast:update`.** Nothing yet — this release *is* the mechanism. From the
+**Handled by `pnpm precast:update`.** Nothing yet — this release _is_ the mechanism. From the
 next release onward, changes under `scripts/`, `.githooks/`, `docker/`, `templates/`, the root
 configs, and `CLAUDE.md` sync automatically.
 
@@ -410,6 +473,7 @@ pnpm precast:update      # check-only plan; should report everything current
    recorded against content that no longer exists at that ref, which shows up as extra
    `CONFLICT`/`unknown` rows on its next run. Once a release is genuinely out and being
    consumed, stop moving it and cut a patch (`v0.3.1`) instead.
+
 6. Sanity-check the release against a real derived project before announcing it:
 
    ```bash

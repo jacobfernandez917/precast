@@ -63,7 +63,7 @@ export async function getAgentBaseLlmToken(agentId: string): Promise<string> {
   if (!tokenUrl || !clientId || !clientSecret) {
     throw new Error(
       `AgentBase LLM gateway is enabled for agent "${agentId}" but its service credentials ` +
-        `(AGENTBASE_LLM_TOKEN_URL / ${llmEnvVarName(agentId, 'CLIENT_ID')} / ${llmEnvVarName(agentId, 'CLIENT_SECRET')}) are not fully set.`
+        `(AGENTBASE_LLM_TOKEN_URL / ${llmEnvVarName(agentId, 'CLIENT_ID')} / ${llmEnvVarName(agentId, 'CLIENT_SECRET')}) are not fully set.`,
     );
   }
 
@@ -77,10 +77,15 @@ export async function getAgentBaseLlmToken(agentId: string): Promise<string> {
     }),
   });
   if (!res.ok) {
-    throw new Error(`AgentBase LLM gateway token request failed (HTTP ${res.status}) for agent "${agentId}".`);
+    throw new Error(
+      `AgentBase LLM gateway token request failed (HTTP ${res.status}) for agent "${agentId}".`,
+    );
   }
   const json = (await res.json()) as TokenResponse;
-  tokenCache.set(agentId, { accessToken: json.access_token, expiresAt: now + json.expires_in * 1000 });
+  tokenCache.set(agentId, {
+    accessToken: json.access_token,
+    expiresAt: now + json.expires_in * 1000,
+  });
   return json.access_token;
 }
 
@@ -129,7 +134,10 @@ function unconfiguredHostedModel(agentId: string): LanguageModelV4 {
  *     (./default-model.ts), which auto-detects the provider key from this
  *     repo's own `.env`.
  */
-export function resolveAgentModel(agentId: string, fallback: string | LanguageModelV4): string | LanguageModelV4 {
+export function resolveAgentModel(
+  agentId: string,
+  fallback: string | LanguageModelV4,
+): string | LanguageModelV4 {
   const baseUrl = process.env.AGENTBASE_LLM_BASE_URL;
   const modelId = process.env[llmEnvVarName(agentId, 'MODEL')];
 
