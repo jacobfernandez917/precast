@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertPostgresUrl, isPostgresUrl } from './database.js';
+import { assertPostgresUrl, isPostgresUrl, resolvePostgresSsl } from './database.js';
 
 const POSTGRES_URLS = [
   'postgres://user:pass@host:5432/db',
@@ -50,5 +50,42 @@ describe('assertPostgresUrl', () => {
     expect(() => assertPostgresUrl('sqlite:./mastra.db', 'MASTRA_DB_URL')).toThrow(
       /^MASTRA_DB_URL must be a Postgres URL/,
     );
+  });
+});
+
+describe('resolvePostgresSsl — libpq semantics, not node-postgres defaults', () => {
+  /**
+   * Regression: an AWS RDS instance with `?sslmode=require` crashed the agents
+   * container at boot with SELF_SIGNED_CERT_IN_CHAIN. node-postgres verifies
+   * the certificate even for `require`, which under libpq means "encrypt, do
+   * not verify". Every derived project on RDS (or any private CA) hits it.
+   */
+  const url = (mode?: string) => `postgresql://u:p@host:5432/db${mode ? `?sslmode=${mode}` : ''}`;
+
+  it('does not verify for the modes that only ask for encryption', () => {
+    for (const mode of ['require', 'prefer', 'allow']) {
+      expect(resolvePostgresSsl(url(mode)), `${mode} must not verify`).toEqual({
+        rejectUnauthorized: false,
+      });
+    }
+  });
+
+  it('verifies only when the URL explicitly asks for verification', () => {
+    for (const mode of ['verify-ca', 'verify-full']) {
+      expect(resolvePostgresSsl(url(mode))).toEqual({ rejectUnauthorized: true });
+    }
+  });
+
+  it('disables TLS for sslmode=disable', () => {
+    expect(resolvePostgresSsl(url('disable'))).toBe(false);
+  });
+
+  it('defers to the driver when sslmode is absent or unrecognised', () => {
+    expect(resolvePostgresSsl(url())).toBeUndefined();
+    expect(resolvePostgresSsl(url('banana'))).toBeUndefined();
+  });
+
+  it('never throws on an unparseable URL', () => {
+    expect(resolvePostgresSsl('not a url')).toBeUndefined();
   });
 });

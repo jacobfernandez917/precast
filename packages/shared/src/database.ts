@@ -60,3 +60,59 @@ export function assertPostgresUrl(url: string, varName = 'DATABASE_URL'): string
 
   return url;
 }
+
+/**
+ * The TLS options a Postgres client should use for this connection string.
+ *
+ * Why this exists: `sslmode` in a connection string is a **libpq** convention,
+ * and node-postgres does not implement its semantics faithfully. Under libpq,
+ * `sslmode=require` means *encrypt the connection, do NOT verify the server
+ * certificate* — verification is what `verify-ca` and `verify-full` are for.
+ * node-postgres instead enables TLS with Node's default verification, so a
+ * perfectly ordinary managed instance fails to connect.
+ *
+ * That is not hypothetical: an AWS RDS instance whose chain Node doesn't
+ * already trust dies at boot with
+ * `MASTRA_STORAGE_PG_INIT_FAILED: self-signed certificate in certificate chain`
+ * — despite the URL asking only for encryption. Every derived project pointed
+ * at RDS (or any provider using a private CA) hits it.
+ *
+ * So the mapping here is libpq's, not node-postgres's:
+ *
+ *   disable                    → no TLS
+ *   allow | prefer | require   → TLS, certificate NOT verified
+ *   verify-ca | verify-full    → TLS, certificate verified
+ *   (absent)                   → let the driver decide
+ *
+ * `require` is genuinely weaker than `verify-full`: it stops passive
+ * eavesdropping but not an active man-in-the-middle. That is exactly what the
+ * user asked for by writing `require`, and silently upgrading it to strict
+ * verification — which is what happens today — trades a documented, chosen
+ * trade-off for a boot failure. A project that wants the strong guarantee
+ * should say `verify-full` and supply its provider's CA bundle.
+ */
+export function resolvePostgresSsl(
+  url: string,
+): false | { rejectUnauthorized: boolean } | undefined {
+  let mode: string | null;
+  try {
+    mode = new URL(url).searchParams.get('sslmode');
+  } catch {
+    return undefined;
+  }
+  if (!mode) return undefined;
+
+  switch (mode) {
+    case 'disable':
+      return false;
+    case 'allow':
+    case 'prefer':
+    case 'require':
+      return { rejectUnauthorized: false };
+    case 'verify-ca':
+    case 'verify-full':
+      return { rejectUnauthorized: true };
+    default:
+      return undefined;
+  }
+}
