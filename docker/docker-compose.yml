@@ -42,6 +42,11 @@ services:
     build:
       context: ..
       dockerfile: apps/agents/Dockerfile
+      args:
+        # Upgraded by `pnpm poc` to a prebuilt deps image when one matches this
+        # lockfile (scripts/deps-image.mjs); plain node otherwise, which is the
+        # behaviour every clone had before deps images existed.
+        BASE_IMAGE: ${BASE_IMAGE:-node:24-alpine}
     container_name: precast-agents
     restart: unless-stopped
     # Load the user's root .env — this is where DATABASE_URL (managed Postgres)
@@ -76,6 +81,11 @@ services:
     build:
       context: ..
       dockerfile: apps/web/Dockerfile
+      args:
+        # Upgraded by `pnpm poc` to a prebuilt deps image when one matches this
+        # lockfile (scripts/deps-image.mjs); plain node otherwise, which is the
+        # behaviour every clone had before deps images existed.
+        BASE_IMAGE: ${BASE_IMAGE:-node:24-alpine}
     container_name: precast-web
     restart: unless-stopped
     env_file:

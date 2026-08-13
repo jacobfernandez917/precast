@@ -27,6 +27,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
+import { resolveBaseImage } from './deps-image.mjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -67,9 +68,14 @@ function activeProfiles() {
     .filter(Boolean);
 }
 
-function run(cmd, cmdArgs, { allowFail = false } = {}) {
+function run(cmd, cmdArgs, { allowFail = false, env } = {}) {
   console.log(`\n$ ${cmd} ${cmdArgs.join(' ')}`);
-  const res = spawnSync(cmd, cmdArgs, { cwd: rootDir, stdio: 'inherit', shell: false });
+  const res = spawnSync(cmd, cmdArgs, {
+    cwd: rootDir,
+    stdio: 'inherit',
+    shell: false,
+    env: env ? { ...process.env, ...env } : process.env,
+  });
   if (res.status !== 0 && !allowFail) process.exit(res.status ?? 1);
   return res.status ?? 0;
 }
@@ -139,7 +145,19 @@ async function main() {
     }
     console.log(`Refreshing only: ${targeted.join(', ')}`);
   }
-  run('node', [
+  // Swap in a prebuilt dependency image when one matches this lockfile. Purely
+  // an accelerator: if nothing is published, unreachable, or disabled, the
+  // build args fall through to the Dockerfile default and nothing changes.
+  const base = noBuild ? { ref: null, reason: 'skipped (--no-build)' } : resolveBaseImage();
+  if (base.ref) {
+    console.log(`\nDependency layer: ${base.ref}\n  (${base.reason})`);
+  } else if (!noBuild) {
+    console.log(`\nDependency layer: building from source — ${base.reason}`);
+  }
+
+  run(
+    'node',
+    [
     'scripts/docker-compose.mjs',
     '-f',
     'docker/docker-compose.yml',
@@ -148,8 +166,10 @@ async function main() {
     'up',
     '-d',
     ...(noBuild ? [] : ['--build']),
-    ...(targeted.length ? ['--force-recreate', '--no-deps', ...targeted] : []),
-  ]);
+      ...(targeted.length ? ['--force-recreate', '--no-deps', ...targeted] : []),
+    ],
+    base.ref ? { env: { BASE_IMAGE: base.ref } } : {},
+  );
 
   // 3. Health. Compose reports "started", not "serving" — poll the real
   //    endpoints so the URLs we print are ones that actually answer.

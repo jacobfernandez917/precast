@@ -206,6 +206,18 @@ Postgres/Redis run on your remote/managed provider — their ports are part of t
 - **Bootstrapping a new project:** `pnpm bootstrap` (`scripts/bootstrap.mjs`)
   asks for a name, renames the placeholder, updates deps, re-initializes a blank
   git repo on the `develop` branch, and prints the feed-forward doc checklist.
+- **Dependency base image (GHCR):** `docker/deps.Dockerfile` resolves the
+  workspace's ~970-package graph once, per architecture, and publishes it to
+  **`ghcr.io/<owner>/precast-deps:lock-<hash>`** via
+  `.github/workflows/deps-image.yml` (native amd64 + arm64 runners, no QEMU).
+  The app Dockerfiles declare `ARG BASE_IMAGE=node:24-alpine` and `pnpm poc`
+  upgrades that to the published image **only when its tag matches this
+  lockfile** (`scripts/deps-image.mjs`). Measured: the in-image `pnpm install`
+  drops from **11.4s to 1.0s** per app build; the runtime images are byte-for-byte
+  the same size (326 MB). The deps image is ~1.6 GB uncompressed / **~337 MB on
+  the wire**, pulled once per lockfile and shared by both app builds. It is a
+  pure accelerator — with no registry, no network, or `PRECAST_DEPS_IMAGE=off`,
+  builds fall back to plain node and behave exactly as before.
 - **Staying aligned with Precast:** `pnpm precast:update`
   (`scripts/precast-update.mjs`) pulls later Precast improvements into a derived
   project. Release identity and the managed/advisory file map live in

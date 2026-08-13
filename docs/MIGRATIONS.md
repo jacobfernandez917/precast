@@ -122,6 +122,77 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.4.0 — Prebuilt dependency image, and two image-layer fixes  (2026-08-11)
+
+**What changed.**
+
+**Two fixes first.** `apps/agents/Dockerfile` still baked
+`MASTRA_DB_URL=file:/data/mastra.db`. v0.3.0 removed the matching override from
+`docker-compose.yml` but not from the image, and since Compose deliberately sets no value,
+the image's default is what the container gets — and the Postgres-only schema rejects it. The
+agents container could not boot. The `/data` dir and its `mkdir` are gone too; that container
+has been stateless since agent memory moved to Postgres.
+
+**A shared dependency image.** A fresh scaffold ran **three** full installs of a ~970-package,
+~1.1 GB graph: once on the host and once inside *each* app Dockerfile, which share no layers.
+`docker/deps.Dockerfile` now resolves that graph once — in CI, natively per architecture — and
+publishes it to `ghcr.io/<owner>/precast-deps:lock-<hash>`. The app Dockerfiles take
+`ARG BASE_IMAGE`, and `pnpm poc` swaps in the published image **only when its tag matches this
+lockfile**. Measured on the web image: the in-container `pnpm install` drops from **11.4 s to
+1.0 s**, with the runtime image unchanged at 326 MB. The deps image costs ~337 MB on the wire,
+once per lockfile, shared by both app builds.
+
+It is strictly an accelerator. `ARG BASE_IMAGE` defaults to `node:24-alpine`, so no registry,
+no network, a fork with nothing published, or `PRECAST_DEPS_IMAGE=off` all build exactly as
+before. The tag being the lockfile hash is what makes a mismatch impossible to consume
+silently: a mismatched tag simply does not exist.
+
+**Handled by `pnpm precast:update`.** `docker/deps.Dockerfile`, `docker/docker-compose.yml`
+(the `BASE_IMAGE` build args), `scripts/deps-image.mjs`, `scripts/poc.mjs`, and
+`scripts/rename-project.mjs` (registry references are now protected from the rename — without
+that, `ghcr.io/<owner>/precast-deps` became `…/<yourproject>-deps` on the first scaffold and
+404'd).
+
+**Manual steps.**
+
+1. **Remove any baked database URL** from your `apps/*/Dockerfile`. An `ENV MASTRA_DB_URL=` or
+   `DATABASE_URL=` with a non-Postgres value is a boot failure under ADR-002, not a fallback.
+   Check your local `.env` for a stale `file:` value too.
+2. **Parameterise your app Dockerfiles' build stage.** Replace `FROM node:24-alpine AS build`
+   with:
+
+   ```dockerfile
+   ARG BASE_IMAGE=node:24-alpine
+   FROM ${BASE_IMAGE} AS build
+   ```
+
+   Keep the default exactly as shown — hard-coding a registry ref there breaks every clone
+   that cannot reach it. Add `--store-dir "${PNPM_STORE_DIR:-/pnpm/store}"` to the
+   `pnpm install` in that stage, or the warm store in the base image is invisible and you
+   silently re-download everything.
+3. **Publish your own image** (optional but the point of the feature). Copy
+   `.github/workflows/deps-image.yml` — it publishes under **your** `github.repository_owner`,
+   needs `permissions: { packages: write }`, and builds on native amd64 + arm64 runners rather
+   than QEMU. Then set `PRECAST_DEPS_IMAGE=ghcr.io/<you>/<name>-deps`. Upstream Precast's
+   images will not match your lockfile once you add a dependency, which is by design.
+4. **Nothing at all** if you just want the fixes. The base-image path is opt-in and silent
+   when unavailable.
+
+**Advisory files touched.** `package.json` (gains `deps:image`);
+`.github/workflows/deps-image.yml` and `apps/web/test/deps-image.spec.ts` (new — port
+deliberately); `apps/web/test/docker-build.spec.ts` (its base-image guard now allows the
+parameterised stage, and gained a check that no image bakes a non-Postgres database URL).
+
+**Verify.**
+
+```bash
+pnpm deps:image     # what the build will start FROM, and why
+pnpm test           # includes the new guards
+pnpm poc            # should print URLs; agents must reach healthy
+```
+
+---
+
 ## v0.3.0 — Postgres-only, durable agent memory, and the orchestrator crew  (2026-08-11)
 
 **What changed.** Three changes, released together.

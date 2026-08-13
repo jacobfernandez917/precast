@@ -1,0 +1,124 @@
+name: deps image
+
+# Publishes the shared dependency layer (docker/deps.Dockerfile) to GHCR.
+#
+# The tag IS the lockfile hash, so an image can only ever be consumed by a
+# project whose dependency graph actually matches it — see scripts/deps-image.mjs.
+# Nothing here is load-bearing for a normal build: if this never runs, the app
+# Dockerfiles fall back to plain node:24-alpine and install as they always did.
+on:
+  push:
+    branches: [develop]
+    paths:
+      - pnpm-lock.yaml
+      - package.json
+      - apps/*/package.json
+      - packages/*/package.json
+      - docker/deps.Dockerfile
+      - .github/workflows/deps-image.yml
+  workflow_dispatch:
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/precast-deps
+
+jobs:
+  tag:
+    runs-on: ubuntu-24.04
+    outputs:
+      lock: ${{ steps.hash.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - id: hash
+        # Same function the app builds use to decide whether a published image
+        # matches — one implementation, so the two can't disagree.
+        run: echo "tag=$(node scripts/deps-image.mjs --tag)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: tag
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            # A NATIVE arm64 runner, deliberately. Building arm64 under QEMU
+            # emulation compiles every native module through a translation
+            # layer — slow enough to dominate the workflow, and this image
+            # exists precisely to bake native modules once.
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Push by digest; the manifest list is assembled in `merge`. This is what
+      # lets each architecture build natively and independently.
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/deps.Dockerfile
+          platforms: ${{ matrix.platform }}
+          build-args: PRECAST_LOCK_HASH=${{ needs.tag.outputs.lock }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+
+      - name: Save digest
+        run: |
+          mkdir -p /tmp/digests
+          digest='${{ steps.build.outputs.digest }}'
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ strategy.job-index }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: [tag, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # One manifest list carrying both architectures, under the lockfile tag.
+      # `latest` is a convenience for humans only — resolution goes through the
+      # lockfile tag, never through `latest`, so a moving `latest` can't hand a
+      # project a base image built for a different dependency graph.
+      - name: Create manifest list
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            -t "${IMAGE}:${{ needs.tag.outputs.lock }}" \
+            -t "${IMAGE}:latest" \
+            $(printf "${IMAGE}@sha256:%s " *)
+
+      - name: Inspect
+        run: docker buildx imagetools inspect "${IMAGE}:${{ needs.tag.outputs.lock }}"

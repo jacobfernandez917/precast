@@ -3,11 +3,21 @@
 #   docker build -f apps/web/Dockerfile -t precast-web .
 
 # ---- build: install the workspace and build Next (standalone output) ----
-FROM node:24-alpine AS build
+# The dependency layer. Defaults to plain node so a clone with no registry
+# access builds exactly as before; `pnpm poc` upgrades this to a prebuilt
+# ghcr.io/.../precast-deps:lock-<hash> when one matching THIS lockfile is
+# published (scripts/deps-image.mjs). Because the tag is the lockfile hash, a
+# mismatched image cannot be silently consumed — it simply doesn't exist.
+ARG BASE_IMAGE=node:24-alpine
+FROM ${BASE_IMAGE} AS build
+# Idempotent: already enabled in the deps image, needed on the plain fallback.
 RUN corepack enable
 WORKDIR /repo
 COPY . .
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# A no-op relink when the base already carries this lockfile's packages; a real
+# (but store-warm, offline) install otherwise. `--store-dir` must match the one
+# baked into deps.Dockerfile or the warm content is invisible here.
+RUN pnpm install --frozen-lockfile --ignore-scripts --store-dir "${PNPM_STORE_DIR:-/pnpm/store}"
 # Filter by workspace PATH, not package name: a name-based `--filter @scope/pkg`
 # that matches nothing (e.g. after `pnpm rename`) exits 0 and builds nothing,
 # which only surfaces as an opaque COPY failure below. The `test -f` then makes

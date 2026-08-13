@@ -44,7 +44,8 @@
     "docker:down": "node scripts/docker-compose.mjs -f docker/docker-compose.yml down",
     "docker:logs": "node scripts/docker-compose.mjs -f docker/docker-compose.yml logs -f",
     "docker:ps": "node scripts/docker-compose.mjs -f docker/docker-compose.yml ps",
-    "docker:rebuild": "node scripts/docker-compose.mjs -f docker/docker-compose.yml build --no-cache"
+    "docker:rebuild": "node scripts/docker-compose.mjs -f docker/docker-compose.yml build --no-cache",
+    "deps:image": "node scripts/deps-image.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -100,11 +100,28 @@ describe('docker: node 24 alpine base images', () => {
     ).toBeGreaterThanOrEqual(2);
 
     for (const base of bases) {
+      // The build stage is parameterised so `pnpm poc` can swap in a prebuilt
+      // dependency image (see deps-image.spec.ts). That is only safe because
+      // the ARG's DEFAULT is pinned to node:24-alpine and the deps image is
+      // itself built FROM node:24-alpine — so every resolution of ${BASE_IMAGE}
+      // is still Node 24 Alpine. The default is asserted below.
+      if (base === '${BASE_IMAGE}') continue;
       expect(
         base,
         `${rel} has a stage on "${base}" — every stage must use node:24-alpine so the runtime ` +
           'matches the Node version the workspace is built and tested against (.nvmrc), and so ' +
           'the images stay small enough to rebuild on every `pnpm poc`.',
+      ).toBe('node:24-alpine');
+    }
+
+    // A parameterised stage must still resolve to the pinned base by default,
+    // or the guard above becomes vacuous.
+    if (bases.includes('${BASE_IMAGE}')) {
+      const fallback = body.match(/^ARG\s+BASE_IMAGE=(.+)$/m)?.[1].trim();
+      expect(
+        fallback,
+        `${rel} parameterises a stage as \${BASE_IMAGE} but its ARG default is "${fallback}" — ` +
+          'it must default to node:24-alpine.',
       ).toBe('node:24-alpine');
     }
   });
@@ -116,4 +133,39 @@ describe('docker: node 24 alpine base images', () => {
       'the Dockerfiles pin node:24-alpine, so .nvmrc must be on the same major line.',
     ).toBe('24');
   });
+});
+
+/**
+ * Database-URL guard (APP-015).
+ *
+ * Precast is Postgres-only (ADR-002): the env schema validates `DATABASE_URL`
+ * and `MASTRA_DB_URL` with `isPostgresUrl()` and rejects `file:` / `sqlite:` /
+ * `libsql:`. A Dockerfile `ENV` default is NOT a harmless fallback — Compose
+ * deliberately sets neither key, so whatever the image declares is exactly what
+ * the container gets, and an invalid value fails env validation at boot.
+ *
+ * This regressed once: `apps/agents/Dockerfile` kept `MASTRA_DB_URL=file:/data/
+ * mastra.db` after the Postgres-only change removed the matching override from
+ * `docker-compose.yml`. The image-layer copy of the bug outlived the fix.
+ */
+describe('docker: no non-Postgres database URL baked into an image', () => {
+  const dockerfiles = findDockerfiles();
+  const DB_KEYS = ['DATABASE_URL', 'MASTRA_DB_URL'];
+
+  it.each(dockerfiles.map((f) => [f.replace(REPO_ROOT, ''), f] as const))(
+    '%s bakes no invalid database URL',
+    (rel, file) => {
+      const src = stripComments(readFileSync(file, 'utf8'));
+      for (const key of DB_KEYS) {
+        const hit = src.match(new RegExp(`\\b${key}\\s*=\\s*['"]?([^\\s'"\\\\]+)`));
+        if (!hit) continue;
+        expect(
+          hit[1],
+          `${rel} sets ${key}=${hit[1]}. Precast is Postgres-only (ADR-002) and the env ` +
+            `schema rejects anything else, so this is a boot failure rather than a fallback. ` +
+            `Leave it unset — MASTRA_DB_URL falls back to DATABASE_URL from .env.`,
+        ).toMatch(/^postgres(ql)?:\/\//);
+      }
+    },
+  );
 });
