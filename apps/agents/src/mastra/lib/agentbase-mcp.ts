@@ -21,6 +21,13 @@ import { getAgentBaseLlmToken } from './agentbase-model';
  *   1. `GET {base}/subscriptions` → the org/slug pairs this agent may call.
  *   2. Build an `MCPClient` pointed at `{base}/:org/:slug/mcp` for each.
  *
+ * Discovery uses the dedicated `GET {base}/subscriptions` endpoint rather than
+ * AgentBase's native `agentbase.list_subscriptions` MCP tool: that tool resolves
+ * the caller through `ownerDeveloperId`, which the per-agent service application
+ * a hosted container authenticates with does not have. It answers
+ * `developer_app_required`. (A developer's OWN application — e.g. a scaffold
+ * using their client id/secret — should use the native tools instead.)
+ *
  * Every call goes through AgentBase's proxy, which injects the real upstream
  * credential, enforces the subscription, meters, and audits. The container never
  * holds a vendor MCP secret — discovery deliberately returns no `baseUrl` and no

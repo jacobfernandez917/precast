@@ -199,8 +199,10 @@ ADR-016, which did the same for models.
 AgentBase already had everything except the last mile: `POST /proxy/mcp/:org/:slug/mcp`
 proxies MCP calls behind `PublicProxyGuard`, injecting the upstream credential and enforcing
 the subscription. What an agent could not do was learn _which_ `:org/:slug` pairs it was
-entitled to — that lived only behind `/developer/subscriptions`, which requires a human
-developer token. AgentBase gains `GET /proxy/mcp/subscriptions`, answered for the **calling
+entitled to — and neither existing surface answers it for a hosted agent:
+`/developer/subscriptions` needs a human session, and the native
+`agentbase.list_subscriptions` tool rejects org-owned service applications with
+`developer_app_required`. AgentBase gains `GET /proxy/mcp/subscriptions`, answered for the **calling
 application** and returning only `{org, slug, title, scopes, url}` — never `baseUrl`, never
 `authConfig`. The proxy stays the only way to reach an MCP, so subscription enforcement,
 metering and audit cannot be routed around.

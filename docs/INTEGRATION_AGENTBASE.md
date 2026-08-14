@@ -401,8 +401,11 @@ runtime, rather than having their URLs hardcoded in this repo's `.env`.
 AgentBase already proxies MCP: `POST /proxy/mcp/:org/:slug/mcp` sits behind the same
 `PublicProxyGuard` as the LLM gateway, injects the upstream credential, and enforces the
 subscription. The missing piece was discovery — knowing _which_ `:org/:slug` pairs this agent
-is entitled to. That lived only behind `/developer/subscriptions`, which requires a human
-developer token.
+is entitled to. Two surfaces answer that question and **neither works for a hosted agent**:
+`/developer/subscriptions` needs a human Studio session, and AgentBase's native
+`agentbase.list_subscriptions` MCP tool resolves the caller via `ownerDeveloperId` — which
+the per-agent service applications minted for hosted containers do not have, so it returns
+`developer_app_required`. Hence a dedicated endpoint for exactly that caller.
 
 1. AgentBase injects **`AGENTBASE_MCP_BASE_URL`** into every hosted container —
    unconditionally, unlike the per-agent LLM vars. An agent with no subscriptions gets an
