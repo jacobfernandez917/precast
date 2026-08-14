@@ -109,6 +109,34 @@ describe('rename safety', () => {
     const src = `${DEPS_IMAGE_REPO}:a ${DEPS_IMAGE_REPO}:b`;
     expect(replaceToken(src, 'vectorizer')).toBe(src);
   });
+
+  // The workspace scope stays `@precast/*` in every derived project. It is
+  // internal and cannot collide, whereas renaming it moved the deps-image cache
+  // key (pnpm-lock.yaml records workspace package names) and made ~36 files
+  // differ from upstream by construction on every `precast:update`.
+  it('leaves the @precast/* workspace scope alone', () => {
+    const src = [
+      `import { parseApiEnv } from '@precast/shared';`,
+      `"@precast/*": ["packages/shared/src"]`,
+      `"dev": "pnpm -F @precast/agents dev"`,
+    ].join('\n');
+    expect(replaceToken(src, 'vectorizer')).toBe(src);
+  });
+
+  // ...but RUNTIME identity must still be renamed. Omitting the Compose
+  // `name:` once made one project's `pnpm poc` recreate another project's
+  // Keycloak container (APP-013), so this half is not optional.
+  it('still renames runtime identity: compose project, containers, keycloak', () => {
+    const out = replaceToken(
+      ['name: precast', 'container_name: precast-agents', 'KEYCLOAK_CLIENT_ID=precast-api'].join(
+        '\n',
+      ),
+      'vectorizer',
+    );
+    expect(out).toContain('name: vectorizer');
+    expect(out).toContain('container_name: vectorizer-agents');
+    expect(out).toContain('KEYCLOAK_CLIENT_ID=vectorizer-api');
+  });
 });
 
 describe('cache key', () => {

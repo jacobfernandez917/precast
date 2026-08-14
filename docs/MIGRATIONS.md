@@ -122,6 +122,67 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.7.0 — the workspace scope stays `@precast/*` (2026-08-14)
+
+**What changed.** `pnpm rename` no longer renames the **workspace package scope**. A derived
+project keeps `@precast/shared`, `@precast/agents`, `@precast/web`, the `@precast/*` tsconfig
+aliases, and `pnpm -F @precast/…` scripts exactly as shipped.
+
+**Runtime identity is still renamed** — the Compose project `name:`, `container_name:`, image
+tags, and the Keycloak realm/client id. That half is not optional: omitting the Compose
+`name:` once caused one project's `pnpm poc` to recreate _another project's_ Keycloak
+container (APP-013).
+
+**Why.** The scope is internal — never published to npm, never installed alongside another
+project — so two projects both owning `@precast/shared` cannot collide. Renaming it cost two
+real things:
+
+- **`pnpm-lock.yaml` records workspace package names**, so the rename alone moved the
+  deps-image cache key. Verified: renaming a full checkout used to change the lockfile hash;
+  now `f7fae34ddbc6c518` before and after.
+- **`pnpm precast:update` replays this rename** over upstream and diffs, so a renamed scope
+  made every one of ~36 scope-bearing files differ _by construction_ — permanent noise on
+  every upgrade.
+
+**Handled by `pnpm precast:update`.** `scripts/rename-project.mjs`.
+
+**Manual steps — a one-time codemod, for projects scaffolded before v0.7.0.**
+
+Your project currently has a renamed scope (`@yourproject/shared`). Until you rename it back,
+`precast:update` will report every scope-bearing file as a **CONFLICT**, because the replayed
+upstream now says `@precast/*` and your files do not.
+
+From your project root, with a clean working tree:
+
+```bash
+# 1. Point every reference back at the shipped scope.
+grep -rl '@yourproject/' --exclude-dir=node_modules --exclude-dir=.git . \
+  | xargs sed -i '' 's|@yourproject/|@precast/|g'      # GNU sed: drop the ''
+
+# 2. Rebuild the lockfile so it records the shipped names.
+pnpm install
+
+# 3. Confirm nothing runtime-identifying got caught up in it.
+git diff --stat
+grep -n '^name:\|container_name:' docker/docker-compose.yml   # must still be YOUR project
+```
+
+It is a mechanical, internal-only rename: no published package changes, no runtime behaviour
+changes, and the container/Compose/Keycloak names are untouched because they never carried
+the scope. Then `pnpm test` and `pnpm poc` as usual.
+
+**Advisory files touched.** `package.json` and `packages/shared/package.json` (the `name`
+fields revert to `@precast/*`); `tsconfig.base.json` aliases; `apps/web/test/deps-image.spec.ts`.
+
+**Verify.**
+
+```bash
+pnpm test          # APP-017 now pins BOTH halves: scope preserved, runtime renamed
+pnpm deps:image    # your lockfile tag should now match upstream's for an unmodified graph
+```
+
+---
+
 ## v0.6.0 — AgentBase Models as a provider, and three bugs a live database found (2026-08-14)
 
 **What changed.**
