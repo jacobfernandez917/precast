@@ -122,6 +122,74 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.6.0 — AgentBase Models as a provider, and three bugs a live database found (2026-08-14)
+
+**What changed.**
+
+**Three fixes, all found by pointing the stack at a real Postgres for the first time.**
+
+1. **`sslmode=require` was being verified.** `sslmode` is a libpq convention and
+   node-postgres does not implement it faithfully: under libpq `require` means _encrypt, do
+   NOT verify_ — verification is what `verify-ca`/`verify-full` are for. node-postgres
+   verifies anyway, so any managed instance behind a CA Node doesn't already trust (AWS RDS
+   notably) crash-looped the agents container with `SELF_SIGNED_CERT_IN_CHAIN` despite a
+   correct URL. New `resolvePostgresSsl()` implements libpq's mapping.
+2. **`.env.example` shipped inline comments inside values.** Docker Compose's `env_file` does
+   not strip them, so a line of the form `KEY=` followed by a trailing `#` comment handed
+   every scaffolded project that comment **as the value** — in this case a 48-character
+   "API key" containing an em dash. It silenced the no-provider warning _and_ killed every
+   LLM call in HTTP header encoding.
+3. **Prettier was reformatting the generated `apc-themes.css`**, breaking APC-002 on every
+   `pnpm format`.
+
+**AgentBase Models is now an LLM provider choice.** Previously the only options were vendor
+keys, unless AgentBase was _hosting_ the repo. The runtime now falls back from the SUFFIXED
+per-agent vars (platform-injected, ADR-016) to UNSUFFIXED account-level ones, so a developer
+whose org runs AgentBase can use its onboarded models from local dev, Standalone, or External
+— with no vendor key in the repo at all.
+
+**Handled by `pnpm precast:update`.** `scripts/bootstrap.mjs` (the new provider, its five
+prompts and `--agentbase-*` flags) and `.prettierignore`.
+
+**Manual steps.**
+
+1. **Fix any baked SSL failure.** Copy `resolvePostgresSsl()` from
+   `packages/shared/src/database.ts` and apply it where you build your Postgres client —
+   in Precast that is `getPrecastStore()` (`apps/agents/src/mastra/lib/storage.ts`), which
+   now spreads `...(ssl === undefined ? {} : { ssl })`. Skip this only if your provider's CA
+   is already in Node's trust store; if your container dies with
+   `SELF_SIGNED_CERT_IN_CHAIN`, this is why.
+2. **Audit your `.env.example` for inline comments on the value side.** Any
+   `KEY=  # explanation` line is shipping that explanation _as the value_. Move the comment
+   to its own line above. Do the same in your `.env`. Guard: APP-019.
+3. **Add the account-level env vars** to your schema as optional:
+   `AGENTBASE_LLM_CLIENT_ID`, `AGENTBASE_LLM_CLIENT_SECRET`, `AGENTBASE_LLM_MODEL`.
+4. **Port the credential fallback** in `apps/agents/src/mastra/lib/agentbase-model.ts` —
+   `llmEnvValue()` reads the per-agent var first and the unsuffixed one second. **Keep that
+   order.** If account-level won, a stale value in a repo's `.env` would silently override an
+   org admin's per-agent Studio choice on a hosted container.
+5. **Widen the boot warning** so it stays quiet when `isAgentBaseLlmConfigured()` is true —
+   a project on the gateway holds no vendor key on purpose.
+6. **Add `apps/web/app/theme/apc-themes.css` to `.prettierignore`** if you generate it.
+
+**Advisory files touched.** `packages/shared/src/{database,env}.ts`; `.env.example` (the
+comment fix, plus the new AgentBase block); `package.json`;
+`apps/web/test/bootstrap-llm.spec.ts` (new).
+
+**Verify.**
+
+```bash
+pnpm test    # APP-019/APP-020, AGT-008, and 5 resolvePostgresSsl cases
+pnpm poc     # agents should reach healthy against your real Postgres
+```
+
+**Known unverified.** The AgentBase Models path is unit-tested only — no token has been
+minted against a live gateway, and no chat round-trip has run, so agent-memory recall across
+turns remains unproven. `GET /api/agents` returning the orchestrator crew against real
+Postgres _is_ verified.
+
+---
+
 ## v0.5.0 — MCP tools discovered from AgentBase at runtime (2026-08-14)
 
 **What changed.** An AgentBase-hosted agent now learns which **MCP servers** it may call
