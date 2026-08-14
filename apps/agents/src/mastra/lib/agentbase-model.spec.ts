@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getAgentBaseLlmToken,
+  isAgentBaseLlmConfigured,
   resetAgentBaseLlmTokenCacheForTests,
   resolveAgentModel,
 } from './agentbase-model';
@@ -153,5 +154,78 @@ describe('getAgentBaseLlmToken', () => {
       vi.fn(async () => new Response('invalid_client', { status: 401 })),
     );
     await expect(getAgentBaseLlmToken('example-agent')).rejects.toThrow(/401/);
+  });
+});
+
+describe('account-level AgentBase credentials (--llm-provider=agentbase)', () => {
+  /**
+   * AGT-008. The platform injects SUFFIXED per-agent vars when it hosts the
+   * container; a developer supplies UNSUFFIXED ones in `.env` so the org's
+   * onboarded models are usable from local dev / Standalone / External, where
+   * nothing is injected.
+   */
+  const ORIGINAL = { ...process.env };
+  afterEach(() => {
+    process.env = { ...ORIGINAL };
+  });
+
+  function clearAgentBase() {
+    for (const k of Object.keys(process.env)) {
+      if (k.startsWith('AGENTBASE_')) delete process.env[k];
+    }
+  }
+
+  it('reports configured when the account-level set is complete', () => {
+    clearAgentBase();
+    process.env.AGENTBASE_LLM_BASE_URL = 'https://api.ab.test/llm/v1';
+    process.env.AGENTBASE_LLM_TOKEN_URL = 'https://auth.ab.test/token';
+    process.env.AGENTBASE_LLM_CLIENT_ID = 'cid';
+    process.env.AGENTBASE_LLM_CLIENT_SECRET = 'secret';
+    expect(isAgentBaseLlmConfigured()).toBe(true);
+  });
+
+  it('reports NOT configured when a piece is missing', () => {
+    clearAgentBase();
+    process.env.AGENTBASE_LLM_BASE_URL = 'https://api.ab.test/llm/v1';
+    process.env.AGENTBASE_LLM_CLIENT_ID = 'cid';
+    // no token URL, no secret
+    expect(isAgentBaseLlmConfigured()).toBe(false);
+  });
+
+  it('uses the account-level model when no per-agent one is injected', () => {
+    clearAgentBase();
+    process.env.AGENTBASE_LLM_BASE_URL = 'https://api.ab.test/llm/v1';
+    process.env.AGENTBASE_LLM_TOKEN_URL = 'https://auth.ab.test/token';
+    process.env.AGENTBASE_LLM_CLIENT_ID = 'cid';
+    process.env.AGENTBASE_LLM_CLIENT_SECRET = 'secret';
+    process.env.AGENTBASE_LLM_MODEL = 'anthropic/claude-sonnet-5';
+
+    // A gateway-backed model object, not the plain fallback string.
+    const model = resolveAgentModel('example-agent', 'google/gemini-2.5-flash');
+    expect(typeof model).not.toBe('string');
+  });
+
+  it('lets an injected PER-AGENT model win over the account-level one', () => {
+    // On a hosted container the org admin's Studio choice must not be
+    // overridable by a value someone left in the repo's .env.
+    clearAgentBase();
+    process.env.AGENTBASE_LLM_BASE_URL = 'https://api.ab.test/llm/v1';
+    process.env.AGENTBASE_LLM_TOKEN_URL = 'https://auth.ab.test/token';
+    process.env.AGENTBASE_LLM_CLIENT_ID = 'account-cid';
+    process.env.AGENTBASE_LLM_CLIENT_SECRET = 'account-secret';
+    process.env.AGENTBASE_LLM_MODEL = 'account/model';
+    process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT = 'admin/chosen-model';
+
+    const model = resolveAgentModel('example-agent', 'google/gemini-2.5-flash');
+    expect(typeof model).not.toBe('string');
+    expect(JSON.stringify(model)).toContain('admin/chosen-model');
+  });
+
+  it('stays out of the way when nothing AgentBase is set', () => {
+    clearAgentBase();
+    expect(isAgentBaseLlmConfigured()).toBe(false);
+    expect(resolveAgentModel('example-agent', 'google/gemini-2.5-flash')).toBe(
+      'google/gemini-2.5-flash',
+    );
   });
 });

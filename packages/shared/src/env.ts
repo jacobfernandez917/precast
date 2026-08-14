@@ -141,6 +141,15 @@ export const EnvSchema = z.object({
   AGENTBASE_HOSTED: z.enum(['0', '1']).optional(),
   AGENTBASE_LLM_BASE_URL: z.string().url().optional(),
   AGENTBASE_LLM_TOKEN_URL: z.string().url().optional(),
+  //   AGENTBASE_LLM_CLIENT_ID / _CLIENT_SECRET / _MODEL (no agent suffix) —
+  //     ACCOUNT-level credentials, supplied by the developer rather than
+  //     injected by the platform. This is what makes "AgentBase Models" usable
+  //     as an LLM provider from local dev / Standalone / External, where
+  //     nothing is injected. The suffixed per-agent vars always win, so an org
+  //     admin's Studio choice can never be overridden by a repo `.env`.
+  AGENTBASE_LLM_CLIENT_ID: z.string().optional(),
+  AGENTBASE_LLM_CLIENT_SECRET: z.string().optional(),
+  AGENTBASE_LLM_MODEL: z.string().optional(),
   AGENTBASE_MCP_BASE_URL: z.string().url().optional(),
 
   // ── Mastra API auth ────────────────────────────────────────────────────────

@@ -49,6 +49,40 @@ function llmEnvVarName(agentId: string, key: LlmEnvKey): string {
   return `AGENTBASE_LLM_${key}_${suffix}`;
 }
 
+/**
+ * Per-agent value if present, otherwise the account-level one.
+ *
+ * Two different people set these. AgentBase injects the SUFFIXED vars per agent
+ * when it hosts the container (ADR-016) — that is the org admin's choice, made
+ * in Studio. The UNSUFFIXED vars are the developer's own Application
+ * credentials, put in `.env` by `pnpm bootstrap --llm-provider=agentbase`, so a
+ * project can use the org's onboarded models from local dev, Standalone or
+ * External mode — where nothing is injected and the only alternative was a raw
+ * vendor key.
+ *
+ * Per-agent wins deliberately: on a hosted container the admin's per-agent
+ * choice must not be overridable by a value someone left in the repo's `.env`.
+ */
+function llmEnvValue(agentId: string, key: LlmEnvKey): string | undefined {
+  return process.env[llmEnvVarName(agentId, key)] || process.env[`AGENTBASE_LLM_${key}`];
+}
+
+/**
+ * Is the AgentBase gateway usable at all — by either route?
+ *
+ * Used for the boot-time "no LLM provider configured" warning, which would
+ * otherwise fire for a project that is correctly configured against AgentBase
+ * and simply holds no vendor key.
+ */
+export function isAgentBaseLlmConfigured(agentId?: string): boolean {
+  const hasCreds = agentId
+    ? Boolean(llmEnvValue(agentId, 'CLIENT_ID') && llmEnvValue(agentId, 'CLIENT_SECRET'))
+    : Boolean(process.env.AGENTBASE_LLM_CLIENT_ID && process.env.AGENTBASE_LLM_CLIENT_SECRET);
+  return Boolean(
+    process.env.AGENTBASE_LLM_BASE_URL && process.env.AGENTBASE_LLM_TOKEN_URL && hasCreds,
+  );
+}
+
 /** Exported for direct testing — internally called by `resolveAgentModel`'s custom fetch. */
 export async function getAgentBaseLlmToken(agentId: string): Promise<string> {
   const now = Date.now();
@@ -58,12 +92,13 @@ export async function getAgentBaseLlmToken(agentId: string): Promise<string> {
   }
 
   const tokenUrl = process.env.AGENTBASE_LLM_TOKEN_URL ?? '';
-  const clientId = process.env[llmEnvVarName(agentId, 'CLIENT_ID')] ?? '';
-  const clientSecret = process.env[llmEnvVarName(agentId, 'CLIENT_SECRET')] ?? '';
+  const clientId = llmEnvValue(agentId, 'CLIENT_ID') ?? '';
+  const clientSecret = llmEnvValue(agentId, 'CLIENT_SECRET') ?? '';
   if (!tokenUrl || !clientId || !clientSecret) {
     throw new Error(
       `AgentBase LLM gateway is enabled for agent "${agentId}" but its service credentials ` +
-        `(AGENTBASE_LLM_TOKEN_URL / ${llmEnvVarName(agentId, 'CLIENT_ID')} / ${llmEnvVarName(agentId, 'CLIENT_SECRET')}) are not fully set.`,
+        `(AGENTBASE_LLM_TOKEN_URL / ${llmEnvVarName(agentId, 'CLIENT_ID')} / ${llmEnvVarName(agentId, 'CLIENT_SECRET')}, ` +
+        `or the account-level AGENTBASE_LLM_CLIENT_ID / AGENTBASE_LLM_CLIENT_SECRET) are not fully set.`,
     );
   }
 
@@ -139,7 +174,7 @@ export function resolveAgentModel(
   fallback: string | LanguageModelV4,
 ): string | LanguageModelV4 {
   const baseUrl = process.env.AGENTBASE_LLM_BASE_URL;
-  const modelId = process.env[llmEnvVarName(agentId, 'MODEL')];
+  const modelId = llmEnvValue(agentId, 'MODEL');
 
   if (baseUrl && modelId) {
     const provider = createOpenAICompatible({

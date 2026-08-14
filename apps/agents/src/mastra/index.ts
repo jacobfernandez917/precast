@@ -9,6 +9,7 @@ import { getPrecastStore } from './lib/storage';
 import { agentAuthMiddleware } from './middleware/auth';
 import { crew, crewAgents } from './crew';
 import { isLlmProviderConfigured } from './lib/default-model';
+import { isAgentBaseLlmConfigured } from './lib/agentbase-model';
 
 // Validate env at boot — fail fast on missing/invalid config. The single root
 // `.env` is loaded by the dev/start scripts (dotenv-cli); in production the real
@@ -21,7 +22,10 @@ const env = parseApiEnv();
 // This is advisory only: an AgentBase-hosted deploy legitimately boots
 // without one on its first deploy (see agentbase-model.ts), so we don't fail
 // the boot here, only make the gap impossible to miss in the terminal.
-if (!isLlmProviderConfigured() && env.AGENTBASE_HOSTED !== '1') {
+// Also silent when the AgentBase gateway is configured with account-level
+// credentials (`--llm-provider=agentbase`): that project holds no vendor key
+// on purpose, and warning about it would be wrong.
+if (!isLlmProviderConfigured() && !isAgentBaseLlmConfigured() && env.AGENTBASE_HOSTED !== '1') {
   console.warn(
     '⚠️  No LLM provider configured — agents will boot, but any actual chat/tool-call will fail. ' +
       'Set ONE of ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY in .env ' +

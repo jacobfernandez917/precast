@@ -16,9 +16,13 @@
  *      always did. Any port can still be pinned explicitly.
  *   3. Ask which LLM provider the project will use (see LLM_PROVIDERS below —
  *      Anthropic, OpenAI, Google, xAI, Mistral, DeepSeek, Groq, Cerebras,
- *      Perplexity, or the OpenRouter / Vercel AI Gateway routers — or skip).
- *      Never collects the actual key value, only which one to remind about
- *      later. No provider is hardcoded as the default; the agents auto-detect
+ *      Perplexity, the OpenRouter / Vercel AI Gateway routers, **AgentBase
+ *      Models** — or skip). For a vendor provider it never collects the key
+ *      value, only which one to remind about later. AgentBase Models is the one
+ *      exception: it needs five interdependent settings (gateway base URL,
+ *      token endpoint, client id, client secret, model), so bootstrap asks for
+ *      them together and writes them to `.env` — four of five would look
+ *      complete and fail at the first chat. No provider is hardcoded as the default; the agents auto-detect
  *      from whichever single key ends up set in `.env` (see
  *      apps/agents/src/mastra/lib/default-model.ts).
  *   4. Ask which APC Design System theme the web app should use — Stockholm,
@@ -45,6 +49,10 @@
  * Non-interactive LLM provider selection (see LLM_PROVIDERS below for the full
  * set, or `skip` to decide later):
  *   pnpm bootstrap my-project --llm-provider=anthropic
+ * AgentBase Models non-interactively needs all five:
+ *   pnpm bootstrap my-project --llm-provider=agentbase \
+ *     --agentbase-base-url=… --agentbase-token-url=… --agentbase-client-id=… \
+ *     --agentbase-client-secret=… --agentbase-model=anthropic/claude-sonnet-5
  * Non-interactive theme selection (defaults to Stockholm when a name is passed
  * as an argument, since there is nobody at the prompt to answer):
  *   pnpm bootstrap my-project --theme=arctic
@@ -85,6 +93,57 @@ const LLM_PROVIDERS = [
   { key: 'perplexity', envVar: 'PERPLEXITY_API_KEY', label: 'Perplexity' },
   { key: 'openrouter', envVar: 'OPENROUTER_API_KEY', label: 'OpenRouter (router)' },
   { key: 'vercel', envVar: 'AI_GATEWAY_API_KEY', label: 'Vercel AI Gateway (router)' },
+  // Not a vendor key: AgentBase's gateway serves the models your org has
+  // already onboarded, and the real provider key stays server-side. `envVar` is
+  // null because this option needs a SET of values, collected below — so unlike
+  // every other entry there is nothing to remind the user about afterwards.
+  {
+    key: 'agentbase',
+    envVar: null,
+    label: "AgentBase Models (your org's gateway — no vendor key needed)",
+  },
+];
+
+/**
+ * The account-level AgentBase gateway settings, in prompt order.
+ *
+ * Token URL, client id and client secret authenticate you. Base URL and model
+ * are asked for too, and deliberately: without them the gateway cannot be
+ * called at all, so collecting only the credentials would write a config that
+ * looks complete and fails at the first chat — the exact silent-misconfiguration
+ * this scaffold keeps trying to eliminate.
+ */
+const AGENTBASE_LLM_FIELDS = [
+  {
+    env: 'AGENTBASE_LLM_BASE_URL',
+    flag: 'agentbase-base-url',
+    prompt: 'AgentBase LLM gateway base URL (e.g. https://api.agentbase.../llm/v1)',
+    secret: false,
+  },
+  {
+    env: 'AGENTBASE_LLM_TOKEN_URL',
+    flag: 'agentbase-token-url',
+    prompt: 'AgentBase token endpoint URL (OAuth2 client_credentials)',
+    secret: false,
+  },
+  {
+    env: 'AGENTBASE_LLM_CLIENT_ID',
+    flag: 'agentbase-client-id',
+    prompt: 'AgentBase Application client id',
+    secret: false,
+  },
+  {
+    env: 'AGENTBASE_LLM_CLIENT_SECRET',
+    flag: 'agentbase-client-secret',
+    prompt: 'AgentBase Application client secret',
+    secret: true,
+  },
+  {
+    env: 'AGENTBASE_LLM_MODEL',
+    flag: 'agentbase-model',
+    prompt: 'Model to use, as onboarded in your org (e.g. anthropic/claude-sonnet-5)',
+    secret: false,
+  },
 ];
 
 const rawArgs = process.argv.slice(2);
@@ -226,6 +285,55 @@ async function resolvePorts() {
  * product look like it belongs to the same family — and because retro-fitting a
  * look after the UI is built is far more work than picking one now.
  */
+/**
+ * Collect the account-level AgentBase gateway settings.
+ *
+ * This is the ONE place bootstrap accepts secret values. Every other provider
+ * is recorded by name only, and the closing reminder tells you which key to set
+ * yourself — because a vendor key is a single value that is easy to paste into
+ * `.env`. The AgentBase option is five interdependent values, and a project
+ * that gets four of them right fails at the first chat with an auth error that
+ * points nowhere. Asking here, together, is what makes the option usable.
+ *
+ * The values are written to `.env` only — which is git-ignored and excluded
+ * from the Docker build context. `.env.example`, which IS committed, keeps the
+ * empty placeholders.
+ */
+async function resolveAgentBaseLlm(rl) {
+  const values = {};
+
+  // Flags first, so CI / non-interactive runs work without a TTY.
+  for (const field of AGENTBASE_LLM_FIELDS) {
+    const fromFlag = flagVal(field.flag);
+    if (fromFlag) values[field.env] = fromFlag;
+  }
+
+  const missing = AGENTBASE_LLM_FIELDS.filter((f) => !values[f.env]);
+  if (missing.length === 0) return values;
+
+  if (!rl) {
+    console.error(
+      `\n❌ --llm-provider=agentbase needs ${missing.map((f) => `--${f.flag}=`).join(' ')}` +
+        ' when running non-interactively.',
+    );
+    process.exit(1);
+  }
+
+  console.log('\nAgentBase Models — create an Application in Studio, subscribe it to the');
+  console.log('model listing, then paste its details here. Stored in .env (git-ignored).');
+  for (const field of missing) {
+    for (;;) {
+      const answer = (await rl.question(`  ${field.prompt}: `)).trim();
+      if (answer) {
+        values[field.env] = answer;
+        break;
+      }
+      console.error('    Required — all five are needed for the gateway to answer.');
+    }
+  }
+  return values;
+}
+
 async function resolveApcTheme() {
   const fv = flagVal('theme');
   if (fv) {
@@ -326,6 +434,16 @@ async function main() {
     process.exit(1);
   }
   const llmProvider = await resolveLlmProvider();
+  // Only the AgentBase option needs values rather than a name.
+  let agentBaseLlm = null;
+  if (llmProvider?.key === 'agentbase') {
+    const rl = nameArg ? null : createInterface({ input: stdin, output: stdout });
+    try {
+      agentBaseLlm = await resolveAgentBaseLlm(rl);
+    } finally {
+      rl?.close();
+    }
+  }
   const apcTheme = await resolveApcTheme();
   const manifest = readManifest(rootDir);
 
@@ -392,6 +510,7 @@ async function main() {
   // an instruction to copy one — this is the gap that let an unconfigured LLM
   // provider go unnoticed until a chat actually failed.
   const envCreated = copyEnvFile();
+  if (agentBaseLlm) writeEnvValues(agentBaseLlm);
 
   console.log(`\n✅ ${name} is ready.`);
   if (lock) {
@@ -420,7 +539,10 @@ async function main() {
   printDockerPrerequisite();
 
   console.log('');
-  if (llmProvider) {
+  if (llmProvider?.key === 'agentbase') {
+    console.log('✅ AgentBase Models configured — no vendor key needed; the org key stays');
+    console.log('   server-side. Verify with `pnpm poc` and one chat message.');
+  } else if (llmProvider) {
     console.log(
       `⚠️  ACTION REQUIRED — set ${llmProvider.envVar} in .env before the agents will respond.`,
     );
@@ -477,6 +599,30 @@ function copyEnvFile() {
  * they give every agent the same intent up front. Point the user at the
  * templates so they fill them in first.
  */
+/**
+ * Set keys in the real `.env`, replacing the empty placeholders `.env.example`
+ * ships. Never touches `.env.example` — that file is committed, and a secret
+ * landing there would reach every clone.
+ *
+ * Values are written raw and alone on the line: an inline comment after the
+ * value would become PART of it under Docker Compose's env_file parser, which
+ * is exactly how a placeholder once shipped as a live "API key" (APP-019).
+ */
+function writeEnvValues(values) {
+  const envPath = join(rootDir, '.env');
+  if (!existsSync(envPath)) return;
+  let text = readFileSync(envPath, 'utf-8');
+
+  for (const [key, value] of Object.entries(values)) {
+    const line = `${key}=${value}`;
+    const re = new RegExp(`^${key}=.*$`, 'm');
+    text = re.test(text) ? text.replace(re, line) : `${text.replace(/\n?$/, '\n')}${line}\n`;
+  }
+
+  writeFileSync(envPath, text, 'utf-8');
+  console.log(`\nWrote ${Object.keys(values).length} AgentBase gateway settings into .env.`);
+}
+
 function printFeedForwardGuidance() {
   console.log('\n📄 Write your feed-forward docs first (templates in templates/):');
   console.log('   These give any coding agent shared intent before a line of code is written.');
