@@ -4,15 +4,27 @@ import type { LanguageModelV4 } from '@ai-sdk/provider';
 /**
  * ABIMP-LLM — lets the org admin choose which LLM (and key) an IMPORTED
  * agent uses from AgentBase Studio, without ever touching this repo's
- * `.env`. AgentBase injects the vars below into the container at deploy
- * time (never present locally / in Standalone or External deployment mode):
+ * `.env`. AgentBase injects these into the container at deploy time (never
+ * present locally / in Standalone or External deployment mode):
  *
  *   AGENTBASE_HOSTED                       "1" on any AgentBase-hosted container
  *   AGENTBASE_LLM_BASE_URL                 shared gateway base URL
+ *   AGENTBASE_LLM_MODEL_<AGENT_ID>         "<provider>/<model>", admin-chosen
  *   AGENTBASE_LLM_TOKEN_URL                shared Keycloak token endpoint
- *   AGENTBASE_LLM_CLIENT_ID_<AGENT_ID>      this agent's own service Application
+ *   AGENTBASE_LLM_CLIENT_ID_<AGENT_ID>     this agent's own service Application
  *   AGENTBASE_LLM_CLIENT_SECRET_<AGENT_ID>
- *   AGENTBASE_LLM_MODEL_<AGENT_ID>          "<provider>/<model>", admin-chosen
+ *
+ * The last three are read but no longer the names to WRITE. Credentials are not
+ * LLM-specific — one Application authenticates the LLM gateway, the MCP proxy
+ * and the A2A proxy alike — so the canonical names drop the infix:
+ *
+ *   AGENTBASE_TOKEN_URL / AGENTBASE_CLIENT_ID[_<AGENT_ID>]
+ *                       / AGENTBASE_CLIENT_SECRET[_<AGENT_ID>]
+ *
+ * Canonical wins; the AGENTBASE_LLM_* forms remain a live fallback because the
+ * platform still injects them and this repo does not control the injector (see
+ * `envCandidates`). Capability-specific SETTINGS keep their infix, which is why
+ * AGENTBASE_LLM_BASE_URL and AGENTBASE_LLM_MODEL are unchanged above.
  *
  * `<AGENT_ID>` is this agent's own `id` (the string passed to `new Agent({id})`),
  * uppercased/underscored — mirrors `envVarNameForAgent()` in
@@ -42,29 +54,71 @@ interface CachedToken {
 const REFRESH_SKEW_MS = 30_000;
 const tokenCache = new Map<string, CachedToken>();
 
-type LlmEnvKey = 'CLIENT_ID' | 'CLIENT_SECRET' | 'MODEL';
+type CredentialKey = 'CLIENT_ID' | 'CLIENT_SECRET';
+type AgentBaseEnvKey = CredentialKey | 'MODEL';
 
-function llmEnvVarName(agentId: string, key: LlmEnvKey): string {
-  const suffix = agentId.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
-  return `AGENTBASE_LLM_${key}_${suffix}`;
+function agentSuffix(agentId: string): string {
+  return agentId.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+}
+
+/** The canonical per-agent var name, used in error messages. */
+function envVarName(agentId: string, key: AgentBaseEnvKey): string {
+  const prefix = key === 'MODEL' ? 'AGENTBASE_LLM' : 'AGENTBASE';
+  return `${prefix}_${key}_${agentSuffix(agentId)}`;
 }
 
 /**
- * Per-agent value if present, otherwise the account-level one.
+ * The lookup order for one setting, most specific first.
  *
- * Two different people set these. AgentBase injects the SUFFIXED vars per agent
- * when it hosts the container (ADR-016) — that is the org admin's choice, made
- * in Studio. The UNSUFFIXED vars are the developer's own Application
- * credentials, put in `.env` by `pnpm bootstrap --llm-provider=agentbase`, so a
- * project can use the org's onboarded models from local dev, Standalone or
- * External mode — where nothing is injected and the only alternative was a raw
- * vendor key.
+ * **Credentials are not LLM-specific.** One AgentBase Application authenticates
+ * every capability — the LLM gateway, the MCP proxy (see agentbase-mcp.ts,
+ * which mints its token with `getAgentBaseToken`), and anything added later.
+ * So the canonical names carry no capability infix: `AGENTBASE_CLIENT_ID`,
+ * matching what `apps/web/app/lib/agentbase-auth.ts` has always used for the
+ * A2A proxy. Settings that genuinely ARE capability-specific keep their infix
+ * (`AGENTBASE_LLM_BASE_URL`, `AGENTBASE_LLM_MODEL`, `AGENTBASE_MCP_BASE_URL`).
  *
- * Per-agent wins deliberately: on a hosted container the admin's per-agent
- * choice must not be overridable by a value someone left in the repo's `.env`.
+ * The `AGENTBASE_LLM_*` credential names are still read, and must stay read:
+ * **AgentBase injects them** into a hosted container (ADR-016) and this repo
+ * does not control the injector. Dropping them would break every hosted import
+ * on its next redeploy. They are legacy for humans, live for the platform.
+ *
+ * Two different people set these, which fixes the precedence. AgentBase injects
+ * the SUFFIXED vars per agent — the org admin's choice, made in Studio. The
+ * UNSUFFIXED vars are the developer's own Application credentials, written to
+ * `.env` by `pnpm bootstrap --llm-provider=agentbase`, so a project can use the
+ * org's onboarded models from local dev, Standalone or External mode where
+ * nothing is injected. Per-agent wins deliberately: on a hosted container the
+ * admin's choice must not be overridable by a value left in the repo's `.env`.
  */
-function llmEnvValue(agentId: string, key: LlmEnvKey): string | undefined {
-  return process.env[llmEnvVarName(agentId, key)] || process.env[`AGENTBASE_LLM_${key}`];
+function envCandidates(agentId: string, key: AgentBaseEnvKey): string[] {
+  const suffix = agentSuffix(agentId);
+  if (key === 'MODEL') {
+    // The model IS an LLM setting — it keeps the infix and has no legacy form.
+    return [`AGENTBASE_LLM_MODEL_${suffix}`, 'AGENTBASE_LLM_MODEL'];
+  }
+  return [
+    `AGENTBASE_${key}_${suffix}`,
+    `AGENTBASE_LLM_${key}_${suffix}`,
+    `AGENTBASE_${key}`,
+    `AGENTBASE_LLM_${key}`,
+  ];
+}
+
+function agentBaseEnv(agentId: string, key: AgentBaseEnvKey): string | undefined {
+  for (const name of envCandidates(agentId, key)) {
+    const value = process.env[name];
+    if (value) return value;
+  }
+  return undefined;
+}
+
+/**
+ * The OAuth2 token endpoint. Identity, not capability — so the canonical name
+ * is unprefixed and shared with the web app's A2A proxy auth.
+ */
+function tokenUrl(): string | undefined {
+  return process.env.AGENTBASE_TOKEN_URL || process.env.AGENTBASE_LLM_TOKEN_URL;
 }
 
 /**
@@ -76,33 +130,42 @@ function llmEnvValue(agentId: string, key: LlmEnvKey): string | undefined {
  */
 export function isAgentBaseLlmConfigured(agentId?: string): boolean {
   const hasCreds = agentId
-    ? Boolean(llmEnvValue(agentId, 'CLIENT_ID') && llmEnvValue(agentId, 'CLIENT_SECRET'))
-    : Boolean(process.env.AGENTBASE_LLM_CLIENT_ID && process.env.AGENTBASE_LLM_CLIENT_SECRET);
-  return Boolean(
-    process.env.AGENTBASE_LLM_BASE_URL && process.env.AGENTBASE_LLM_TOKEN_URL && hasCreds,
-  );
+    ? Boolean(agentBaseEnv(agentId, 'CLIENT_ID') && agentBaseEnv(agentId, 'CLIENT_SECRET'))
+    : Boolean(
+        (process.env.AGENTBASE_CLIENT_ID || process.env.AGENTBASE_LLM_CLIENT_ID) &&
+          (process.env.AGENTBASE_CLIENT_SECRET || process.env.AGENTBASE_LLM_CLIENT_SECRET),
+      );
+  return Boolean(process.env.AGENTBASE_LLM_BASE_URL && tokenUrl() && hasCreds);
 }
 
-/** Exported for direct testing — internally called by `resolveAgentModel`'s custom fetch. */
-export async function getAgentBaseLlmToken(agentId: string): Promise<string> {
+/**
+ * Mint (and cache) an AgentBase access token for one agent.
+ *
+ * Named for AgentBase, not for the LLM: the same token authenticates the MCP
+ * proxy, which is why agentbase-mcp.ts imports this rather than minting its own.
+ *
+ * Exported for direct testing — internally called by `resolveAgentModel`'s
+ * custom fetch.
+ */
+export async function getAgentBaseToken(agentId: string): Promise<string> {
   const now = Date.now();
   const cached = tokenCache.get(agentId);
   if (cached && cached.expiresAt - REFRESH_SKEW_MS > now) {
     return cached.accessToken;
   }
 
-  const tokenUrl = process.env.AGENTBASE_LLM_TOKEN_URL ?? '';
-  const clientId = llmEnvValue(agentId, 'CLIENT_ID') ?? '';
-  const clientSecret = llmEnvValue(agentId, 'CLIENT_SECRET') ?? '';
-  if (!tokenUrl || !clientId || !clientSecret) {
+  const url = tokenUrl() ?? '';
+  const clientId = agentBaseEnv(agentId, 'CLIENT_ID') ?? '';
+  const clientSecret = agentBaseEnv(agentId, 'CLIENT_SECRET') ?? '';
+  if (!url || !clientId || !clientSecret) {
     throw new Error(
-      `AgentBase LLM gateway is enabled for agent "${agentId}" but its service credentials ` +
-        `(AGENTBASE_LLM_TOKEN_URL / ${llmEnvVarName(agentId, 'CLIENT_ID')} / ${llmEnvVarName(agentId, 'CLIENT_SECRET')}, ` +
-        `or the account-level AGENTBASE_LLM_CLIENT_ID / AGENTBASE_LLM_CLIENT_SECRET) are not fully set.`,
+      `AgentBase is enabled for agent "${agentId}" but its service credentials ` +
+        `(AGENTBASE_TOKEN_URL / ${envVarName(agentId, 'CLIENT_ID')} / ${envVarName(agentId, 'CLIENT_SECRET')}, ` +
+        `or the account-level AGENTBASE_CLIENT_ID / AGENTBASE_CLIENT_SECRET) are not fully set.`,
     );
   }
 
-  const res = await fetch(tokenUrl, {
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -113,7 +176,7 @@ export async function getAgentBaseLlmToken(agentId: string): Promise<string> {
   });
   if (!res.ok) {
     throw new Error(
-      `AgentBase LLM gateway token request failed (HTTP ${res.status}) for agent "${agentId}".`,
+      `AgentBase token request failed (HTTP ${res.status}) for agent "${agentId}".`,
     );
   }
   const json = (await res.json()) as TokenResponse;
@@ -174,7 +237,7 @@ export function resolveAgentModel(
   fallback: string | LanguageModelV4,
 ): string | LanguageModelV4 {
   const baseUrl = process.env.AGENTBASE_LLM_BASE_URL;
-  const modelId = llmEnvValue(agentId, 'MODEL');
+  const modelId = agentBaseEnv(agentId, 'MODEL');
 
   if (baseUrl && modelId) {
     const provider = createOpenAICompatible({
@@ -184,7 +247,7 @@ export function resolveAgentModel(
       // actual provider key server-side and it never reaches this container.
       apiKey: 'unused',
       fetch: async (input, init) => {
-        const token = await getAgentBaseLlmToken(agentId);
+        const token = await getAgentBaseToken(agentId);
         const headers = new Headers(init?.headers);
         headers.set('authorization', `Bearer ${token}`);
         return fetch(input, { ...init, headers });

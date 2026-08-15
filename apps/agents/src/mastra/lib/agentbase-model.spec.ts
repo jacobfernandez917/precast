@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  getAgentBaseLlmToken,
+  getAgentBaseToken,
   isAgentBaseLlmConfigured,
   resetAgentBaseLlmTokenCacheForTests,
   resolveAgentModel,
@@ -9,7 +9,14 @@ import {
 const ENV_KEYS = [
   'AGENTBASE_HOSTED',
   'AGENTBASE_LLM_BASE_URL',
+  'AGENTBASE_TOKEN_URL',
   'AGENTBASE_LLM_TOKEN_URL',
+  'AGENTBASE_CLIENT_ID',
+  'AGENTBASE_CLIENT_SECRET',
+  'AGENTBASE_CLIENT_ID_EXAMPLE_AGENT',
+  'AGENTBASE_CLIENT_SECRET_EXAMPLE_AGENT',
+  'AGENTBASE_LLM_CLIENT_ID',
+  'AGENTBASE_LLM_CLIENT_SECRET',
   'AGENTBASE_LLM_CLIENT_ID_EXAMPLE_AGENT',
   'AGENTBASE_LLM_CLIENT_SECRET_EXAMPLE_AGENT',
   'AGENTBASE_LLM_MODEL_EXAMPLE_AGENT',
@@ -32,10 +39,10 @@ afterEach(() => {
 
 function setConfig() {
   process.env.AGENTBASE_LLM_BASE_URL = 'https://agentbase.example.com/llm/v1';
-  process.env.AGENTBASE_LLM_TOKEN_URL =
+  process.env.AGENTBASE_TOKEN_URL =
     'https://keycloak.example.com/realms/agentbase/protocol/openid-connect/token';
-  process.env.AGENTBASE_LLM_CLIENT_ID_EXAMPLE_AGENT = 'svc-client-id';
-  process.env.AGENTBASE_LLM_CLIENT_SECRET_EXAMPLE_AGENT = 'svc-client-secret';
+  process.env.AGENTBASE_CLIENT_ID_EXAMPLE_AGENT = 'svc-client-id';
+  process.env.AGENTBASE_CLIENT_SECRET_EXAMPLE_AGENT = 'svc-client-secret';
   process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT = 'google/gemini-2.5-flash';
 }
 
@@ -97,14 +104,14 @@ describe('resolveAgentModel', () => {
   });
 });
 
-describe('getAgentBaseLlmToken', () => {
+describe('getAgentBaseToken', () => {
   it('throws a clear error when the service credentials are not fully set', async () => {
-    delete process.env.AGENTBASE_LLM_CLIENT_ID_EXAMPLE_AGENT;
+    delete process.env.AGENTBASE_CLIENT_ID_EXAMPLE_AGENT;
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
 
-    await expect(getAgentBaseLlmToken('example-agent')).rejects.toThrow(
-      /AGENTBASE_LLM_CLIENT_ID_EXAMPLE_AGENT/,
+    await expect(getAgentBaseToken('example-agent')).rejects.toThrow(
+      /AGENTBASE_CLIENT_ID_EXAMPLE_AGENT/,
     );
     expect(fetchSpy).not.toHaveBeenCalled();
   });
@@ -117,11 +124,11 @@ describe('getAgentBaseLlmToken', () => {
     );
     vi.stubGlobal('fetch', fetchSpy);
 
-    const token = await getAgentBaseLlmToken('example-agent');
+    const token = await getAgentBaseToken('example-agent');
 
     expect(token).toBe('jwt-1');
     const [url, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe(process.env.AGENTBASE_LLM_TOKEN_URL);
+    expect(url).toBe(process.env.AGENTBASE_TOKEN_URL);
     expect(String(init.body)).toContain('client_id=svc-client-id');
     expect(String(init.body)).toContain('client_secret=svc-client-secret');
   });
@@ -138,12 +145,12 @@ describe('getAgentBaseLlmToken', () => {
     });
     vi.stubGlobal('fetch', fetchSpy);
 
-    expect(await getAgentBaseLlmToken('example-agent')).toBe('jwt-1');
-    expect(await getAgentBaseLlmToken('example-agent')).toBe('jwt-1');
+    expect(await getAgentBaseToken('example-agent')).toBe('jwt-1');
+    expect(await getAgentBaseToken('example-agent')).toBe('jwt-1');
     expect(fetchSpy).toHaveBeenCalledTimes(1);
 
     vi.advanceTimersByTime(45_000); // past (60s - 30s skew)
-    expect(await getAgentBaseLlmToken('example-agent')).toBe('jwt-2');
+    expect(await getAgentBaseToken('example-agent')).toBe('jwt-2');
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
@@ -153,7 +160,7 @@ describe('getAgentBaseLlmToken', () => {
       'fetch',
       vi.fn(async () => new Response('invalid_client', { status: 401 })),
     );
-    await expect(getAgentBaseLlmToken('example-agent')).rejects.toThrow(/401/);
+    await expect(getAgentBaseToken('example-agent')).rejects.toThrow(/401/);
   });
 });
 
@@ -178,16 +185,16 @@ describe('account-level AgentBase credentials (--llm-provider=agentbase)', () =>
   it('reports configured when the account-level set is complete', () => {
     clearAgentBase();
     process.env.AGENTBASE_LLM_BASE_URL = 'https://api.ab.test/llm/v1';
-    process.env.AGENTBASE_LLM_TOKEN_URL = 'https://auth.ab.test/token';
-    process.env.AGENTBASE_LLM_CLIENT_ID = 'cid';
-    process.env.AGENTBASE_LLM_CLIENT_SECRET = 'secret';
+    process.env.AGENTBASE_TOKEN_URL = 'https://auth.ab.test/token';
+    process.env.AGENTBASE_CLIENT_ID = 'cid';
+    process.env.AGENTBASE_CLIENT_SECRET = 'secret';
     expect(isAgentBaseLlmConfigured()).toBe(true);
   });
 
   it('reports NOT configured when a piece is missing', () => {
     clearAgentBase();
     process.env.AGENTBASE_LLM_BASE_URL = 'https://api.ab.test/llm/v1';
-    process.env.AGENTBASE_LLM_CLIENT_ID = 'cid';
+    process.env.AGENTBASE_CLIENT_ID = 'cid';
     // no token URL, no secret
     expect(isAgentBaseLlmConfigured()).toBe(false);
   });
@@ -195,9 +202,9 @@ describe('account-level AgentBase credentials (--llm-provider=agentbase)', () =>
   it('uses the account-level model when no per-agent one is injected', () => {
     clearAgentBase();
     process.env.AGENTBASE_LLM_BASE_URL = 'https://api.ab.test/llm/v1';
-    process.env.AGENTBASE_LLM_TOKEN_URL = 'https://auth.ab.test/token';
-    process.env.AGENTBASE_LLM_CLIENT_ID = 'cid';
-    process.env.AGENTBASE_LLM_CLIENT_SECRET = 'secret';
+    process.env.AGENTBASE_TOKEN_URL = 'https://auth.ab.test/token';
+    process.env.AGENTBASE_CLIENT_ID = 'cid';
+    process.env.AGENTBASE_CLIENT_SECRET = 'secret';
     process.env.AGENTBASE_LLM_MODEL = 'anthropic/claude-sonnet-5';
 
     // A gateway-backed model object, not the plain fallback string.
@@ -210,9 +217,9 @@ describe('account-level AgentBase credentials (--llm-provider=agentbase)', () =>
     // overridable by a value someone left in the repo's .env.
     clearAgentBase();
     process.env.AGENTBASE_LLM_BASE_URL = 'https://api.ab.test/llm/v1';
-    process.env.AGENTBASE_LLM_TOKEN_URL = 'https://auth.ab.test/token';
-    process.env.AGENTBASE_LLM_CLIENT_ID = 'account-cid';
-    process.env.AGENTBASE_LLM_CLIENT_SECRET = 'account-secret';
+    process.env.AGENTBASE_TOKEN_URL = 'https://auth.ab.test/token';
+    process.env.AGENTBASE_CLIENT_ID = 'account-cid';
+    process.env.AGENTBASE_CLIENT_SECRET = 'account-secret';
     process.env.AGENTBASE_LLM_MODEL = 'account/model';
     process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT = 'admin/chosen-model';
 
@@ -227,5 +234,103 @@ describe('account-level AgentBase credentials (--llm-provider=agentbase)', () =>
     expect(resolveAgentModel('example-agent', 'google/gemini-2.5-flash')).toBe(
       'google/gemini-2.5-flash',
     );
+  });
+});
+
+/**
+ * The rename is only safe because the OLD names keep working. AgentBase injects
+ * `AGENTBASE_LLM_CLIENT_ID_<AGENT_ID>` into a hosted container and this repo
+ * does not control the injector, so a hosted import must keep authenticating
+ * after upgrading. These cases pin that, and the precedence between the four.
+ */
+describe('credential resolution: canonical names, legacy fallback', () => {
+  beforeEach(() => {
+    for (const k of ENV_KEYS) delete process.env[k];
+    process.env.AGENTBASE_LLM_BASE_URL = 'https://agentbase.example.com/llm/v1';
+    process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT = 'google/gemini-2.5-flash';
+  });
+
+  async function capturePostedCredentials(): Promise<URLSearchParams> {
+    let body = new URLSearchParams();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit) => {
+        body = new URLSearchParams(String(init.body));
+        return new Response(JSON.stringify({ access_token: 'jwt', expires_in: 300 }), {
+          status: 200,
+        });
+      }),
+    );
+    await getAgentBaseToken('example-agent');
+    return body;
+  }
+
+  it('authenticates from the legacy platform-injected names alone (hosted import, unchanged .env)', async () => {
+    process.env.AGENTBASE_LLM_TOKEN_URL = 'https://auth.ab.test/token';
+    process.env.AGENTBASE_LLM_CLIENT_ID_EXAMPLE_AGENT = 'injected-id';
+    process.env.AGENTBASE_LLM_CLIENT_SECRET_EXAMPLE_AGENT = 'injected-secret';
+    const body = await capturePostedCredentials();
+    expect(body.get('client_id')).toBe('injected-id');
+    expect(body.get('client_secret')).toBe('injected-secret');
+  });
+
+  it('authenticates from the canonical names alone', async () => {
+    process.env.AGENTBASE_TOKEN_URL = 'https://auth.ab.test/token';
+    process.env.AGENTBASE_CLIENT_ID = 'canonical-id';
+    process.env.AGENTBASE_CLIENT_SECRET = 'canonical-secret';
+    const body = await capturePostedCredentials();
+    expect(body.get('client_id')).toBe('canonical-id');
+  });
+
+  it('prefers a per-agent value over an account-level one, across naming styles', async () => {
+    // The admin's Studio choice (injected, per-agent) must beat whatever the
+    // developer left in .env — even now that .env uses the canonical name.
+    process.env.AGENTBASE_TOKEN_URL = 'https://auth.ab.test/token';
+    process.env.AGENTBASE_CLIENT_ID = 'account-id';
+    process.env.AGENTBASE_CLIENT_SECRET = 'account-secret';
+    process.env.AGENTBASE_LLM_CLIENT_ID_EXAMPLE_AGENT = 'per-agent-id';
+    process.env.AGENTBASE_LLM_CLIENT_SECRET_EXAMPLE_AGENT = 'per-agent-secret';
+    const body = await capturePostedCredentials();
+    expect(body.get('client_id')).toBe('per-agent-id');
+  });
+
+  it('prefers the canonical name over the legacy one at the same specificity', async () => {
+    process.env.AGENTBASE_TOKEN_URL = 'https://auth.ab.test/token';
+    process.env.AGENTBASE_CLIENT_ID = 'canonical-id';
+    process.env.AGENTBASE_CLIENT_SECRET = 'canonical-secret';
+    process.env.AGENTBASE_LLM_CLIENT_ID = 'legacy-id';
+    process.env.AGENTBASE_LLM_CLIENT_SECRET = 'legacy-secret';
+    const body = await capturePostedCredentials();
+    expect(body.get('client_id')).toBe('canonical-id');
+  });
+
+  it('prefers the canonical token URL, falling back to the injected one', async () => {
+    process.env.AGENTBASE_CLIENT_ID = 'id';
+    process.env.AGENTBASE_CLIENT_SECRET = 'secret';
+    process.env.AGENTBASE_LLM_TOKEN_URL = 'https://legacy.ab.test/token';
+    let hit = '';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        hit = String(url);
+        return new Response(JSON.stringify({ access_token: 'j', expires_in: 300 }), {
+          status: 200,
+        });
+      }),
+    );
+    await getAgentBaseToken('example-agent');
+    expect(hit).toBe('https://legacy.ab.test/token');
+
+    resetAgentBaseLlmTokenCacheForTests();
+    process.env.AGENTBASE_TOKEN_URL = 'https://canonical.ab.test/token';
+    await getAgentBaseToken('example-agent');
+    expect(hit).toBe('https://canonical.ab.test/token');
+  });
+
+  it('reports configured when only legacy account-level names are set', () => {
+    process.env.AGENTBASE_LLM_TOKEN_URL = 'https://auth.ab.test/token';
+    process.env.AGENTBASE_LLM_CLIENT_ID = 'legacy-id';
+    process.env.AGENTBASE_LLM_CLIENT_SECRET = 'legacy-secret';
+    expect(isAgentBaseLlmConfigured()).toBe(true);
   });
 });

@@ -24,9 +24,9 @@ function hosted(base = 'https://api.agentbase.test/proxy/mcp') {
   process.env.AGENTBASE_HOSTED = '1';
   process.env.AGENTBASE_MCP_BASE_URL = base;
   // Credentials the token minter needs; the fetch mock makes them inert.
-  process.env.AGENTBASE_LLM_TOKEN_URL = 'https://auth.agentbase.test/token';
-  process.env.AGENTBASE_LLM_CLIENT_ID_EXAMPLE_AGENT = 'client-1';
-  process.env.AGENTBASE_LLM_CLIENT_SECRET_EXAMPLE_AGENT = 'secret-1';
+  process.env.AGENTBASE_TOKEN_URL = 'https://auth.agentbase.test/token';
+  process.env.AGENTBASE_CLIENT_ID_EXAMPLE_AGENT = 'client-1';
+  process.env.AGENTBASE_CLIENT_SECRET_EXAMPLE_AGENT = 'secret-1';
 }
 
 /** Answers the token endpoint, then delegates the discovery call to `onDiscover`. */

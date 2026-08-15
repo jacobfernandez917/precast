@@ -105,6 +105,12 @@ export const EnvSchema = z.object({
   // NOT a static token. The web app mints its own short-lived JWT from these
   // (see apps/web/app/lib/agentbase-auth.ts); create the Application in
   // AgentBase Studio and copy its clientId/clientSecret/tokenUrl.
+  // These are the CANONICAL AgentBase credentials for the whole project: the
+  // web app's A2A proxy auth, the agents' LLM gateway, and the agents' MCP
+  // proxy all authenticate with this one Application. They carry no capability
+  // infix precisely because they are not capability-specific. Per-agent
+  // overrides (AGENTBASE_CLIENT_ID_<AGENT_ID>) are read straight from
+  // process.env by agentbase-model.ts, like AGENTBASE_AGENT_URL_<AGENT_ID>.
   AGENTBASE_CLIENT_ID: z.string().optional(),
   AGENTBASE_CLIENT_SECRET: z.string().optional(),
   AGENTBASE_TOKEN_URL: z.string().url().optional(),
@@ -141,15 +147,21 @@ export const EnvSchema = z.object({
   AGENTBASE_HOSTED: z.enum(['0', '1']).optional(),
   AGENTBASE_LLM_BASE_URL: z.string().url().optional(),
   AGENTBASE_LLM_TOKEN_URL: z.string().url().optional(),
-  //   AGENTBASE_LLM_CLIENT_ID / _CLIENT_SECRET / _MODEL (no agent suffix) —
-  //     ACCOUNT-level credentials, supplied by the developer rather than
-  //     injected by the platform. This is what makes "AgentBase Models" usable
-  //     as an LLM provider from local dev / Standalone / External, where
-  //     nothing is injected. The suffixed per-agent vars always win, so an org
-  //     admin's Studio choice can never be overridden by a repo `.env`.
+  //   AGENTBASE_LLM_MODEL / _MODEL_<AGENT_ID> — "<provider>/<model>". A genuine
+  //     LLM setting, so it keeps the infix. ACCOUNT-level when unsuffixed:
+  //     supplied by the developer rather than injected, which is what makes
+  //     "AgentBase Models" usable as a provider from local dev / Standalone /
+  //     External where nothing is injected. The suffixed per-agent var always
+  //     wins, so an org admin's Studio choice can never be overridden by a repo
+  //     `.env`.
+  AGENTBASE_LLM_MODEL: z.string().optional(),
+  //   AGENTBASE_LLM_CLIENT_ID / _CLIENT_SECRET / _TOKEN_URL — DEPRECATED names
+  //     for the credentials above. Still accepted, and deliberately: AgentBase
+  //     INJECTS these into a hosted container and this repo does not control
+  //     the injector, so removing them would break every hosted import on its
+  //     next redeploy. Write the unprefixed names; expect to read these.
   AGENTBASE_LLM_CLIENT_ID: z.string().optional(),
   AGENTBASE_LLM_CLIENT_SECRET: z.string().optional(),
-  AGENTBASE_LLM_MODEL: z.string().optional(),
   AGENTBASE_MCP_BASE_URL: z.string().url().optional(),
 
   // ── Mastra API auth ────────────────────────────────────────────────────────

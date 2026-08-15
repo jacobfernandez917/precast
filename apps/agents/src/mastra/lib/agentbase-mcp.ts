@@ -1,5 +1,5 @@
 import { MCPClient } from '@mastra/mcp';
-import { getAgentBaseLlmToken } from './agentbase-model';
+import { getAgentBaseToken } from './agentbase-model';
 
 /**
  * MCPDISC-1 — discover this agent's MCP tools from AgentBase at runtime,
@@ -12,9 +12,11 @@ import { getAgentBaseLlmToken } from './agentbase-model';
  *   AGENTBASE_MCP_BASE_URL     the MCP proxy root, e.g. https://api/proxy/mcp
  *
  * and already carries per-agent Application credentials (the
- * `AGENTBASE_LLM_CLIENT_ID_<AGENT_ID>` / `_CLIENT_SECRET_<AGENT_ID>` pair). The
+ * `AGENTBASE_CLIENT_ID[_<AGENT_ID>]` / `AGENTBASE_CLIENT_SECRET[_<AGENT_ID>]` pair —
+ * credentials are AgentBase-wide, not LLM-specific, which is exactly why this
+ * file can reuse them). The
  * MCP proxy and the LLM gateway sit behind the SAME `PublicProxyGuard`, so the
- * token minted for one authenticates the other — hence `getAgentBaseLlmToken()`
+ * token minted for one authenticates the other — hence `getAgentBaseToken()`
  * is reused here rather than duplicated.
  *
  * The flow:
@@ -68,7 +70,7 @@ export async function discoverMcpServers(agentId: string): Promise<SubscribedMcp
   const base = mcpBaseUrl();
   if (!isHostedByAgentBase() || !base) return [];
 
-  const token = await getAgentBaseLlmToken(agentId);
+  const token = await getAgentBaseToken(agentId);
   const res = await fetch(`${base}/subscriptions`, {
     headers: { authorization: `Bearer ${token}`, accept: 'application/json' },
   });
@@ -98,7 +100,7 @@ export async function resolveAgentMcpTools(agentId: string): Promise<Record<stri
   if (servers.length === 0) return {};
 
   const base = mcpBaseUrl();
-  const token = await getAgentBaseLlmToken(agentId);
+  const token = await getAgentBaseToken(agentId);
 
   const client = new MCPClient({
     // `id` keeps repeated construction (hot reload, re-resolve) from tripping

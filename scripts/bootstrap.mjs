@@ -121,19 +121,19 @@ const AGENTBASE_LLM_FIELDS = [
     secret: false,
   },
   {
-    env: 'AGENTBASE_LLM_TOKEN_URL',
+    env: 'AGENTBASE_TOKEN_URL',
     flag: 'agentbase-token-url',
     prompt: 'AgentBase token endpoint URL (OAuth2 client_credentials)',
     secret: false,
   },
   {
-    env: 'AGENTBASE_LLM_CLIENT_ID',
+    env: 'AGENTBASE_CLIENT_ID',
     flag: 'agentbase-client-id',
     prompt: 'AgentBase Application client id',
     secret: false,
   },
   {
-    env: 'AGENTBASE_LLM_CLIENT_SECRET',
+    env: 'AGENTBASE_CLIENT_SECRET',
     flag: 'agentbase-client-secret',
     prompt: 'AgentBase Application client secret',
     secret: true,

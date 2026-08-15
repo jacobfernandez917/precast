@@ -379,13 +379,21 @@ This is a **third, separate integration axis** from §7 (which covers Next ↔ M
    ```
    AGENTBASE_HOSTED=1                          marks the container AgentBase-hosted (always)
    AGENTBASE_LLM_BASE_URL                      shared gateway base URL
+   AGENTBASE_LLM_MODEL_<AGENT_ID>              "<provider>/<model>", admin-chosen
    AGENTBASE_LLM_TOKEN_URL                     shared Keycloak token endpoint
-   AGENTBASE_LLM_CLIENT_ID_<AGENT_ID>           this agent's own service Application
+   AGENTBASE_LLM_CLIENT_ID_<AGENT_ID>          this agent's own service Application
    AGENTBASE_LLM_CLIENT_SECRET_<AGENT_ID>
-   AGENTBASE_LLM_MODEL_<AGENT_ID>               "<provider>/<model>", admin-chosen
    ```
 
    `<AGENT_ID>` is the agent's own Mastra `id` (uppercased/underscored — same convention as `AGENTBASE_AGENT_URL_<AGENT_ID>` in §7), since one container can host several agents, each with its own choice.
+
+   **On the `LLM_` infix in the last three.** Those are *credentials*, and credentials are not LLM-specific — the very same Application token authenticates the MCP proxy (§7.10) and the A2A proxy (§7). Precast's canonical names therefore drop the infix:
+
+   ```
+   AGENTBASE_TOKEN_URL / AGENTBASE_CLIENT_ID[_<AGENT_ID>] / AGENTBASE_CLIENT_SECRET[_<AGENT_ID>]
+   ```
+
+   Those are what you write in `.env` and what `pnpm bootstrap` emits. The `AGENTBASE_LLM_*` credential forms above are still **read**, and must be: AgentBase injects them and this repo does not control the injector. Resolution order per setting is per-agent canonical → per-agent legacy → account canonical → account legacy, so an admin's Studio choice still outranks anything in a repo `.env`. Capability-specific *settings* keep their infix — `AGENTBASE_LLM_BASE_URL`, `AGENTBASE_LLM_MODEL`, `AGENTBASE_MCP_BASE_URL` — because those genuinely differ per capability.
 
 4. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel(agentId, fallback)` implements the rule: when both `AGENTBASE_LLM_BASE_URL` and this agent's `AGENTBASE_LLM_MODEL_<AGENT_ID>` are set, it builds an OpenAI-compatible model (`@ai-sdk/openai-compatible`) pointed at the gateway, minting/caching its own client_credentials bearer per call (mirrors `agentbase-auth.ts`'s pattern) — the org's real provider key never reaches the container. When `AGENTBASE_HOSTED=1` but this agent has no model, it returns a model that **fails at call time** with an actionable message (never an env key). Only when _not_ AgentBase-hosted does it return `fallback` unchanged — each agent passes `resolveDefaultModel()`'s result as that `fallback` (see §7.9 above).
 

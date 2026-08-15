@@ -122,6 +122,67 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.8.0 — one credential set for all of AgentBase (2026-08-15)
+
+**What changed.** AgentBase credentials no longer carry an `LLM_` infix. One AgentBase
+Application authenticates **every** capability — the LLM gateway, the MCP proxy, and the A2A
+proxy — so naming the credentials after one of them was always a misnomer. (`agentbase-mcp.ts`
+already minted its token from the LLM-named pair, precisely because a token for one
+authenticates the other.)
+
+| Concern                | Write this                                       | Was                             |
+| ---------------------- | ------------------------------------------------ | ------------------------------- |
+| Client id              | `AGENTBASE_CLIENT_ID`                            | `AGENTBASE_LLM_CLIENT_ID`       |
+| Client secret          | `AGENTBASE_CLIENT_SECRET`                        | `AGENTBASE_LLM_CLIENT_SECRET`   |
+| Token endpoint         | `AGENTBASE_TOKEN_URL`                            | `AGENTBASE_LLM_TOKEN_URL`       |
+| Per-agent override     | `AGENTBASE_CLIENT_ID_<AGENT_ID>`                 | `AGENTBASE_LLM_CLIENT_ID_<…>`   |
+| LLM gateway URL        | `AGENTBASE_LLM_BASE_URL` — **unchanged**         | —                               |
+| Model                  | `AGENTBASE_LLM_MODEL[_<AGENT_ID>]` — **unchanged** | —                             |
+| MCP proxy root         | `AGENTBASE_MCP_BASE_URL` — **unchanged**         | —                               |
+
+The rule: **identity is unprefixed; capability endpoints and settings keep their infix.** The
+web app's `AGENTBASE_CLIENT_ID` was already the unprefixed form, so this consolidates two
+parallel credential sets into one rather than inventing a name.
+
+**Nothing breaks if you do nothing.** The old names are still read, and deliberately so:
+AgentBase *injects* `AGENTBASE_LLM_CLIENT_ID_<AGENT_ID>` into a hosted container, and this repo
+does not control the injector. Resolution per setting is per-agent canonical → per-agent legacy
+→ account canonical → account legacy, so an org admin's Studio choice still outranks anything in
+a repo `.env`. Pinned by `agentbase-model.spec.ts`.
+
+**What the sync does.** `scripts/bootstrap.mjs` is managed, so `precast:update` takes it. The
+rest is advisory and yours to port: `packages/shared/src/env.ts`, `.env.example`, and
+`apps/agents/src/mastra/lib/agentbase-{model,mcp}.ts` if you have customized them.
+
+**Migrating your `.env` (optional but recommended).** One rename, and a check for the duplicate
+that would otherwise bite:
+
+```bash
+# 1. Adopt the canonical credential names.
+sed -i '' \
+  -e 's/^AGENTBASE_LLM_CLIENT_ID=/AGENTBASE_CLIENT_ID=/' \
+  -e 's/^AGENTBASE_LLM_CLIENT_SECRET=/AGENTBASE_CLIENT_SECRET=/' \
+  -e 's/^AGENTBASE_LLM_TOKEN_URL=/AGENTBASE_TOKEN_URL=/' \
+  .env
+
+# 2. CRITICAL — check for duplicates. If your .env already had the web app's
+#    AGENTBASE_CLIENT_ID, step 1 just created a SECOND assignment. dotenv lets
+#    the LAST one win, so an empty duplicate silently blanks a real credential.
+grep -c '^AGENTBASE_CLIENT_ID=' .env    # must print 1
+grep -c '^AGENTBASE_CLIENT_SECRET=' .env
+grep -c '^AGENTBASE_TOKEN_URL=' .env
+```
+
+If any count is 2, delete the empty one. If the two held **different** values you were running
+two Applications (one for web/A2A, one for agents/LLM); keep whichever is subscribed to more,
+and subscribe it to the rest in Studio — one token is only as good as its subscriptions.
+
+**If you customized `agentbase-model.ts`:** `getAgentBaseLlmToken` is now `getAgentBaseToken`,
+and `llmEnvValue`/`llmEnvVarName` became `agentBaseEnv`/`envVarName` with a four-candidate
+lookup. Update any local callers.
+
+---
+
 ## v0.7.0 — the workspace scope stays `@precast/*` (2026-08-14)
 
 **What changed.** `pnpm rename` no longer renames the **workspace package scope**. A derived

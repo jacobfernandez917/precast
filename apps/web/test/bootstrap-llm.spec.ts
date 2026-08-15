@@ -18,11 +18,26 @@ const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const src = readFileSync(join(REPO_ROOT, 'scripts/bootstrap.mjs'), 'utf8');
 
 const REQUIRED_FIELDS = [
+  // Capability-specific settings keep the LLM_ infix...
   'AGENTBASE_LLM_BASE_URL',
+  'AGENTBASE_LLM_MODEL',
+  // ...credentials do not: one Application authenticates models, MCP and A2A.
+  'AGENTBASE_TOKEN_URL',
+  'AGENTBASE_CLIENT_ID',
+  'AGENTBASE_CLIENT_SECRET',
+];
+
+/**
+ * Bootstrap must write ONLY the canonical credential names. `.env.example`
+ * already declares AGENTBASE_CLIENT_ID once; if bootstrap also emitted the
+ * legacy AGENTBASE_LLM_CLIENT_ID the file would carry two names for one
+ * credential — and a later empty assignment silently blanks an earlier real
+ * one, which is a failure nothing reports until the first call.
+ */
+const RETIRED_FIELDS = [
   'AGENTBASE_LLM_TOKEN_URL',
   'AGENTBASE_LLM_CLIENT_ID',
   'AGENTBASE_LLM_CLIENT_SECRET',
-  'AGENTBASE_LLM_MODEL',
 ];
 
 describe('bootstrap: AgentBase Models provider', () => {
@@ -35,6 +50,15 @@ describe('bootstrap: AgentBase Models provider', () => {
     // with an auth error pointing nowhere.
     for (const env of REQUIRED_FIELDS) {
       expect(src, `${env} must be collected`).toContain(env);
+    }
+  });
+
+  it('never writes the retired credential names', () => {
+    const table = src.slice(src.indexOf('const AGENTBASE_LLM_FIELDS'), src.indexOf('const rawArgs'));
+    for (const env of RETIRED_FIELDS) {
+      expect(table, `${env} is read for compatibility but must never be WRITTEN`).not.toContain(
+        `'${env}'`,
+      );
     }
   });
 
