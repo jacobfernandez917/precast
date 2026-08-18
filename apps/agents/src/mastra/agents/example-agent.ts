@@ -35,7 +35,10 @@ export const exampleAgent = new Agent({
   // its A2A card is served. On a hosted container a discovery failure therefore
   // fails the BOOT — loudly, in AgentBase's build/runtime logs — rather than
   // quietly serving an agent that is missing half its capabilities and will
-  // answer confidently without them. Off AgentBase this resolves to `{}` and
+  // answer confidently without them. The one exception is a subscribed server
+  // with no connected account yet (401 authorization required): that is skipped
+  // with a warning, because it clears only when a human clicks "Connect
+  // account" and no redeploy can fix it. Off AgentBase this resolves to `{}` and
   // costs nothing (see lib/agentbase-mcp.ts).
   tools: { exampleTool, ...(await resolveAgentMcpTools(AGENT_ID)) },
   // Durable, Postgres-backed conversation memory. Engages only when the caller

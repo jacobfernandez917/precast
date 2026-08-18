@@ -37,7 +37,49 @@ import { getAgentBaseToken } from './agentbase-model';
  *
  * OFF AgentBase (local dev, Standalone, External) this is inert: it returns an
  * empty toolset and never throws, so nothing about local development changes.
+ *
+ * ONE EXCEPTION to fail-loud, and only one. A subscribed server whose connect
+ * answers `mcp_server_authorization_required` (401) is not broken — it means
+ * "subscribed, but nobody has connected an ACCOUNT for this identity yet". That
+ * state is expected, human-actionable, and clears only when someone clicks
+ * **Connect account** in the AgentBase registry; no redeploy can fix it. Failing
+ * the boot on it crash-loops the container, the import's readiness probe never
+ * answers, and the import fails — over a state the operator would have resolved
+ * in one click had the agent been allowed to start. For on-behalf-of products
+ * the service identity may legitimately NEVER hold a token, so such a container
+ * could never boot at all. Those servers are therefore SKIPPED with a loud
+ * warning; every other connect failure still fails the boot, because silent tool
+ * loss remains the failure mode this path exists to prevent.
  */
+
+const AUTH_ERROR_MARKERS = [
+  'mcp_server_authorization_required',
+  'authorization_required',
+  'authorization required',
+];
+
+/**
+ * Is this connect failure "no account connected yet" rather than "broken"?
+ *
+ * The SDK surfaces failures as `Error`s, plain strings, and nested `cause`
+ * chains depending on how deep the failure happened, so all three are walked.
+ * `seen` guards against a cause cycle — a self-referencing `cause` would
+ * otherwise hang the boot, which would be a worse bug than the one this fixes.
+ */
+export function isMcpAuthError(error: unknown): boolean {
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    const message =
+      current instanceof Error ? current.message : typeof current === 'string' ? current : '';
+    const lower = message.toLowerCase();
+    if (AUTH_ERROR_MARKERS.some((marker) => lower.includes(marker))) return true;
+    if (/\b401\b|\bunauthorized\b/.test(lower)) return true;
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return false;
+}
 
 /** One entry from `GET /proxy/mcp/subscriptions`. */
 export interface SubscribedMcpServer {
@@ -124,11 +166,27 @@ export async function resolveAgentMcpTools(agentId: string): Promise<Record<stri
   // path is designed to avoid.
   const { tools, errors } = await client.listToolsWithErrors();
   const failed = Object.entries(errors);
-  if (failed.length > 0) {
-    const detail = failed.map(([server, err]) => `${server}: ${err}`).join('; ');
+
+  // Partition, don't blanket-throw. `mcp_server_authorization_required` means a
+  // human still has to connect an account — see the module header for why that
+  // must not kill the container. Everything else keeps the original behaviour
+  // verbatim, so the guard against silent tool loss is unchanged.
+  const authPending = failed.filter(([, err]) => isMcpAuthError(err));
+  const broken = failed.filter(([, err]) => !isMcpAuthError(err));
+
+  if (broken.length > 0) {
+    const detail = broken.map(([server, err]) => `${server}: ${err}`).join('; ');
     throw new Error(
-      `AgentBase MCP: ${failed.length} subscribed server(s) failed to connect for "${agentId}" — ` +
+      `AgentBase MCP: ${broken.length} subscribed server(s) failed to connect for "${agentId}" — ` +
         `${detail}. Refusing to run with an incomplete toolset.`,
+    );
+  }
+
+  for (const [server] of authPending) {
+    console.warn(
+      `⚠️  AgentBase MCP: subscribed server "${server}" has no connected account for agent ` +
+        `"${agentId}" (authorization required). Its tools are OMITTED until an account is ` +
+        `connected in the AgentBase registry — the agent boots and serves without them.`,
     );
   }
 

@@ -122,6 +122,70 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.8.1 — an unconnected MCP account no longer fails the boot (2026-08-18)
+
+**What changed.** `resolveAgentMcpTools()` treated **every** subscribed-server connect failure
+as fatal. One of them isn't. A 401 carrying `mcp_server_authorization_required` means
+"subscribed, but nobody has connected an **account** for this identity yet" — an expected,
+human-actionable OAuth state that clears when someone clicks **Connect account** in the
+AgentBase registry, and that **no redeploy can fix**.
+
+Because the call sits behind a top-level `await` in the agent's `tools:`, the throw killed the
+container: crash-loop, readiness probe never answers, import fails — over a state the operator
+would have cleared in one click had the agent been allowed to start. For **on-behalf-of**
+products it is worse still: the service identity may legitimately never hold a token, because
+each end user connects their own account, so such a container could never boot at all.
+
+Connect failures are now partitioned. Authorization-pending servers are **skipped with a loud
+`console.warn`** naming the server and agent and saying its tools are omitted until an account
+is connected. **Every other failure still throws, verbatim** — DNS, 5xx, upstream down. The
+fail-loud design against *silent tool loss* is intact; only the OAuth-pending case is
+reclassified. **Discovery** failures are not touched at all.
+
+Reproduced live on a hosted import of a Precast-derived repo before the fix, which is where
+the exact error shape in the specs comes from.
+
+**Handled by `pnpm precast:update`.** Nothing from the fix itself — `apps/` code is yours. The
+lint fix below **is** picked up automatically: `eslint.config.js` is a managed file.
+
+**Manual steps.**
+
+1. **Port the partition into your `apps/agents/src/mastra/lib/agentbase-mcp.ts`**, or copy the
+   file wholesale if you have not customized it. You need the local `isMcpAuthError()` helper
+   plus the `authPending` / `broken` split around `listToolsWithErrors()`. The helper walks
+   `Error.cause` chains, accepts both `Error` and string values (the SDK surfaces both), and
+   guards against cause cycles — a self-referencing `cause` would otherwise hang the boot,
+   which is a worse bug than the one being fixed.
+2. **Copy `apps/agents/src/mastra/lib/agentbase-mcp.spec.ts`.** Three cases, and they fix the
+   *boundary* rather than the bug: auth-pending is skipped, non-auth still throws, and a
+   healthy server's tools survive next to a skipped one. Widen the predicate and case 2 fails —
+   which is the point, because a too-generous `isMcpAuthError` silently restores the
+   silent-tool-loss failure mode this path exists to prevent.
+3. **Update any comment at your `...(await resolveAgentMcpTools(...))` call sites** that says a
+   hosted connect failure fails the boot. It is now true of every failure *except* one.
+4. **Nothing to change in `.env` or the env schema.**
+
+**Advisory files touched.** `apps/agents/src/mastra/lib/agentbase-mcp.spec.ts`.
+
+**Also in this release — the scripts lint block (`eslint.config.js`, managed).** The block
+granted only `process` / `console` / `URL`, but scripts from v0.4.0 onward use `fetch`,
+`setTimeout` and `AbortSignal` (`poc.mjs`, `check-docker.mjs`), `precast-update.mjs` needs
+`varsIgnorePattern: '^_'`, and `rename-project.mjs` trips `no-control-regex`. The effect was
+that **lint-staged failed any commit that staged those scripts** — reproducible before the fix
+with `pnpm exec eslint scripts/*.mjs`. The block now grants the missing readonly globals,
+ignores `^_` unused vars, and turns off `no-control-regex` for scripts. If you fixed this
+locally already, expect `precast:update` to report `eslint.config.js` as a **conflict**; take
+whichever is the superset.
+
+**Verify.**
+
+```bash
+pnpm test                      # the three new cases live in AGT-007
+pnpm exec eslint scripts/*.mjs # clean, where it previously failed
+```
+
+---
+
 ## v0.8.0 — one credential set for all of AgentBase (2026-08-15)
 
 **What changed.** AgentBase credentials no longer carry an `LLM_` infix. One AgentBase
@@ -349,7 +413,10 @@ metering and audit cannot be routed around.
    it must be settled before the agent is constructed and its A2A card is served. On a hosted
    container a discovery failure therefore fails the **boot** — visible immediately in
    AgentBase's build and runtime logs — rather than quietly serving an agent that is missing
-   half its capabilities and will answer confidently without them. Verified to survive
+   half its capabilities and will answer confidently without them. (**As of v0.8.1** one
+   connect failure is exempt: a subscribed server with no connected account yet is skipped
+   with a warning instead of failing the boot. Take that patch with this one.) Verified to
+   survive
    `mastra build`. Attach it to agents that _use_ tools; a pure transformation agent
    (a summariser) should not get them, for the same reason it should not get memory.
 
@@ -365,7 +432,9 @@ reformatting a generated file and breaking APC-002 on every `pnpm format`.
 **Requires AgentBase** at a version that serves `GET /proxy/mcp/subscriptions` and injects
 `AGENTBASE_MCP_BASE_URL`. Against an older AgentBase the discovery call 404s and, per the
 fail-loud design, the container will refuse to boot — so upgrade the platform first, or leave
-`resolveAgentMcpTools()` unwired until you have.
+`resolveAgentMcpTools()` unwired until you have. **Discovery** failures still fail the boot in
+every release; v0.8.1 narrows only the per-server **connect** case, and only for
+authorization-pending.
 
 **Verify.**
 

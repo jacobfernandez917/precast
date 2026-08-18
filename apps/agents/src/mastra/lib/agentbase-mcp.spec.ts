@@ -1,6 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { discoverMcpServers } from './agentbase-mcp';
+import { discoverMcpServers, resolveAgentMcpTools } from './agentbase-mcp';
+
+// `resolveAgentMcpTools` builds a real MCPClient, so the SDK is mocked to script
+// connect outcomes per test. `vi.hoisted` because vi.mock is hoisted above the
+// imports and would otherwise close over an uninitialised binding.
+const mcpMocks = vi.hoisted(() => ({ listToolsWithErrors: vi.fn() }));
+vi.mock('@mastra/mcp', () => ({
+  MCPClient: class {
+    constructor(_opts: unknown) {}
+    listToolsWithErrors = mcpMocks.listToolsWithErrors;
+  },
+}));
 
 /**
  * MCPDISC-1 — runtime MCP discovery (AGT-007).
@@ -17,6 +28,11 @@ import { discoverMcpServers } from './agentbase-mcp';
  *  - **Loud on failure when hosted.** A discovery error must throw, never
  *    return `[]`. An agent that silently loses its tools does not look broken —
  *    it answers confidently without them, which is the worst failure mode here.
+ *  - **…except for a server nobody has connected an account to yet.** That one
+ *    connect failure is expected rather than broken, and failing the boot on it
+ *    crash-loops a container over a state only a human click can clear. Pinned
+ *    below, because the fix is one `filter` away from silently swallowing every
+ *    connect failure — the exact thing the bullet above forbids.
  */
 const ORIGINAL_ENV = { ...process.env };
 
@@ -144,5 +160,84 @@ describe('discoverMcpServers — hosted', () => {
     );
 
     await expect(discoverMcpServers('example-agent')).resolves.toEqual([]);
+  });
+});
+
+
+/**
+ * Connect-time failures, partitioned (AGT-007).
+ *
+ * Reproduced live on a hosted import: discovery succeeded, the subscribed
+ * server's connect answered 401 `mcp_server_authorization_required`, and the
+ * blanket throw killed the container — on a state that clears only when someone
+ * clicks "Connect account", so the crash-loop could never resolve itself.
+ *
+ * These three cases fix the BOUNDARY, not just the bug: auth-pending is skipped,
+ * everything else still fails the boot, and a healthy server's tools survive
+ * alongside a skipped one. Widen the auth predicate and case 2 fails.
+ */
+describe('resolveAgentMcpTools — connect failures', () => {
+  const SERVERS = [
+    { org: '917ventures', slug: 'slack-mcp', title: 'Slack', scopes: [], url: '/proxy/mcp/917ventures/slack-mcp/mcp' },
+  ];
+
+  function hostedWithSubscription() {
+    hosted();
+    vi.stubGlobal(
+      'fetch',
+      mockFetch(
+        () =>
+          new Response(JSON.stringify({ mcpServers: SERVERS }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }),
+      ),
+    );
+  }
+
+  it('SKIPS an authorization-required server with a warning instead of failing the boot', async () => {
+    hostedWithSubscription();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // The exact shape a real proxy 401 surfaces as, captured from a live hosted
+    // import — the marker is buried in a stringified body inside the message.
+    mcpMocks.listToolsWithErrors.mockResolvedValue({
+      tools: {},
+      errors: {
+        '917ventures__slack_mcp': new Error(
+          'Failed to connect to MCP server 917ventures__slack_mcp: SdkHttpError: ' +
+            'Error POSTing to endpoint: {"message":"mcp_server_authorization_required",' +
+            '"error":"Unauthorized","statusCode":401}',
+        ),
+      },
+    });
+
+    await expect(resolveAgentMcpTools('example-agent')).resolves.toEqual({});
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('no connected account'));
+  });
+
+  it('still THROWS on a non-auth connect failure (no silent tool loss)', async () => {
+    hostedWithSubscription();
+    mcpMocks.listToolsWithErrors.mockResolvedValue({
+      tools: {},
+      errors: { '917ventures__slack_mcp': new Error('ECONNREFUSED upstream is down') },
+    });
+
+    await expect(resolveAgentMcpTools('example-agent')).rejects.toThrow(
+      /failed to connect .* incomplete toolset/is,
+    );
+  });
+
+  it("keeps the healthy servers' tools while skipping an auth-pending one", async () => {
+    hostedWithSubscription();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const weatherTool = { description: 'ok' };
+    mcpMocks.listToolsWithErrors.mockResolvedValue({
+      tools: { acme__weather_lookup: weatherTool },
+      errors: { '917ventures__slack_mcp': new Error('401 Unauthorized') },
+    });
+
+    await expect(resolveAgentMcpTools('example-agent')).resolves.toEqual({
+      acme__weather_lookup: weatherTool,
+    });
   });
 });
