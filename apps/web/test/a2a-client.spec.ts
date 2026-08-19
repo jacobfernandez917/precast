@@ -6,6 +6,7 @@ vi.mock('../app/lib/agentbase-auth', () => ({
 
 import { callAgent } from '../app/lib/a2a-client';
 import { getAgentBaseAccessToken } from '../app/lib/agentbase-auth';
+import { resetDiscoveryCacheForTests } from '../app/lib/agentbase-discovery';
 
 const mockedGetToken = vi.mocked(getAgentBaseAccessToken);
 
@@ -39,12 +40,23 @@ const A2A_MESSAGE_RESPONSE = {
 
 describe('callAgent — proxy mode (AgentBase)', () => {
   beforeEach(() => {
+    // Discovery caches its route map in module scope — without this, a map
+    // built in one case leaks into the next and the guard-rail cases pass for
+    // the wrong reason.
+    resetDiscoveryCacheForTests();
     process.env.ENABLE_AGENTBASE = '1';
     process.env[AGENT_URL_VAR] = 'https://agentbase.acme.dev/proxy/a2a/acme/example-agent-a1b2c3d4';
   });
 
-  it('guard-rails when the agent has no AGENTBASE_AGENT_URL_* var set', async () => {
+  // AGENTDISC-1 changed this contract deliberately. An unset per-agent var is no
+  // longer an error — it is the NORMAL case, and the URL is discovered. What
+  // must still hold is the guard rail underneath it: with nothing configured to
+  // discover FROM, the call fails with an actionable message and never invents a
+  // URL. A guessed `/proxy/a2a/<org>/<id>` is the well-formed 404 this feature
+  // exists to eliminate.
+  it('guard-rails when neither an override nor discovery config is set', async () => {
     delete process.env[AGENT_URL_VAR];
+    delete process.env.AGENTBASE_URL;
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
 
@@ -52,9 +64,9 @@ describe('callAgent — proxy mode (AgentBase)', () => {
 
     expect(reply.ok).toBe(false);
     expect(reply.via).toBe('agentbase');
-    expect(reply.error).toMatch(/AGENTBASE_AGENT_URL_EXAMPLE_AGENT/);
+    expect(reply.error).toMatch(/AGENTBASE_URL/);
+    expect(reply.error, 'must not hand back an invented URL').not.toMatch(/proxy\/a2a/);
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(mockedGetToken).not.toHaveBeenCalled(); // no point minting without a target URL
   });
 
   it('derives the env var name from the agent id (uppercase, non-alphanumeric -> _)', async () => {

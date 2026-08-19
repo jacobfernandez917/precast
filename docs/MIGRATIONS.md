@@ -122,6 +122,77 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.9.0 — agent proxy URLs are discovered, not configured (2026-08-19)
+
+**What changed.** The web app no longer needs one `AGENTBASE_AGENT_URL_<AGENT_ID>` per agent.
+It asks AgentBase which agents this Application is subscribed to and works out which slug
+belongs to which Mastra agent id, at runtime.
+
+The configured mapping was always going stale. AgentBase mints an agent's slug **at import**
+(`advisor-agent` → `founder-advisor-479c1de1`); the slug is not derivable from the Mastra id,
+and it **changes on re-import**. So the var was correct only until the next import, and its
+failure mode is a 404 from a URL that looks perfectly well-formed.
+
+**How the mapping is recovered.** Mastra names an agent's A2A card after the agent id:
+
+```
+GET /api/.well-known/<agentId>/agent-card.json   ->   { "name": "<agentId>", … }
+```
+
+and AgentBase's `AgentCardSynthesizer` spreads the stored card, overriding only `url`,
+`capabilities.streaming`, `supportedInterfaces[0].url`, `securitySchemes` and `provider` — it
+never touches `name`. So the card served at `{base}/proxy/a2a/{org}/{slug}/.well-known/agent.json`
+states the Mastra id at a path containing the slug. That response is one row of the map.
+
+**Do not map on the listing name instead.** `agentbase.list_subscriptions` and `list_agents`
+both return a `name`, and using it would skip the card fetch — but that is AgentBase's own
+display name, editable at import, and it routinely differs from the Mastra id. It appears to
+work until somebody renames an agent in Studio.
+
+**New env var:** `AGENTBASE_URL` — the AgentBase API base. One var, however many agents.
+
+**Handled by `pnpm precast:update`.** Nothing — this is `apps/` and `packages/` code.
+
+**Manual steps.**
+
+1. **Copy `apps/web/app/lib/agentbase-discovery.ts`.** It exports `resolveAgentUrl()`,
+   `discoverAgentRoutes()` and `resetDiscoveryCacheForTests()`, and reuses
+   `getAgentBaseAccessToken()` — no new credential.
+2. **Point `callViaAgentBase()` at it** in `apps/web/app/lib/a2a-client.ts`: replace the
+   `process.env[envVar]` read with `await resolveAgentUrl(agentId)`, and delete the local
+   `envVarNameForAgent` helper. `callAgent()` is already async, so nothing else changes.
+3. **Add `AGENTBASE_URL`** to your env schema as an optional URL, and set it in `.env`.
+4. **Leave your `AGENTBASE_AGENT_URL_*` vars in place** if you like — they are now an
+   override that still wins. Removing them is the point, but it is safe to do it later.
+5. **If you kept a slug MAP instead** (`AGENTBASE_AGENT_SLUGS=id=slug,…`, as some derived
+   projects grew independently), delete it and its parser. Discovery replaces it wholesale,
+   and `AGENTBASE_ORG` becomes redundant too — the org arrives with every discovery row.
+6. **Copy `apps/web/test/agentbase-discovery.spec.ts`.**
+
+**Advisory files touched.** `packages/shared/src/env.ts`, `.env.example`,
+`apps/web/test/a2a-client.spec.ts` (one contract test changed — an unset per-agent var is no
+longer an error, it is the normal case), and the new `apps/web/test/agentbase-discovery.spec.ts`.
+
+**Behaviour worth knowing.**
+
+- **Failure never degrades to a guess.** If discovery fails, the call returns an error. It
+  never falls back to `/proxy/a2a/<org>/<id>` — that is the well-formed 404 this replaces.
+- **An unknown id forces exactly one refresh**, so a re-import resolves without a redeploy,
+  while an id that genuinely does not exist cannot re-run discovery on every request.
+- **Only successful discovery is cached** (10 min). Caching a failure would keep the app
+  broken for a full TTL after a transient blip.
+- **Concurrent callers share one in-flight discovery** — no stampede on cold start.
+- **Two agents claiming one Mastra id resolve to neither**, with a warning. Silently picking
+  one would route traffic to an arbitrary agent; pin the intended one with the override.
+
+**Verify.**
+
+```bash
+pnpm test   # WEB-011, 10 cases
+```
+
+---
+
 ## v0.8.1 — an unconnected MCP account no longer fails the boot (2026-08-18)
 
 **What changed.** `resolveAgentMcpTools()` treated **every** subscribed-server connect failure

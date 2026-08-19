@@ -114,10 +114,17 @@ export const EnvSchema = z.object({
   AGENTBASE_CLIENT_ID: z.string().optional(),
   AGENTBASE_CLIENT_SECRET: z.string().optional(),
   AGENTBASE_TOKEN_URL: z.string().url().optional(),
+  // The AgentBase API base (e.g. https://api.agentbase.example.com). Needed for
+  // runtime agent discovery (AGENTDISC-1): the web app calls `POST {base}/mcp`
+  // to read its own subscriptions, then each agent's card, to learn which slug
+  // belongs to which Mastra id. ONE var replaces the per-agent URL vars.
+  AGENTBASE_URL: z.string().url().optional(),
   // Per-agent invocation URLs are NOT listed here — one dynamically-named var
   // per Mastra agent (AGENTBASE_AGENT_URL_<AGENT_ID>, read directly from
-  // process.env by a2a-client.ts), since the set of agents isn't known at
-  // schema-definition time. See .env.example.
+  // process.env by agentbase-discovery.ts), since the set of agents isn't known
+  // at schema-definition time. As of AGENTDISC-1 these are an OVERRIDE, not the
+  // source of truth: leave them unset and the URL is discovered. See
+  // .env.example.
 
   // ── AgentBase LLM gateway (org-admin-configured model per imported agent) ──
   // AgentBase injects these into the `apps/agents` container; never present in

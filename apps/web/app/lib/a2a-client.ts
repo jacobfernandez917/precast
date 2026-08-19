@@ -17,12 +17,12 @@
  * Defaulting to AgentBase is a guard rail: forgetting the flag routes through
  * the audited, zero-trust proxy rather than silently exposing Mastra directly.
  *
- * PROXY URL: each agent gets its own full AgentBase proxy URL — copy the
- * "Invocation Endpoint" straight from the agent's listing page in AgentBase
- * Studio into `AGENTBASE_AGENT_URL_<AGENT_ID>` (see .env.example). No slug or
- * skill id to resolve separately — the URL already encodes the org + agent,
- * and this endpoint routes purely by that path (skill selection is the
- * agent's own job once the message arrives).
+ * PROXY URL: DISCOVERED at runtime from this Application's subscriptions —
+ * see `agentbase-discovery.ts`. AgentBase mints an agent's slug at import, it
+ * is not derivable from the Mastra id, and it changes on re-import, so the
+ * mapping is read from the agents' own A2A cards rather than configured by
+ * hand. `AGENTBASE_AGENT_URL_<AGENT_ID>` remains an override for pinning,
+ * offline dev and tests. Requires `AGENTBASE_URL` (the API base).
  *
  * PROXY AUTH: still a **developer Application** identity (OAuth2
  * `client_credentials` bearer, never a long-lived static token) — see
@@ -30,10 +30,10 @@
  * `docs/INTEGRATION_AGENTBASE.md` for how to create the Application and
  * subscribe it to each agent's listing (required even for your own agents).
  *
- * MULTI-AGENT: one env var per agent (`AGENTBASE_AGENT_URL_<AGENT_ID>`,
- * uppercased/underscored). Add one line per agent as you register more of
- * them on the Mastra instance — no shared endpoint or JSON mapping to keep
- * in sync.
+ * MULTI-AGENT: nothing to add per agent. Subscribe the Application to each
+ * agent's listing and discovery picks it up on the next refresh; an id it has
+ * never seen forces one immediate re-discovery, so a fresh import resolves
+ * without a redeploy.
  *
  * INVARIANT: the web app talks to agents **only over A2A** (JSON-RPC 2.0),
  * always through this util — with or without AgentBase. Both branches target an
@@ -46,6 +46,7 @@
 
 import { log } from './logger';
 import { getAgentBaseAccessToken } from './agentbase-auth';
+import { resolveAgentUrl } from './agentbase-discovery';
 
 export type A2aTransport = 'agentbase' | 'direct';
 
@@ -113,11 +114,6 @@ export async function callAgent(
     : callDirect(agentId, text, options);
 }
 
-/** `example-agent` → `AGENTBASE_AGENT_URL_EXAMPLE_AGENT`. */
-function envVarNameForAgent(agentId: string): string {
-  return `AGENTBASE_AGENT_URL_${agentId.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`;
-}
-
 // ── A2A envelope (shared by both transports — AgentBase relays it unchanged) ─
 
 function buildA2aMessageEnvelope(text: string, options?: CallOptions): unknown {
@@ -149,23 +145,16 @@ async function callViaAgentBase(
   text: string,
   options?: CallOptions,
 ): Promise<AgentReply> {
-  const envVar = envVarNameForAgent(agentId);
-  const url = process.env[envVar] ?? '';
-
-  // Guard rail: AgentBase is the default transport, so fail loudly (with a fix)
-  // rather than silently POST to an unset endpoint.
-  if (!url) {
-    return {
-      ok: false,
-      text: null,
-      via: 'agentbase',
-      raw: null,
-      error:
-        `AgentBase is enabled (the default) but ${envVar} is not set. Copy the ` +
-        `"Invocation Endpoint" from agent "${agentId}"'s listing in AgentBase Studio into ` +
-        `${envVar}, or set ENABLE_AGENTBASE=0 to call Mastra directly over A2A.`,
-    };
+  // The URL is DISCOVERED (AGENTDISC-1), not configured: AgentBase mints a slug
+  // at import that is not derivable from the Mastra id and changes on every
+  // re-import. `AGENTBASE_AGENT_URL_<AGENT_ID>` still wins when set, so pinning
+  // and offline dev keep working. Failure returns an error — never a guessed
+  // URL, which would 404 while looking perfectly well-formed.
+  const target = await resolveAgentUrl(agentId);
+  if (!target.ok) {
+    return { ok: false, text: null, via: 'agentbase', raw: null, error: target.error };
   }
+  const url = target.url;
 
   const tokenResult = await getAgentBaseAccessToken();
   if (!tokenResult.ok) {
