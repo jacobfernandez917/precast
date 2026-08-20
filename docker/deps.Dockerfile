@@ -29,7 +29,7 @@
 # content instead of hitting the network. The store is what makes a lockfile
 # MISS cheap rather than catastrophic.
 
-FROM node:24-alpine
+FROM node:26-alpine
 RUN corepack enable
 
 # Explicit, predictable store path. The app Dockerfiles pass the same
