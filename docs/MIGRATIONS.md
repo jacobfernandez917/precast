@@ -122,6 +122,56 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.9.7 — containers drop root (2026-08-20)
+
+**What changed.** Both runtime images ran as **root** — not by decision, but because that is
+what happens when no `USER` is set. Every Precast deployment ran its application as uid 0,
+which turns any container escape or arbitrary-write bug into a considerably worse incident.
+Nothing surfaced it: the container is healthy and the app works either way, which is exactly
+why it survived this long.
+
+`apps/agents/Dockerfile` and `apps/web/Dockerfile` now `COPY --chown=node:node` and declare
+`USER node` — the unprivileged user (uid 1000) that `node:24-alpine` already ships. Both
+published ports are above 1024, so nothing needed elevation.
+
+**Verified by running the images, not by reading them.** Both report `uid=1000(node)`; the
+agents card answers 200 against a live Postgres and the web app renders 200 with its ports
+matched as Compose runs them. A root-forced control reproduced the one failure seen during
+testing — a self-fetch `ECONNREFUSED` caused by remapping the published port — confirming it
+was a testing artifact rather than the `USER` change.
+
+**Two ordering details that are easy to get wrong**, both pinned by APP-022:
+
+- **`USER` must come after the final `COPY`.** Switching earlier copies into a root-owned
+  `WORKDIR`, which fails or silently drops permissions.
+- **`--chown=node:node` is not optional.** Without it the bundle stays root-owned. It is still
+  *readable*, so the app boots normally and the gap only appears the first time something needs
+  to write — long after the change looks proven.
+
+**Handled by `pnpm precast:update`.** Nothing — the Dockerfiles live under `apps/`.
+
+**Manual steps.**
+
+1. **Add `USER node` after the last `COPY`** in each runtime stage, and `--chown=node:node` to
+   every `COPY --from=build`.
+2. **Check anything your app writes at runtime.** A path outside the copied tree (a cache dir,
+   an upload target, a socket) needs `RUN mkdir -p <path> && chown node:node <path>` before the
+   `USER` line, or the first write fails in production rather than in your build.
+3. **If you publish on a port below 1024, remap it.** An unprivileged user cannot bind those,
+   and the container will fail to start.
+4. **Copy the APP-022 block** from `apps/web/test/docker-build.spec.ts`.
+
+**Advisory files touched.** `apps/web/test/docker-build.spec.ts`.
+
+**Verify.**
+
+```bash
+docker build -f apps/agents/Dockerfile -t check . && docker run --rm check id   # uid=1000(node)
+pnpm verify
+```
+
+---
+
 ## v0.9.6 — security patches and error boundaries (2026-08-20)
 
 **What changed.** A `pnpm audit` — which the v0.9.5 audit never ran — found **40 vulnerabilities,

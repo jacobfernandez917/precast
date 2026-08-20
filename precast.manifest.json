@@ -1,6 +1,6 @@
 {
   "$comment": "Precast release identity + the file-ownership map that `pnpm precast:update` syncs against. Read from UPSTREAM at upgrade time, so this list evolves with the boilerplate. See docs/MIGRATIONS.md.",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "repository": "https://github.com/jacobfernandez917/precast.git",
   "branch": "develop",
   "managed": [

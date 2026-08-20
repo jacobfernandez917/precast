@@ -35,8 +35,17 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=45001
 WORKDIR /app
-COPY --from=build /repo/apps/web/.next/standalone ./
-COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
-COPY --from=build /repo/apps/web/public ./apps/web/public
+COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
+COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build --chown=node:node /repo/apps/web/public ./apps/web/public
+# Drop root. `node:24-alpine` ships an unprivileged `node` user (uid 1000), and
+# nothing here needs more: both ports are above 1024, and the bundle is only
+# read at runtime. Running as root turns any container escape or arbitrary-write
+# bug into a considerably worse incident, and it is the default nobody chooses
+# deliberately — it is simply what happens when no USER is set.
+#
+# --chown on the COPY rather than a `chown -R` layer: same result, no duplicated
+# copy of the whole bundle in an extra layer.
+USER node
 EXPOSE 45001
 CMD ["node", "apps/web/server.js"]

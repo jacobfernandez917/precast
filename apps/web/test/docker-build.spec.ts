@@ -169,3 +169,48 @@ describe('docker: no non-Postgres database URL baked into an image', () => {
     },
   );
 });
+
+/**
+ * Non-root runtime (APP-022).
+ *
+ * Both images ran as root until v0.9.7 — not by decision, but because that is
+ * what happens when no `USER` is set. It turns any container escape or
+ * arbitrary-write bug into a considerably worse incident, and nothing surfaces
+ * it: the container is healthy and the app works either way, which is exactly
+ * why it survived this long.
+ *
+ * Verified by running both images before this guard was written: each reports
+ * `uid=1000(node)`, the agents card answers 200, and the web app renders 200 —
+ * so the assertion below is pinning behaviour that was observed, not assumed.
+ */
+describe('docker: runtime stages drop root', () => {
+  const RUNTIMES = ['apps/agents/Dockerfile', 'apps/web/Dockerfile'];
+  const read = (rel: string) => readFileSync(join(REPO_ROOT, rel), 'utf8');
+
+  it.each(RUNTIMES)('%s declares USER node', (rel) => {
+    const src = read(rel);
+    expect(src, `${rel} must switch to the unprivileged node user`).toMatch(/^USER node$/m);
+  });
+
+  it.each(RUNTIMES)('%s sets USER after the last COPY, or the copy lands unreadable', (rel) => {
+    const src = read(rel);
+    const userAt = src.search(/^USER node$/m);
+    const lastCopy = src.lastIndexOf('COPY --from=build');
+    expect(
+      userAt,
+      'USER must come after the final COPY — switching earlier makes the build copy as `node` ' +
+        'into a root-owned WORKDIR, which fails or silently drops permissions',
+    ).toBeGreaterThan(lastCopy);
+  });
+
+  it.each(RUNTIMES)('%s chowns what it copies to node', (rel) => {
+    // Without --chown the bundle stays root-owned. It is still READABLE, so the
+    // app boots and the gap only appears when something needs to write.
+    for (const line of read(rel).split('\n')) {
+      if (!line.startsWith('COPY --from=build')) continue;
+      expect(line, `${rel}: "${line.slice(0, 60)}…" must copy with --chown=node:node`).toContain(
+        '--chown=node:node',
+      );
+    }
+  });
+});
