@@ -122,6 +122,66 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.9.6 — security patches and error boundaries (2026-08-20)
+
+**What changed.** A `pnpm audit` — which the v0.9.5 audit never ran — found **40 vulnerabilities,
+including four high-severity Next.js advisories** that were live in every deployed Precast web
+app: Middleware/Proxy bypass in App Router, SSRF in Server Actions, SSRF in rewrites, and a DoS.
+
+| | Before | After |
+| --- | --- | --- |
+| Total | 40 (1 critical, 21 high) | **15** |
+| **Production deps** | 13 (6 high) | **2** |
+
+**Next.js `16.2.10` → `16.3.1`.** The pin was already `^16` so the range permitted the fix, but
+the lockfile held the vulnerable build — meaning every install and every scaffolded project got
+it. Verified: full suite plus e2e green on the new version.
+
+**Transitive production advisories are pinned by floor**, in `pnpm.overrides`: `hono`,
+`@hono/node-server`, `fast-uri`, `ip-address`. Each is a patch bump inside the same minor.
+Remove an entry once the upstream range clears it on its own.
+
+**One override is deliberately scoped, and this is the trap to avoid.** A blanket
+`js-yaml: >=3.15.1` looks right and is wrong: it crosses the 3→4 major, where `safeLoad` and
+`safeDump` were **removed**. `gray-matter` binds them at import time, so every agents spec that
+transitively imported it failed to load with `Cannot read properties of undefined (reading
+'bind')`. The entry is `gray-matter>js-yaml: ^3.15.1` — scoped to the one vulnerable path, and
+inside the 3.x line.
+
+**`image-size` is knowingly left unpatched.** Its advisory reports `Patched versions: <0.0.0` —
+there is no fixed release to float to. Pinning it would misrepresent the risk as handled.
+
+**Error boundaries.** `apps/web/app/` gains `error.tsx`, `not-found.tsx` and `global-error.tsx`.
+Without them Next serves its own pages: unstyled, off-theme, and in production reduced to
+"Application error: a client-side exception has occurred". `error.tsx` surfaces only Next's
+`digest` — the hash that ties the screen to the server log — because Next replaces the real
+message server-side precisely so internals don't reach the browser. `global-error.tsx` uses
+plain elements and inline styles on purpose: it catches failures in the root layout, so the
+design system and theme provider it would otherwise use are exactly what just threw.
+
+**Handled by `pnpm precast:update`.** Nothing — `package.json` and `apps/` are yours.
+
+**Manual steps.**
+
+1. **`pnpm update next`** (or bump your pin) and re-run your suite. Confirm with `pnpm audit`.
+2. **Copy the `pnpm.overrides` block** from `package.json`, then `pnpm install`. Check your own
+   tree first — a floor that is right here can cross a breaking major in a different dependency
+   graph, which is exactly what the `js-yaml` entry documents.
+3. **Copy the three error boundary files.** They use Astryx components (`Button` takes a
+   `label` prop, not children) — swap in your own design system if you have replaced it.
+
+**Advisory files touched.** `package.json`, `apps/web/app/{error,not-found,global-error}.tsx`,
+`apps/web/e2e/home.spec.ts`.
+
+**Verify.**
+
+```bash
+pnpm audit --prod    # expect only the unfixable image-size advisories
+pnpm verify && pnpm test:e2e
+```
+
+---
+
 ## v0.9.5 — the pre-1.0 hardening pass (2026-08-20)
 
 **What changed.** A gap audit of the repo turned up fifteen items; this release closes fourteen

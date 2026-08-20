@@ -64,5 +64,14 @@
   "engines": {
     "node": ">=24",
     "pnpm": ">=9.15.9"
+  },
+  "pnpm": {
+    "overrides": {
+      "hono": ">=4.12.34",
+      "@hono/node-server": ">=1.19.15",
+      "fast-uri": ">=3.1.5",
+      "ip-address": ">=10.3.1",
+      "gray-matter>js-yaml": "^3.15.1"
+    }
   }
 }

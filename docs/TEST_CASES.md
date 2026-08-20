@@ -110,6 +110,7 @@
 | ID      | Description                                                                        | Status  |
 | ------- | ---------------------------------------------------------------------------------- | ------- |
 | E2E-001 | Home page renders the `<h1>` app heading                                           | Passing |
+| E2E-004 | `home.spec.ts` — an unknown route renders the app's OWN 404 (`not-found.tsx`), not Next's default page. `error.tsx` and `global-error.tsx` are covered by typecheck and review rather than e2e: forcing a render-time throw would mean shipping a route whose only purpose is to crash | Passing (1 case) |
 | E2E-002 | Home page shows server health fetched from the Next.js route handler `/api/health` | Passing |
 | E2E-003 | `GET /api/health` returns `{status:"ok"}` when hit directly                        | Passing |
 

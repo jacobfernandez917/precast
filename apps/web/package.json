@@ -20,7 +20,7 @@
     "@astryxdesign/core": "^0.1.5",
     "@astryxdesign/theme-neutral": "^0.1.5",
     "@precast/shared": "workspace:*",
-    "next": "^16.2.10",
+    "next": "^16.3.1",
     "pino": "^9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
