@@ -122,6 +122,47 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.9.9 — a shorter LLM section in `.env.example` (2026-08-20)
+
+**What changed.** `.env.example` went from 38 keys to 32. The LLM section now leads with the
+AgentBase Models option, then lists **five** direct vendor keys — Anthropic, OpenAI, Google,
+xAI, OpenRouter — instead of eleven.
+
+**Nothing lost.** Mistral, DeepSeek, Groq, Cerebras, Perplexity and AI Gateway are still
+auto-detected by `default-model.ts` and still declared in the env schema; they are simply not
+pre-printed. A comment names them and points at the file that owns the canonical list, so
+adding one is a single line.
+
+**`AGENTBASE_LLM_BASE_URL` cannot be derived from `AGENTBASE_URL`**, and the file now says why.
+The gateway route is per-MODEL:
+
+```
+{AGENTBASE_URL}/proxy/llm/<org>/<model-slug>/v1/chat/completions
+```
+
+so the base carries a publisher org and a model slug — it is not a fixed prefix. Deriving it
+would mean a registry lookup (`agentbase.list_models` returns `slug` + `orgSlug`), which is the
+AGENTDISC-1 pattern applied to models rather than a string concatenation. Not done here.
+
+**Handled by `pnpm precast:update`.** Nothing — `.env.example` is advisory.
+
+**Manual steps.**
+
+1. **Optional.** Your `.env` is unaffected: no key was removed from the schema or the detector,
+   so anything already set keeps working. Take this only if you want the shorter file.
+2. If you diff `.env.example` against your own, expect the six vendor keys to appear as
+   removals. They are still supported — do not read that as dropped provider support.
+
+**Advisory files touched.** `.env.example`.
+
+**Verify.**
+
+```bash
+pnpm verify    # SMOKE-008 and SMOKE-017 both read .env.example directly
+```
+
+---
+
 ## v0.9.8 — a fresh scaffold boots again (2026-08-20)
 
 **What changed.** Two bugs that only appear on a *brand-new* project, found by asking a
