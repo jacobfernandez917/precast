@@ -128,6 +128,11 @@ says so** — silence means the entry is incomplete, not that there's nothing to
 AgentBase Models option, then lists **five** direct vendor keys — Anthropic, OpenAI, Google,
 xAI, OpenRouter — instead of eleven.
 
+`DEFAULT_LLM_MODEL` is no longer pre-printed either, for the same reason — a comment explains
+what it does and when you would want it. It remains fully supported, and is still the only way
+to pin one *specific* model (a bare `ANTHROPIC_API_KEY` gets that provider's default) or to
+reach the ~100 community providers Mastra resolves but does not auto-detect.
+
 **Nothing lost.** Mistral, DeepSeek, Groq, Cerebras, Perplexity and AI Gateway are still
 auto-detected by `default-model.ts` and still declared in the env schema; they are simply not
 pre-printed. A comment names them and points at the file that owns the canonical list, so
