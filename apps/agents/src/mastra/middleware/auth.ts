@@ -6,7 +6,8 @@ import type { AgentCard, SecurityScheme } from '@a2a-js/sdk';
  *  1. **Enforce** a static bearer token (`AGENT_API_TOKEN`) on the agent API
  *     routes (`/api/a2a/*`, `/api/agents/*`). When the token is unset, auth is
  *     off — the API is open (local dev). Studio (`/`) and agent-card discovery
- *     stay readable without auth.
+ *     stay readable without auth. **In production that open default is refused
+ *     at boot** — see `assertAgentApiAuthConfigured()` below.
  *
  *  2. **Advertise** that bearer scheme on the A2A agent card when the token is
  *     set. Mastra owns the `/.well-known/:id/agent-card.json` route and emits an
@@ -104,3 +105,42 @@ export function createAuthMiddleware() {
  * Pre-configured auth middleware instance for use in the Mastra config.
  */
 export const agentAuthMiddleware = createAuthMiddleware();
+
+
+/**
+ * Refuse to boot a PRODUCTION deployment whose agent API is unauthenticated.
+ *
+ * Unset `AGENT_API_TOKEN` means `/api/a2a/*` and `/api/agents/*` are fully open.
+ * That is the right default for local dev and wrong everywhere else — and the
+ * failure is invisible: the container is healthy, the agents answer, and anyone
+ * who can reach the port can invoke them. Nothing else in the stack notices.
+ *
+ * So this fails the boot rather than warning. A warning in a deploy log is not a
+ * control; it scrolls past. AgentBase injects the token when it hosts the
+ * container, so a hosted import satisfies this without doing anything.
+ *
+ * The escape hatch is deliberate and explicit: a container genuinely running
+ * behind a private network can set `ALLOW_UNAUTHENTICATED_AGENT_API=1`. That is
+ * greppable, shows intent in review, and cannot happen by forgetting something.
+ */
+export function assertAgentApiAuthConfigured(env: NodeJS.ProcessEnv = process.env): void {
+  if (env.NODE_ENV !== 'production') return;
+  if (env.AGENT_API_TOKEN) return;
+
+  if (env.ALLOW_UNAUTHENTICATED_AGENT_API === '1') {
+    console.warn(
+      '⚠️  Agent API is running UNAUTHENTICATED in production. ' +
+        'ALLOW_UNAUTHENTICATED_AGENT_API=1 is set, so this was deliberate — ' +
+        'anyone who can reach this port can invoke every agent.',
+    );
+    return;
+  }
+
+  throw new Error(
+    'Refusing to start: NODE_ENV=production but AGENT_API_TOKEN is not set, which leaves ' +
+      '/api/a2a/* and /api/agents/* open to anyone who can reach this port. ' +
+      'Set AGENT_API_TOKEN (AgentBase injects it automatically on a hosted import), or set ' +
+      'ALLOW_UNAUTHENTICATED_AGENT_API=1 if this container is genuinely private and you want ' +
+      'an open agent API on purpose.',
+  );
+}

@@ -8,21 +8,22 @@
 
 | ID        | Description                                                         | Status      |
 | --------- | ------------------------------------------------------------------- | ----------- |
-| SMOKE-001 | All required files exist (CLAUDE.md, HANDOFF.md, PROGRESS.md, etc.) | Not Started |
-| SMOKE-002 | package.json parses and scripts are valid                           | Not Started |
-| SMOKE-003 | tsconfig.base.json is valid JSON                                    | Not Started |
-| SMOKE-004 | turbo.json is valid JSON                                            | Not Started |
-| SMOKE-005 | pnpm-workspace.yaml is valid YAML                                   | Not Started |
-| SMOKE-006 | .editorconfig is valid                                              | Not Started |
-| SMOKE-007 | .prettierrc is valid JSON                                           | Not Started |
-| SMOKE-008 | .env.example has no secrets                                         | Not Started |
-| SMOKE-009 | .githooks/pre-commit is executable                                  | Not Started |
-| SMOKE-010 | .claude/settings.json is valid JSON                                 | Not Started |
-| SMOKE-011 | eslint.config.js is valid                                           | Not Started |
-| SMOKE-012 | All docs/ files have no broken internal links                       | Not Started |
-| SMOKE-013 | HANDOFF.md freshness gate (< 14 days)                               | Not Started |
-| SMOKE-014 | PROGRESS.md has no placeholder content                              | Not Started |
-| SMOKE-015 | All workspace packages have valid package.json                      | Not Started |
+| SMOKE-001 | All required files exist (CLAUDE.md, HANDOFF.md, PROGRESS.md, etc.) | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-002 | package.json parses and scripts are valid                           | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-003 | tsconfig.base.json is valid JSON                                    | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-004 | turbo.json is valid JSON                                            | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-005 | pnpm-workspace.yaml is valid YAML                                   | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-006 | .editorconfig is valid                                              | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-007 | .prettierrc is valid JSON                                           | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-008 | .env.example has no secrets                                         | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-009 | .githooks/pre-commit is executable                                  | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-010 | .claude/settings.json is valid JSON                                 | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-011 | eslint.config.js is valid                                           | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-012 | All docs/ files have no broken internal links                       | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-013 | Doc freshness marker — **narrowed from the original spec**: HANDOFF.md carries no date field, and in Precast itself both docs ship as static templates, so a live 14-day gate would fail permanently in the repo it protects. Asserts PROGRESS.md's `Last Updated` exists and parses; the 14-day window is enforced only under `PRECAST_ENFORCE_DOC_FRESHNESS=1` (meaningful in a derived project)                               | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-014 | PROGRESS.md has no placeholder content                              | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-015 | All workspace packages have valid package.json                      | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| SMOKE-016 | `pnpm smoke:chat` — the END-TO-END chat round trip: a real message through the running agents API to a real model and back. Script, not a CI test, because it needs a running container and a working provider key; fails distinctly on "no LLM key" vs "container unreachable" vs "answered with no text" | **Not Started** — tool delivered and its failure paths verified, but the round trip itself has never been run (no provider key available). The largest unproven claim in the boilerplate |
 
 ---
 
@@ -136,10 +137,10 @@
 
 | ID      | Description                                    | Status      |
 | ------- | ---------------------------------------------- | ----------- |
-| DOC-001 | CLAUDE.md references all required docs         | Not Started |
-| DOC-002 | HANDOFF.md §1, §2, §3, §4 all present          | Not Started |
-| DOC-003 | PROGRESS.md has all required sections (§0-§10) | Not Started |
-| DOC-004 | TECH_STACK.md has all required sections        | Not Started |
-| DOC-005 | ADRS.md has valid ADR format                   | Not Started |
-| DOC-006 | STYLE_GUIDE.md covers all required topics      | Not Started |
-| DOC-007 | SCRIPTS.md covers all pnpm scripts             | Not Started |
+| DOC-001 | CLAUDE.md references all required docs         | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| DOC-002 | HANDOFF.md §1, §2, §3, §4 all present          | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| DOC-003 | PROGRESS.md has all required sections (§0-§10) | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| DOC-004 | TECH_STACK.md has all required sections        | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| DOC-005 | ADRS.md has valid ADR format                   | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| DOC-006 | STYLE_GUIDE.md covers the topics CLAUDE.md defers to it for (TypeScript, Git, Validation, Logging, Error Handling, Testing) — **the original row did not name them**, and inventing a longer list would assert a contract nobody agreed to      | Passing (`apps/web/test/repo-hygiene.spec.ts`) |
+| DOC-007 | SCRIPTS.md covers all pnpm scripts             | Passing (`apps/web/test/repo-hygiene.spec.ts`) |

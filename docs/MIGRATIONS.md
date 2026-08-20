@@ -122,6 +122,75 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.9.5 — the pre-1.0 hardening pass (2026-08-20)
+
+**What changed.** A gap audit of the repo turned up fifteen items; this release closes fourteen
+of them. Most were things the boilerplate *promised* and did not do.
+
+**The three that matter most:**
+
+1. **CI now exists.** `.github/workflows/ci.yml` runs typecheck, lint, test, build and the
+   framework-scripts lint on every push and PR, with e2e in a parallel job. Before this,
+   nothing ran automatically — a scaffolded project's only gate was the pre-commit doc hook,
+   which `SKIP_DOC_CHECK=1` bypasses.
+2. **A production deploy with no `AGENT_API_TOKEN` now refuses to boot.** Unset means
+   `/api/a2a/*` and `/api/agents/*` are fully open, and nothing said so — the container is
+   healthy, the agents answer, and anyone who can reach the port can invoke them. AgentBase
+   injects the token on a hosted import, so those are unaffected. A genuinely private
+   deployment opts out explicitly with `ALLOW_UNAUTHENTICATED_AGENT_API=1`.
+3. **The 22 unimplemented fitness tests are implemented.** Every `SMOKE-*` and `DOC-*` row was
+   `Not Started` — a quarter of the catalogue, in a document that reads as a record of
+   coverage. They are now `apps/web/test/repo-hygiene.spec.ts` (61 assertions).
+
+**Also in this release.**
+
+| | |
+| --- | --- |
+| Keycloak healthcheck | `pnpm poc` no longer reports the stack healthy while Keycloak is still booting. Uses bash `/dev/tcp` against the management port (the image has no curl), verified live against a running container |
+| Secret guard | `.env.example` is checked for non-placeholder credentials, high-entropy tokens, and the APP-019 inline-comment bug that once shipped a comment as a 48-char "API key" |
+| `engines` | `package.json` now pins Node, so a wrong runtime fails at install rather than confusingly later. Asserted to agree with `.nvmrc` |
+| `pnpm verify` | One command for typecheck + lint + test (what CI runs). `pnpm verify:all` adds build + e2e |
+| Dependabot | Weekly, grouped by what moves together — fifteen separate patch PRs a week is how teams learn to ignore it |
+| E2E coverage | 3 specs → 8, covering the A2A route's validation, error shape, and that it never leaks a stack trace or env value |
+| Deprecated actions | `checkout`/`setup-node`/`artifact` bumped v4 → v5 (Node 20 shim) |
+| GHCR grant | The `permission_denied: write_package` first-run failure is documented in the workflow header — **including that the role defaults to Read, which still cannot push** |
+
+**Handled by `pnpm precast:update`.** The workflows, `dependabot.yml`, `docker-compose.yml`
+and `eslint.config.js` are managed and come across. `package.json`, `.env.example`,
+`packages/shared/src/env.ts` and the spec files are advisory — port them.
+
+**Manual steps.**
+
+1. **Copy `.github/workflows/ci.yml`** and adjust the branch names if yours differ. It assumes
+   `develop`; there is nothing else project-specific in it.
+2. **Copy the production auth guard** — `assertAgentApiAuthConfigured()` in
+   `apps/agents/src/mastra/middleware/auth.ts`, called from `index.ts` right after
+   `parseApiEnv()`. **Check your production env before deploying this**: if you are running
+   without `AGENT_API_TOKEN` today, this will refuse to start. That is the point, but it
+   should not be a surprise at deploy time.
+3. **Copy `apps/web/test/repo-hygiene.spec.ts`.** It asserts things about *your* repo, so
+   expect a few honest failures on first run — that is it working.
+4. **Add `engines` to `package.json`** and a Keycloak healthcheck if you run one.
+5. **`pnpm smoke:chat`** is new and needs a running stack plus a provider key. It is the
+   end-to-end round trip nothing else covers.
+
+**Advisory files touched.** `package.json`, `.env.example`, `docs/SCRIPTS.md`,
+`apps/web/test/repo-hygiene.spec.ts`, `.github/workflows/ci.yml`, `.github/dependabot.yml`.
+
+**Known gap, stated plainly.** `SMOKE-016` (the chat round trip) ships as a script whose
+failure paths are verified, but the round trip **has never actually been run** — no provider
+key was available. It stays `Not Started` in the catalogue rather than being quietly marked
+covered. The LICENSE gap from the same audit is also deliberately still open.
+
+**Verify.**
+
+```bash
+pnpm verify        # typecheck + lint + test
+pnpm test:e2e      # 8 specs
+```
+
+---
+
 ## v0.9.0 — agent proxy URLs are discovered, not configured (2026-08-19)
 
 **What changed.** The web app no longer needs one `AGENTBASE_AGENT_URL_<AGENT_ID>` per agent.
@@ -376,6 +445,19 @@ fields revert to `@precast/*`); `tsconfig.base.json` aliases; `apps/web/test/dep
 pnpm test          # APP-017 now pins BOTH halves: scope preserved, runtime renamed
 pnpm deps:image    # your lockfile tag should now match upstream's for an unmodified graph
 ```
+
+**Late addition — check which deps package you publish to.** Before this release `pnpm rename`
+also rewrote the GHCR reference, so a project scaffolded earlier publishes to its OWN package
+(`ghcr.io/<owner>/<project>-deps`) rather than the shared `precast-deps`. It works, but it gets
+no cache sharing and no benefit from upstream's published layers. Check with:
+
+```bash
+grep IMAGE .github/workflows/deps-image.yml
+```
+
+If it names `<project>-deps`, point it back at `precast-deps` and grant this repo **Write**
+access on that package (see the header of that workflow — the role defaults to Read, which
+cannot push). Leaving it alone is a valid choice; it just costs you the shared cache.
 
 ---
 

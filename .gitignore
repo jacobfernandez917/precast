@@ -35,3 +35,6 @@ docs/.progress-journal.jsonl
 .vscode/
 *.swp
 *.swo
+
+# Local editor workspace files — personal, never part of the boilerplate.
+*.code-workspace

@@ -20,6 +20,9 @@
     "setup": "pnpm install && pnpm build",
     "poc": "node scripts/poc.mjs",
     "verify:poc": "turbo run typecheck",
+    "verify": "turbo run typecheck lint test",
+    "verify:all": "turbo run typecheck lint test build && pnpm test:e2e",
+    "smoke:chat": "dotenv -e .env -- node scripts/smoke-chat.mjs",
     "dev": "turbo run dev",
     "dev:verbose": "turbo run dev:verbose",
     "dev:agents": "pnpm -F @precast/agents dev",
@@ -57,5 +60,9 @@
     "turbo": "^2.9.16",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.60.0"
+  },
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=9.15.9"
   }
 }

@@ -142,6 +142,24 @@ services:
       - '${KEYCLOAK_HOST_PORT:-45002}:8080'
     volumes:
       - keycloak-data:/opt/keycloak/data
+    # Without this, `pnpm poc` reports the stack healthy and prints URLs while
+    # Keycloak is still starting — which surfaces to the user as a confusing auth
+    # failure rather than "still booting".
+    #
+    # The image ships no curl or wget, so the check goes through bash's /dev/tcp
+    # against the MANAGEMENT port (9000, where Keycloak 25+ serves health), not
+    # the HTTP port. Verified against a running container: healthy → exit 0,
+    # missing marker → 1, dead port → 1.
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'exec 3<>/dev/tcp/127.0.0.1/9000; printf "GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3; grep -q ''"status": "UP"'' <&3',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
 # Volume names are deliberately NOT prefixed with the project name — Compose
 # already prefixes them with the project (`name:` above), so declaring

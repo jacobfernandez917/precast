@@ -6,7 +6,7 @@ import { Mastra } from '@mastra/core/mastra';
 import { PinoLogger } from '@mastra/loggers';
 import { parseApiEnv } from '@precast/shared';
 import { getPrecastStore } from './lib/storage';
-import { agentAuthMiddleware } from './middleware/auth';
+import { agentAuthMiddleware, assertAgentApiAuthConfigured } from './middleware/auth';
 import { crew, crewAgents } from './crew';
 import { isLlmProviderConfigured } from './lib/default-model';
 import { isAgentBaseLlmConfigured } from './lib/agentbase-model';
@@ -15,6 +15,11 @@ import { isAgentBaseLlmConfigured } from './lib/agentbase-model';
 // `.env` is loaded by the dev/start scripts (dotenv-cli); in production the real
 // environment (Docker/host) supplies the vars.
 const env = parseApiEnv();
+
+// A production deploy with no AGENT_API_TOKEN serves every agent to anyone who
+// can reach the port, and looks perfectly healthy doing it. Fail here rather
+// than warn — a warning in a deploy log is not a control.
+assertAgentApiAuthConfigured();
 
 // Warn LOUDLY at boot, not just at call time (see default-model.ts's
 // unconfiguredLocalModel) — a missing LLM key should surface the moment

@@ -1,0 +1,80 @@
+name: ci
+
+# The gate every scaffolded project inherits. Before this existed, nothing ran
+# typecheck, lint or tests automatically — the pre-commit doc hook was the only
+# check, and it is bypassable with SKIP_DOC_CHECK=1.
+#
+# `verify` is deliberately ONE job rather than a matrix of parallel ones: Turbo
+# already parallelises internally, and a single job keeps the pnpm store warm
+# across tasks instead of restoring it three times.
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # A new push supersedes an in-flight run for the same ref. Not applied to the
+  # default branch, where every commit's result is worth having on record.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
+
+env:
+  # Keeps env validation satisfied without reaching for real infrastructure.
+  # Postgres-only per ADR-002, so this must be a postgres:// URL even though
+  # nothing connects during typecheck/lint/test.
+  DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+  NODE_ENV: test
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Explicit steps rather than one `pnpm verify`, so a failure names the
+      # stage in the job list instead of collapsing into "verify failed".
+      - name: Typecheck
+        run: pnpm turbo run typecheck
+      - name: Lint
+        run: pnpm turbo run lint
+      - name: Test
+        run: pnpm turbo run test
+      - name: Build
+        run: pnpm turbo run build
+
+      # The scripts are the framework surface derived projects inherit; they are
+      # outside every workspace package, so `turbo run lint` never sees them.
+      # This is the check that was failing silently before v0.8.1.
+      - name: Lint framework scripts
+        run: pnpm exec eslint scripts/*.mjs
+
+  e2e:
+    # Split out because it needs browsers (~250MB) that the verify job never
+    # touches. Runs in parallel, so it costs wall-clock only, not developer time.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: pnpm -F @precast/web exec playwright install --with-deps chromium
+      - name: E2E
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7

@@ -1,0 +1,46 @@
+# Automated dependency bumps.
+#
+# Precast pins versions deliberately (TECH_STACK.md is the source of truth), so
+# the point of this file is not to float — it is to make a stale pin VISIBLE as a
+# PR rather than something a maintainer has to remember. `pnpm deps:update`
+# stays the manual path for a deliberate, whole-workspace bump.
+#
+# Grouped on purpose: fifteen separate patch PRs a week is how teams learn to
+# ignore Dependabot entirely.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Anything that moves together should arrive together, or CI green on one
+      # PR means nothing about the others.
+      mastra:
+        patterns: ['@mastra/*', 'mastra']
+      ai-sdk:
+        patterns: ['@ai-sdk/*', 'ai']
+      next:
+        patterns: ['next', 'react', 'react-dom', '@types/react', '@types/react-dom']
+      tooling:
+        patterns: ['eslint*', '@typescript-eslint/*', 'prettier*', 'typescript', 'turbo', 'vitest', '@playwright/*']
+      types:
+        patterns: ['@types/*']
+    commit-message:
+      prefix: 'deps'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: 'ci'
+
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: 'docker'
