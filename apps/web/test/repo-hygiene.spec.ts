@@ -355,3 +355,78 @@ describe('DOC-007 — SCRIPTS.md documents every root script', () => {
     expect(missing, `undocumented scripts: ${missing.join(', ')}`).toEqual([]);
   });
 });
+
+
+// ── SMOKE-017 ───────────────────────────────────────────────────────────────
+describe('SMOKE-017 — a fresh scaffold can actually boot', () => {
+  /**
+   * The bug this exists to prevent, in full: `.env.example` ships
+   * `AGENT_API_TOKEN=` (empty), the runtime images bake `NODE_ENV=production`,
+   * and the boot guard refuses to start an unauthenticated agent API. So a
+   * brand-new project failed on `pnpm poc` — the first command anyone runs.
+   *
+   * Nothing caught it because each piece was individually correct. The contract
+   * only breaks when you look at all three together, which is what these
+   * assertions do.
+   */
+  const bootstrap = read('scripts/bootstrap.mjs');
+  const example = read('.env.example');
+
+  it('bootstrap mints an AGENT_API_TOKEN', () => {
+    expect(
+      /AGENT_API_TOKEN:\s*randomBytes\(/.test(bootstrap),
+      'bootstrap must generate AGENT_API_TOKEN — an empty one makes the production ' +
+        'boot guard reject a fresh scaffold',
+    ).toBe(true);
+  });
+
+  it('and actually CALLS the generator', () => {
+    // Asserting the function exists is not enough: deleting only the call site
+    // leaves the definition in place, the regex above still matches, and the
+    // original bug returns with a green suite. Caught by mutation-testing this
+    // very test.
+    const defAt = bootstrap.indexOf('function generateLocalSecrets');
+    const calls = [...bootstrap.matchAll(/generateLocalSecrets\(\)/g)].map((m) => m.index!);
+    const invocations = calls.filter((i) => i < defAt || i > bootstrap.indexOf('}', defAt));
+    expect(
+      invocations.length,
+      'generateLocalSecrets() is defined but never invoked — a fresh .env would ship an ' +
+        'empty AGENT_API_TOKEN and the agents container would refuse to boot',
+    ).toBeGreaterThan(0);
+    expect(bootstrap).toMatch(/writeEnvValues\(generateLocalSecrets\(\)\)/);
+  });
+
+  it('generates it with a CSPRNG, not Math.random', () => {
+    const fn = bootstrap.slice(
+      bootstrap.indexOf('function generateLocalSecrets'),
+      bootstrap.indexOf('function writeEnvValues'),
+    );
+    expect(fn).toContain('randomBytes');
+    expect(fn, 'Math.random is not suitable for a credential').not.toContain('Math.random');
+  });
+
+  it('.env.example still ships it EMPTY — the committed file must carry no secret', () => {
+    // The two halves are a pair: example stays blank, bootstrap fills it. If
+    // someone "fixes" the boot failure by putting a value in .env.example
+    // instead, every clone would share one token.
+    const line = /^AGENT_API_TOKEN=(.*)$/m.exec(example);
+    expect(line, '.env.example must declare AGENT_API_TOKEN').not.toBeNull();
+    expect(line![1].trim(), '.env.example must not carry a real token').toBe('');
+  });
+
+  it('every placeholder host in .env.example is an obvious non-address', () => {
+    // A placeholder that looks routable is worse than an empty value: code that
+    // checks truthiness accepts it and fails later at the network. That is
+    // exactly how AGENTBASE_URL slipped past discovery's `!base` check.
+    const hosts = [...example.matchAll(/^([A-Z_]+)=(https?:\/\/[^\s]+)$/gm)];
+    expect(hosts.length).toBeGreaterThan(0);
+    for (const [, key, url] of hosts) {
+      if (/localhost|127\.0\.0\.1/.test(url)) continue;
+      expect(
+        /example\.com|example\.org|your-|REPLACE/i.test(url),
+        `${key}=${url} — a committed placeholder must be recognisably fake, so guards can ` +
+          'detect it and users cannot mistake it for configuration',
+      ).toBe(true);
+    }
+  });
+});

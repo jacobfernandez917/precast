@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   discoverAgentRoutes,
@@ -222,5 +225,41 @@ describe('discoverAgentRoutes — caching', () => {
     await Promise.all([discoverAgentRoutes(), discoverAgentRoutes(), discoverAgentRoutes()]);
     const mcpCalls = spy.mock.calls.filter(([u]) => String(u).endsWith('/mcp')).length;
     expect(mcpCalls, 'three concurrent callers must trigger one discovery').toBe(1);
+  });
+});
+
+
+/**
+ * The shipped placeholder must not read as configuration.
+ *
+ * `.env.example` ships a syntactically valid `AGENTBASE_URL` pointing at a
+ * domain that does not exist. It is TRUTHY, so a bare `!base` check let a fresh
+ * scaffold attempt DNS against it — the user got a network error instead of the
+ * actionable "not configured" message.
+ *
+ * The placeholder is read FROM `.env.example` rather than hardcoded here, so
+ * this cannot drift if that file changes.
+ */
+describe('the .env.example placeholder counts as unconfigured', () => {
+  const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
+  const shipped = readFileSync(join(REPO_ROOT, '.env.example'), 'utf8');
+  const placeholder = /^AGENTBASE_URL=(.+)$/m.exec(shipped)?.[1]?.trim();
+
+  it('.env.example actually ships one (guards this test against drift)', () => {
+    expect(placeholder, '.env.example must declare AGENTBASE_URL').toBeTruthy();
+  });
+
+  it('resolves to an actionable error, and never attempts the network', async () => {
+    process.env.AGENTBASE_URL = placeholder!;
+    process.env.AGENTBASE_TOKEN_URL = 'https://kc.test/token';
+    process.env.AGENTBASE_CLIENT_ID = 'cid';
+    process.env.AGENTBASE_CLIENT_SECRET = 'secret';
+    const spy = vi.fn();
+    vi.stubGlobal('fetch', spy);
+
+    const result = await resolveAgentUrl('example-agent');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/AGENTBASE_URL/);
+    expect(spy, 'a placeholder must short-circuit before any request').not.toHaveBeenCalled();
   });
 });

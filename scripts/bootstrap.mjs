@@ -62,6 +62,7 @@
  * leaves your git history intact.
  */
 
+import { randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { existsSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
@@ -510,6 +511,7 @@ async function main() {
   // an instruction to copy one — this is the gap that let an unconfigured LLM
   // provider go unnoticed until a chat actually failed.
   const envCreated = copyEnvFile();
+  if (envCreated) writeEnvValues(generateLocalSecrets());
   if (agentBaseLlm) writeEnvValues(agentBaseLlm);
 
   console.log(`\n✅ ${name} is ready.`);
@@ -599,6 +601,29 @@ function copyEnvFile() {
  * they give every agent the same intent up front. Point the user at the
  * templates so they fill them in first.
  */
+/**
+ * Secrets that have no reason to be blank, minted locally at scaffold time.
+ *
+ * `AGENT_API_TOKEN` was the gap this closes. `.env.example` ships it empty,
+ * which is correct for a committed file — but the runtime images bake
+ * `NODE_ENV=production`, and an empty token there means the agent API is open,
+ * so the boot guard refuses to start. The result was that `pnpm poc` — the
+ * FIRST thing anyone runs on a new project — failed on a fresh scaffold.
+ *
+ * Generated unconditionally rather than gated on deployment mode. There is no
+ * mode where a local token does harm: on an AgentBase-hosted import the
+ * platform mints its own inbound bearer and injects it, overriding whatever
+ * `.env` holds (docs/INTEGRATION_AGENTBASE.md §7), and Standalone/External is
+ * exactly the case that needs one. Gating would mean teaching bootstrap a
+ * deployment-mode concept it does not have, for no gain.
+ *
+ * 32 bytes of CSPRNG, hex-encoded: no shell-quoting or dotenv-parsing hazards,
+ * and long enough that the value is not the weak link.
+ */
+function generateLocalSecrets() {
+  return { AGENT_API_TOKEN: randomBytes(32).toString('hex') };
+}
+
 /**
  * Set keys in the real `.env`, replacing the empty placeholders `.env.example`
  * ships. Never touches `.env.example` — that file is committed, and a secret

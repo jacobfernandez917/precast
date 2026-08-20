@@ -122,6 +122,56 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.9.8 — a fresh scaffold boots again (2026-08-20)
+
+**What changed.** Two bugs that only appear on a *brand-new* project, found by asking a
+question no test asked: what is actually in `.env` after `pnpm bootstrap`?
+
+**1. `pnpm poc` failed on a fresh scaffold.** `.env.example` ships `AGENT_API_TOKEN=` — empty,
+which is correct for a committed file — the runtime images bake `NODE_ENV=production`, and the
+v0.9.5 boot guard refuses to start an unauthenticated agent API. So the first command anyone
+runs on a new project failed. Each piece was individually right; the contract only broke when
+all three met. **Bootstrap now mints a 32-byte CSPRNG token** into `.env`.
+
+Generated unconditionally rather than gated on deployment mode. There is no mode where a local
+token does harm: an AgentBase-hosted import has the platform mint its own inbound bearer and
+inject it, overriding `.env` entirely, and Standalone/External is exactly the case that needs
+one. Gating would mean teaching bootstrap a deployment-mode concept it does not have.
+
+**2. Discovery did not recognise the placeholder it ships.** `runDiscovery()` checked
+`if (!base)`, but `AGENTBASE_URL=https://api.agentbase.example.com` is **truthy** — so a fresh
+project attempted DNS against a domain that does not exist and got a network error instead of
+the actionable "not configured" message. Now `!base || base.includes('example.com')`.
+
+**Also: the v0.9.5 boot guard had no unit test.** It shipped verified only by running a
+container afterwards. `AGT-010` covers it properly, including that an empty string counts as
+absent and that only exactly `1` enables the opt-out — a loose check would let
+`ALLOW_UNAUTHENTICATED_AGENT_API=false` disable the guard.
+
+**Handled by `pnpm precast:update`.** `scripts/bootstrap.mjs` is managed, so the token
+generation comes across. The discovery fix is `apps/` code — yours to port.
+
+**Manual steps.**
+
+1. **Add the `example.com` guard** to your `agentbase-discovery.ts` (or whatever resolves your
+   proxy URL). Any committed placeholder that looks routable will otherwise pass a truthiness
+   check and fail later at the network.
+2. **Set `AGENT_API_TOKEN` in an existing project's `.env`** if it is still blank and you deploy
+   with `NODE_ENV=production` — this affects you today, independently of upgrading.
+3. **Copy `apps/agents/src/mastra/middleware/auth.spec.ts`** and the SMOKE-017 block.
+
+**Advisory files touched.** `apps/agents/src/mastra/middleware/auth.spec.ts`,
+`apps/web/test/repo-hygiene.spec.ts`, `apps/web/test/agentbase-discovery.spec.ts`.
+
+**Verify.**
+
+```bash
+pnpm verify
+grep '^AGENT_API_TOKEN=' .env    # non-empty after a fresh bootstrap
+```
+
+---
+
 ## v0.9.7 — containers drop root (2026-08-20)
 
 **What changed.** Both runtime images ran as **root** — not by decision, but because that is

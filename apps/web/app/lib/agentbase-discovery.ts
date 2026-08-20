@@ -161,13 +161,19 @@ async function readCardAgentId(
  */
 async function runDiscovery(): Promise<DiscoveryResult> {
   const base = apiBase();
-  if (!base) {
+  // The placeholder counts as unset. `.env.example` ships
+  // `AGENTBASE_URL=https://api.agentbase.example.com`, which is TRUTHY — so a
+  // bare `!base` check lets a fresh scaffold attempt DNS against a domain that
+  // does not exist, and the user sees a network error instead of the actionable
+  // message below.
+  if (!base || base.includes('example.com')) {
     return {
       ok: false,
       error:
-        'AgentBase is enabled (the default) but AGENTBASE_URL is not set, so agent routes ' +
-        'cannot be discovered. Set AGENTBASE_URL to your AgentBase API base, or set ' +
-        'ENABLE_AGENTBASE=0 to call Mastra directly over A2A.',
+        'AgentBase is enabled (the default) but AGENTBASE_URL is not configured — it is unset ' +
+        'or still the placeholder from .env.example — so agent routes cannot be discovered. ' +
+        'Set AGENTBASE_URL to your AgentBase API base, or set ENABLE_AGENTBASE=0 to call ' +
+        'Mastra directly over A2A.',
     };
   }
 
