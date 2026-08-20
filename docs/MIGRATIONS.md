@@ -122,6 +122,50 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.9.10 — the LLM gateway base is derived (2026-08-20)
+
+**What changed.** `AGENTBASE_LLM_BASE_URL` no longer has to be copied out of Studio. Name the
+model in `AGENTBASE_LLM_MODEL` and the base URL is looked up.
+
+v0.9.9 recorded that it *couldn't* be derived from `AGENTBASE_URL`, because the route is
+per-model — `{AGENTBASE_URL}/proxy/llm/<org>/<model-slug>/v1`. That is still true as
+concatenation. But `agentbase.list_models` returns `orgSlug` **and** `slug`, so both missing
+pieces are recoverable from the model you already named: AGENTDISC-1 applied to models.
+
+**The injected path is untouched, and that ordering is load-bearing.** An injected
+`AGENTBASE_LLM_BASE_URL` always wins and the registry is never consulted — a hosted container
+authenticates with an org-owned service application, which the native MCP tools reject with
+`developer_app_required`. If a lookup ever preempted the injected value, every hosted import
+would break at its first LLM call. Pinned by AGT-011.
+
+**Resolved lazily, on the first real call.** `resolveAgentModel()` runs during
+`new Agent({...})` construction and stays synchronous; the provider is built against an
+unroutable sentinel base that the custom `fetch` rewrites once the real one is known. So boot
+neither slows down nor gains a new way to fail, and a bad rewrite dies locally rather than
+leaving the machine.
+
+**`AGENTBASE_LLM_MODEL` accepts three forms** — the model slug, `<provider>/<model-id>`, or a
+bare model id — rather than making you learn which one the field wants.
+
+**Handled by `pnpm precast:update`.** Nothing — `apps/` code.
+
+**Manual steps.**
+
+1. **Copy `resolveLlmBaseUrl` and the `SENTINEL_BASE` rewrite** from
+   `apps/agents/src/mastra/lib/agentbase-model.ts`, plus the AGT-011 block.
+2. **You may clear `AGENTBASE_LLM_BASE_URL` from `.env`** once `AGENTBASE_URL` is set. Keeping
+   it is fine and still overrides — nothing forces the change.
+
+**Advisory files touched.** `.env.example`, `apps/agents/src/mastra/lib/agentbase-model.spec.ts`.
+
+**Verify.**
+
+```bash
+pnpm verify
+```
+
+---
+
 ## v0.9.9 — a shorter LLM section in `.env.example` (2026-08-20)
 
 **What changed.** `.env.example` went from 38 keys to 32. The LLM section now leads with the

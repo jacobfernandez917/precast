@@ -4,6 +4,8 @@ import {
   isAgentBaseLlmConfigured,
   resetAgentBaseLlmTokenCacheForTests,
   resolveAgentModel,
+  resolveLlmBaseUrl,
+  resetLlmBaseUrlCacheForTests,
 } from './agentbase-model';
 
 const ENV_KEYS = [
@@ -20,6 +22,8 @@ const ENV_KEYS = [
   'AGENTBASE_LLM_CLIENT_ID_EXAMPLE_AGENT',
   'AGENTBASE_LLM_CLIENT_SECRET_EXAMPLE_AGENT',
   'AGENTBASE_LLM_MODEL_EXAMPLE_AGENT',
+  'AGENTBASE_LLM_MODEL',
+  'AGENTBASE_URL',
 ] as const;
 const originalEnv: Record<string, string | undefined> = {};
 
@@ -332,5 +336,114 @@ describe('credential resolution: canonical names, legacy fallback', () => {
     process.env.AGENTBASE_LLM_CLIENT_ID = 'legacy-id';
     process.env.AGENTBASE_LLM_CLIENT_SECRET = 'legacy-secret';
     expect(isAgentBaseLlmConfigured()).toBe(true);
+  });
+});
+
+/**
+ * Deriving the LLM gateway base (AGT-011).
+ *
+ * `AGENTBASE_LLM_BASE_URL` was a hand-copied per-model URL. It cannot be a
+ * prefix of `AGENTBASE_URL` — the route is
+ * `{AGENTBASE_URL}/proxy/llm/<org>/<slug>/v1`, carrying a publisher org and the
+ * model's slug — but `agentbase.list_models` returns both, so it is recoverable
+ * from the model name already in `AGENTBASE_LLM_MODEL`.
+ *
+ * The case that must not regress is the HOSTED one: AgentBase injects the base
+ * URL, and a hosted service application cannot call the native MCP tools at all
+ * (`developer_app_required`). If an injected value were ever ignored in favour
+ * of a lookup, every hosted import would break at its first LLM call.
+ */
+describe('resolveLlmBaseUrl', () => {
+  const API = 'https://api.agentbase.test';
+  const MODELS = [
+    { slug: 'sonnet-prod-a1b2', modelId: 'claude-sonnet-5', provider: 'anthropic', orgSlug: 'acme' },
+    { slug: 'gpt-cheap-c3d4', modelId: 'gpt-5.1', provider: 'openai', orgSlug: 'acme' },
+  ];
+
+  function mockRegistry() {
+    return vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/token')) {
+        return new Response(JSON.stringify({ access_token: 'tok', expires_in: 300 }), {
+          status: 200,
+        });
+      }
+      if (url.endsWith('/mcp')) {
+        return new Response(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            result: { content: [{ type: 'text', text: JSON.stringify({ items: MODELS }) }] },
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response('unexpected', { status: 500 });
+    });
+  }
+
+  function derivable() {
+    process.env.AGENTBASE_URL = API;
+    process.env.AGENTBASE_TOKEN_URL = 'https://auth.test/token';
+    process.env.AGENTBASE_CLIENT_ID = 'cid';
+    process.env.AGENTBASE_CLIENT_SECRET = 'secret';
+  }
+
+  beforeEach(() => {
+    resetLlmBaseUrlCacheForTests();
+  });
+
+  it('prefers an INJECTED base URL and never calls the registry', async () => {
+    // The hosted path. A lookup here would fail with developer_app_required.
+    process.env.AGENTBASE_LLM_BASE_URL = 'https://injected.test/proxy/llm/o/s/v1';
+    const spy = mockRegistry();
+    vi.stubGlobal('fetch', spy);
+    await expect(resolveLlmBaseUrl('example-agent')).resolves.toBe(
+      'https://injected.test/proxy/llm/o/s/v1',
+    );
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('derives the per-model route from "<provider>/<model-id>"', async () => {
+    derivable();
+    process.env.AGENTBASE_LLM_MODEL = 'anthropic/claude-sonnet-5';
+    vi.stubGlobal('fetch', mockRegistry());
+    await expect(resolveLlmBaseUrl('example-agent')).resolves.toBe(
+      `${API}/proxy/llm/acme/sonnet-prod-a1b2/v1`,
+    );
+  });
+
+  it('also accepts the model slug, or a bare model id', async () => {
+    derivable();
+    vi.stubGlobal('fetch', mockRegistry());
+    process.env.AGENTBASE_LLM_MODEL = 'sonnet-prod-a1b2';
+    await expect(resolveLlmBaseUrl('example-agent')).resolves.toContain('/acme/sonnet-prod-a1b2/');
+    resetLlmBaseUrlCacheForTests();
+    process.env.AGENTBASE_LLM_MODEL = 'gpt-5.1';
+    await expect(resolveLlmBaseUrl('example-agent')).resolves.toContain('/acme/gpt-cheap-c3d4/');
+  });
+
+  it('caches, so repeated calls hit the registry once', async () => {
+    derivable();
+    process.env.AGENTBASE_LLM_MODEL = 'anthropic/claude-sonnet-5';
+    const spy = mockRegistry();
+    vi.stubGlobal('fetch', spy);
+    await resolveLlmBaseUrl('example-agent');
+    await resolveLlmBaseUrl('example-agent');
+    expect(spy.mock.calls.filter(([u]) => String(u).endsWith('/mcp')).length).toBe(1);
+  });
+
+  it('names the available models when nothing matches', async () => {
+    derivable();
+    process.env.AGENTBASE_LLM_MODEL = 'anthropic/does-not-exist';
+    vi.stubGlobal('fetch', mockRegistry());
+    await expect(resolveLlmBaseUrl('example-agent')).rejects.toThrow(/sonnet-prod-a1b2/);
+  });
+
+  it('treats the .env.example placeholder as unconfigured', async () => {
+    process.env.AGENTBASE_URL = 'https://api.agentbase.example.com';
+    process.env.AGENTBASE_LLM_MODEL = 'anthropic/claude-sonnet-5';
+    vi.stubGlobal('fetch', mockRegistry());
+    await expect(resolveLlmBaseUrl('example-agent')).rejects.toThrow(/AGENTBASE_URL/);
   });
 });
