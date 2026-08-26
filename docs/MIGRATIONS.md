@@ -122,6 +122,48 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.9.11 — `AGENTS.md`, so non-Claude harnesses aren't blind (2026-08-20)
+
+**What changed.** The repo gains an `AGENTS.md`. Most coding harnesses that are not Claude
+Code — OpenCode, Cursor, Aider and others — look for that filename; only Claude Code reads
+`CLAUDE.md`. Until now a different agent opened this project with **no instructions at all**.
+
+It would still have been stopped by the real gates — `.githooks/pre-commit` enforces the
+documentation contract for every agent and every human, and `a2a-only.spec.ts` fails a build
+that reaches for Mastra's REST — but it would have learned the rules by tripping over them.
+
+`AGENTS.md` is a **pointer**, not a fork: it names the handful of invariants that bite
+(A2A-only, Postgres-only, no `console.log`, tests ship with the change, the commit-time doc
+contract), lists the commands, explains what the Claude-only hooks do and what happens without
+them, and sends the reader to `CLAUDE.md` for the rest. One source of truth.
+
+**The guard is the interesting half.** A pointer file rots, so `SMOKE-018` asserts the file's
+*claims* rather than its existence: every doc it links to must resolve, every `pnpm` command it
+names must be a real script, and every invariant it states must still be stated in `CLAUDE.md`.
+Drop a rule from `CLAUDE.md` and the test fails until `AGENTS.md` catches up.
+
+It also forbids port numbers in `AGENTS.md` — `set-ports.mjs` rewrites `CLAUDE.md`, `SPEC.md`
+and `INTEGRATION_AGENTBASE.md`, but **not** this file, so a port printed here would be wrong
+from the first scaffold and nothing else would notice.
+
+**Handled by `pnpm precast:update`.** `AGENTS.md` is a managed file — it comes across on sync.
+
+**Manual steps.**
+
+1. **Nothing required.** If you have customized `CLAUDE.md` heavily, re-read `AGENTS.md`
+   afterwards: SMOKE-018 will tell you if the two have diverged, but only about the anchors it
+   knows.
+
+**Advisory files touched.** `apps/web/test/repo-hygiene.spec.ts`.
+
+**Verify.**
+
+```bash
+pnpm verify
+```
+
+---
+
 ## v0.9.10 — the LLM gateway base is derived (2026-08-20)
 
 **What changed.** `AGENTBASE_LLM_BASE_URL` no longer has to be copied out of Studio. Name the

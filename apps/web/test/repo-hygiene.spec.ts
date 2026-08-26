@@ -430,3 +430,70 @@ describe('SMOKE-017 — a fresh scaffold can actually boot', () => {
     }
   });
 });
+
+// ── SMOKE-018 ───────────────────────────────────────────────────────────────
+describe('SMOKE-018 — AGENTS.md stays true to the repo', () => {
+  /**
+   * Most non-Claude harnesses look for `AGENTS.md`; only Claude Code reads
+   * `CLAUDE.md`. Without the former, a different agent starts with no
+   * instructions at all — it would not know web→agents is A2A-only, that
+   * Postgres is mandatory, or that a git hook enforces the doc contract.
+   *
+   * A pointer file rots quickly, so this asserts the CLAIMS rather than the
+   * file's existence: every doc it cites must resolve, every command it names
+   * must exist, and every invariant it states must still be stated in
+   * CLAUDE.md. Rename a doc or drop a rule and this fails — which is the point.
+   */
+  const agents = read('AGENTS.md');
+  const claude = read('CLAUDE.md');
+
+  it('points at CLAUDE.md as the full contract', () => {
+    expect(agents).toContain('CLAUDE.md');
+  });
+
+  it('every doc it links to exists', () => {
+    const broken = [...agents.matchAll(/\]\(([^)#:]+\.md)\)/g)]
+      .map((m) => m[1])
+      .filter((rel) => !exists(rel));
+    expect(broken, `AGENTS.md links to missing docs: ${broken.join(', ')}`).toEqual([]);
+  });
+
+  it('every pnpm command it names is a real script', () => {
+    const scripts = Object.keys(JSON.parse(read('package.json')).scripts);
+    const cited = [...new Set([...agents.matchAll(/`pnpm ([a-z:]+)`/g)].map((m) => m[1]))];
+    expect(cited.length, 'AGENTS.md should name the commands an agent needs').toBeGreaterThan(3);
+    const missing = cited.filter((c) => !scripts.includes(c));
+    expect(missing, `AGENTS.md cites commands that do not exist: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  it('every invariant it states is still stated in CLAUDE.md', () => {
+    // The drift that matters: AGENTS.md keeps asserting a rule after CLAUDE.md
+    // has changed or dropped it. Anchored on the distinctive phrase for each
+    // rule rather than whole sentences, which would break on any rewording.
+    const ANCHORS = [
+      'a2a-only.spec.ts', // web→agents transport guard
+      'SKIP_DOC_CHECK', // the doc-contract bypass
+      'ADR-002', // Postgres-only
+      'console.log', // the logging rule
+      'pnpm poc', // the PoC-first workflow
+    ];
+    for (const anchor of ANCHORS) {
+      if (!agents.includes(anchor)) continue; // AGENTS.md may legitimately drop one
+      expect(
+        claude.includes(anchor),
+        `AGENTS.md states "${anchor}" but CLAUDE.md no longer mentions it — one of the two ` +
+          'has moved on without the other',
+      ).toBe(true);
+    }
+  });
+
+  it('carries no port numbers, which `set-ports` would silently invalidate', () => {
+    // set-ports.mjs rewrites CLAUDE.md, SPEC.md and INTEGRATION_AGENTBASE.md —
+    // not this file. A port printed here would be wrong the moment a project is
+    // scaffolded, and nothing would catch it.
+    expect(
+      /\b4[5-9]\d{3}\b/.test(agents),
+      'AGENTS.md must not hardcode ports — set-ports.mjs does not rewrite it',
+    ).toBe(false);
+  });
+});
