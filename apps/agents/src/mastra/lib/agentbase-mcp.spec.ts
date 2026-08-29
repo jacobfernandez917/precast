@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { discoverMcpServers, resolveAgentMcpTools } from './agentbase-mcp';
+import {
+  discoverMcpServers,
+  resolveAgentMcpTools,
+  resolveSubscribedServer,
+} from './agentbase-mcp';
+import { runWithRequestContext } from './request-context';
 
 // `resolveAgentMcpTools` builds a real MCPClient, so the SDK is mocked to script
 // connect outcomes per test. `vi.hoisted` because vi.mock is hoisted above the
@@ -8,7 +13,11 @@ import { discoverMcpServers, resolveAgentMcpTools } from './agentbase-mcp';
 const mcpMocks = vi.hoisted(() => ({ listToolsWithErrors: vi.fn() }));
 vi.mock('@mastra/mcp', () => ({
   MCPClient: class {
-    constructor(_opts: unknown) {}
+    constructor(opts: unknown) {
+      // Expose the config so a test can invoke the per-server `fetch` the way
+      // the real transport would.
+      (globalThis as Record<string, unknown>).__lastMcpConfig = opts;
+    }
     listToolsWithErrors = mcpMocks.listToolsWithErrors;
   },
 }));
@@ -239,5 +248,137 @@ describe('resolveAgentMcpTools — connect failures', () => {
     await expect(resolveAgentMcpTools('example-agent')).resolves.toEqual({
       acme__weather_lookup: weatherTool,
     });
+  });
+});
+
+
+/**
+ * OBO-1 end to end (AGT-012) and MCPADDR-1 (AGT-013).
+ *
+ * The contract the task defines as done: a subject on the inbound A2A call ends
+ * up on the outbound MCP tool call. The MCPClient is built once at construction,
+ * so this is really a test that the header is decided PER REQUEST — a static
+ * `requestInit` would pass a happy-path assertion made at boot and then send an
+ * empty subject for every real turn.
+ */
+describe('OBO — the subject reaches the MCP call', () => {
+  const SERVERS = [
+    { org: 'acme', slug: 'slack-mcp', title: 'Slack MCP', scopes: [], url: '/proxy/mcp/acme/slack-mcp/mcp' },
+    { org: 'acme', slug: 'weather', title: 'Weather', scopes: [], url: '/proxy/mcp/acme/weather/mcp' },
+  ];
+
+  function hostedWith(servers = SERVERS) {
+    hosted();
+    vi.stubGlobal(
+      'fetch',
+      mockFetch(
+        () =>
+          new Response(JSON.stringify({ mcpServers: servers }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }),
+      ),
+    );
+  }
+
+  /**
+   * Invoke the per-server `fetch` the way the real transport would, and read the
+   * headers it handed to the global fetch — which is what actually goes on the
+   * wire. (Asserting on anything the wrapper merely *returns* would prove
+   * nothing about the request.)
+   */
+  async function headersForOneCall(subject?: string): Promise<Headers> {
+    let captured: Headers | null = null;
+    mcpMocks.listToolsWithErrors.mockImplementation(async () => {
+      const cfg = (globalThis as Record<string, unknown>).__lastMcpConfig as {
+        servers: Record<
+          string,
+          { fetch: (i: RequestInfo | URL, init?: RequestInit) => Promise<Response> }
+        >;
+      };
+      const server = Object.values(cfg.servers)[0];
+      const spy = globalThis.fetch as unknown as { mock: { calls: unknown[][] } };
+      const before = spy.mock.calls.length;
+      await server.fetch('https://api.agentbase.test/proxy/mcp/acme/slack-mcp/mcp', {
+        method: 'POST',
+      });
+      const call = spy.mock.calls[before] as [unknown, RequestInit];
+      captured = new Headers(call?.[1]?.headers);
+      return { tools: {}, errors: {} };
+    });
+
+    if (subject) {
+      await runWithRequestContext({ onBehalfOf: subject }, () =>
+        resolveAgentMcpTools('example-agent'),
+      );
+    } else {
+      await resolveAgentMcpTools('example-agent');
+    }
+    if (!captured) throw new Error('the server fetch was never invoked');
+    return captured;
+  }
+
+  it('forwards the subject from the inbound call', async () => {
+    hostedWith();
+    const h = await headersForOneCall('U03A8NAEH39');
+    expect(h.get('x-agentbase-on-behalf-of')).toBe('U03A8NAEH39');
+    expect(h.get('authorization'), 'the bearer must still be sent').toMatch(/^Bearer /);
+  });
+
+  it('sends no subject header when the call carries none', async () => {
+    hostedWith();
+    const h = await headersForOneCall();
+    expect(h.get('x-agentbase-on-behalf-of')).toBeNull();
+    expect(h.get('authorization')).toMatch(/^Bearer /);
+  });
+});
+
+describe('resolveSubscribedServer', () => {
+  const SERVERS = [
+    { org: 'acme', slug: 'slack-mcp-2e688547', title: 'Slack MCP', scopes: [], url: '/proxy/mcp/acme/slack-mcp-2e688547/mcp' },
+    { org: 'acme', slug: 'slack-admin', title: 'Slack Admin', scopes: [], url: '/proxy/mcp/acme/slack-admin/mcp' },
+  ];
+  function hostedWith(servers = SERVERS) {
+    hosted();
+    vi.stubGlobal(
+      'fetch',
+      mockFetch(
+        () =>
+          new Response(JSON.stringify({ mcpServers: servers }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }),
+      ),
+    );
+  }
+
+  it('resolves an absolute URL by exact slug — no env var involved', async () => {
+    hostedWith();
+    await expect(resolveSubscribedServer('example-agent', { slug: 'slack-mcp-2e688547' })).resolves.toBe(
+      'https://api.agentbase.test/proxy/mcp/acme/slack-mcp-2e688547/mcp',
+    );
+  });
+
+  it('names what WAS subscribed when nothing matches', async () => {
+    hostedWith();
+    await expect(
+      resolveSubscribedServer('example-agent', { slug: 'nope' }),
+    ).rejects.toThrow(/slack-mcp-2e688547/);
+  });
+
+  it('REFUSES to guess when several match', async () => {
+    // Picking one of two plausible Slack servers would send a user's data to the
+    // wrong place — much worse than an error someone reads once.
+    hostedWith();
+    await expect(
+      resolveSubscribedServer('example-agent', { titleMatch: /slack/i }),
+    ).rejects.toThrow(/refusing to guess/i);
+  });
+
+  it('errors clearly when MCP is not configured at all', async () => {
+    delete process.env.AGENTBASE_MCP_BASE_URL;
+    await expect(resolveSubscribedServer('example-agent', { slug: 'x' })).rejects.toThrow(
+      /AGENTBASE_MCP_BASE_URL/,
+    );
   });
 });

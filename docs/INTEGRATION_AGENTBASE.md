@@ -438,6 +438,71 @@ network call, no throw.
 
 ---
 
+### 7.11 Acting as the end user (OBO), and addressing a subscribed server
+
+Two things a hosted agent needs that used to require a bespoke path in each project.
+
+#### The end-user subject
+
+AgentBase supports **end-user delegation**: a caller sends
+`X-AgentBase-On-Behalf-Of: <subject>` and the platform resolves *that person's* connected
+account for a user-mode MCP server. Without forwarding it, every MCP call an agent makes runs
+as the container's own identity — and a user-mode server answers
+`401 mcp_server_authorization_required`, which reaches the operator as *"connect your account"*
+for an account that is already connected.
+
+The boilerplate now carries it end to end:
+
+| | |
+| --- | --- |
+| **Captured** | `middleware/auth.ts` reads the header into an `AsyncLocalStorage` request context |
+| **Forwarded** | `lib/agentbase-mcp.ts` attaches it to every discovered MCP tool call |
+| **Available** | `currentOnBehalfOf()` / `resolveOnBehalfOf()` from `lib/request-context.ts`, for a project's own MCP or HTTP calls |
+
+Three properties are deliberate, and each is pinned by a test:
+
+- **Header only — never a request body.** The header is trustworthy because AgentBase's proxy
+  sets it, and only for an OBO-enabled Application against an agent it hosts. A body field is
+  attacker-controlled; reading a subject from one would let any caller impersonate any user.
+- **Sent only back to AgentBase.** The outbound wrapper compares *origins* and returns early for
+  anything else — a string prefix would accept `https://api.agentbase.example.com.evil.com`.
+  An agent calling a third-party endpoint must not tell it who its user is.
+- **Absent means absent.** No header → nothing is attached → behaviour is exactly as before.
+
+Precedence when a project has its own source as well:
+`explicit input > inbound header > project-specific source > none`.
+
+```ts
+import { resolveOnBehalfOf } from '../lib/request-context';
+
+const subject = resolveOnBehalfOf({
+  explicit: input.actAsUser,             // a tool that was told whom to act for
+  projectFallback: () => sessionUser(),  // your own mapping, consulted last
+});
+```
+
+The header is decided **per request**, not at construction. The `MCPClient` is built once when
+the agent is created, so a static `requestInit` would have frozen whatever was true at boot —
+an empty subject for every real turn, and an access token that expires under it.
+
+#### Addressing a subscribed server without configuring it
+
+`GET {AGENTBASE_MCP_BASE_URL}/subscriptions` already returns a ready-made address for every
+attached server. That list drives the LLM toolset; `resolveSubscribedServer()` exposes it for a
+**deterministic** call — invoking a specific tool yourself rather than letting the model choose:
+
+```ts
+const url = await resolveSubscribedServer(AGENT_ID, { slug: 'slack-mcp-2e688547' });
+const url = await resolveSubscribedServer(AGENT_ID, { titleMatch: /slack/i });
+```
+
+No env var, and nothing to update when a server is renamed. It **fails loudly** on zero matches
+(naming what *was* subscribed) and refuses to choose on several — sending a user's data to the
+wrong server is far worse than an error read once.
+
+---
+
+
 ## 8. Source references
 
 **Precast**

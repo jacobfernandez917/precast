@@ -1,4 +1,5 @@
 import type { AgentCard, SecurityScheme } from '@a2a-js/sdk';
+import { ON_BEHALF_OF_HEADER, runWithRequestContext } from '../lib/request-context';
 
 /**
  * Mastra Hono middleware with two jobs:
@@ -9,7 +10,12 @@ import type { AgentCard, SecurityScheme } from '@a2a-js/sdk';
  *     stay readable without auth. **In production that open default is refused
  *     at boot** — see `assertAgentApiAuthConfigured()` below.
  *
- *  2. **Advertise** that bearer scheme on the A2A agent card when the token is
+ *  2. **Capture** the end-user subject (`X-AgentBase-On-Behalf-Of`) into the
+ *     request context, so anything calling back to AgentBase during the turn can
+ *     act as that person (OBO-1, see lib/request-context.ts). Read from the
+ *     HEADER only — never a request body, which the caller controls.
+ *
+ *  3. **Advertise** that bearer scheme on the A2A agent card when the token is
  *     set. Mastra owns the `/.well-known/:id/agent-card.json` route and emits an
  *     empty `securitySchemes`/`security` ("public agent") with no config hook,
  *     so we augment its response here — declaring the scheme with the official
@@ -92,9 +98,14 @@ export function createAuthMiddleware() {
       }
     }
 
-    await next();
+    // 2. Capture the end-user subject for the whole turn. It wraps `next()` so
+    // every agent, tool and helper downstream can read it without being handed
+    // it explicitly. Absent header → an empty context, and behaviour is
+    // unchanged from before OBO existed.
+    const onBehalfOf = c.req.header(ON_BEHALF_OF_HEADER)?.trim() || undefined;
+    await runWithRequestContext({ onBehalfOf }, () => next());
 
-    // 2. When auth is on, make the agent card advertise the bearer scheme.
+    // 3. When auth is on, make the agent card advertise the bearer scheme.
     if (token && isAgentCardPath(c.req.path)) {
       await advertiseBearerOnCard(c);
     }

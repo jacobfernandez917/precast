@@ -1,6 +1,6 @@
 {
   "$comment": "Precast release identity + the file-ownership map that `pnpm precast:update` syncs against. Read from UPSTREAM at upgrade time, so this list evolves with the boilerplate. See docs/MIGRATIONS.md.",
-  "version": "0.9.11",
+  "version": "0.9.12",
   "repository": "https://github.com/jacobfernandez917/precast.git",
   "branch": "develop",
   "managed": [
@@ -31,6 +31,7 @@
     ".github/workflows/deps-image.yml",
     "agentbase.import.json",
     "apps/agents/src/mastra/lib/agentbase-mcp.spec.ts",
+    "apps/agents/src/mastra/lib/request-context.spec.ts",
     "apps/agents/src/mastra/middleware/auth.spec.ts",
     "apps/agents/src/mastra/orchestration-manifest.spec.ts",
     "apps/web/app/theme/apc-theme.ts",

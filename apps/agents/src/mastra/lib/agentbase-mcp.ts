@@ -1,5 +1,6 @@
 import { MCPClient } from '@mastra/mcp';
 import { getAgentBaseToken } from './agentbase-model';
+import { attachOnBehalfOf } from './request-context';
 
 /**
  * MCPDISC-1 — discover this agent's MCP tools from AgentBase at runtime,
@@ -142,7 +143,6 @@ export async function resolveAgentMcpTools(agentId: string): Promise<Record<stri
   if (servers.length === 0) return {};
 
   const base = mcpBaseUrl();
-  const token = await getAgentBaseToken(agentId);
 
   const client = new MCPClient({
     // `id` keeps repeated construction (hot reload, re-resolve) from tripping
@@ -153,7 +153,23 @@ export async function resolveAgentMcpTools(agentId: string): Promise<Record<stri
         `${s.org}__${s.slug}`.replace(/[^A-Za-z0-9_]/g, '_'),
         {
           url: new URL(`${base}/${s.org}/${s.slug}/mcp`),
-          requestInit: { headers: { authorization: `Bearer ${token}` } },
+          // A per-request `fetch` rather than a static `requestInit`. This
+          // client is built ONCE, at agent construction — so a header fixed
+          // here would carry whatever was true at boot forever. Two things
+          // must be decided per call instead:
+          //
+          //   the SUBJECT, which differs per request and is the whole point
+          //     of OBO; a boot-time value would be empty for every turn.
+          //   the TOKEN, which expires — one minted at construction would go
+          //     stale on a long-running container and start failing.
+          fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+            const url = typeof input === 'string' ? input : input.toString();
+            const headers = new Headers(init?.headers);
+            headers.set('authorization', `Bearer ${await getAgentBaseToken(agentId)}`);
+            // Host-guarded inside: the subject goes to AgentBase and nowhere else.
+            attachOnBehalfOf(headers, url, base);
+            return fetch(input, { ...init, headers });
+          },
         },
       ]),
     ),
@@ -191,4 +207,63 @@ export async function resolveAgentMcpTools(agentId: string): Promise<Record<stri
   }
 
   return tools as Record<string, unknown>;
+}
+
+/**
+ * MCPADDR-1 — the absolute URL of one subscribed MCP server.
+ *
+ * `GET {base}/subscriptions` already returns a ready-made address for every
+ * attached server. Until now that list was used only to attach servers as LLM
+ * tools, so a project wanting a DETERMINISTIC call — invoking a specific tool
+ * itself rather than letting the model choose — had nowhere to get an address
+ * and hardcoded one in an env var. That is a second copy of something the
+ * platform already provides, and it goes stale the moment a server is renamed.
+ *
+ * Fails loudly on zero or several matches, and names what WAS found. Silently
+ * picking one of two plausible servers would send a user's data to the wrong
+ * place, which is far worse than an error a human reads once.
+ *
+ *   const url = await resolveSubscribedServer(agentId, { slug: 'slack-mcp-2e688547' });
+ *   const url = await resolveSubscribedServer(agentId, { titleMatch: /slack/i });
+ */
+export async function resolveSubscribedServer(
+  agentId: string,
+  match: { slug?: string; titleMatch?: RegExp },
+): Promise<string> {
+  const base = mcpBaseUrl();
+  if (!base) {
+    throw new Error(
+      'AgentBase MCP is not configured (AGENTBASE_MCP_BASE_URL is unset), so a subscribed ' +
+        'server cannot be resolved. This is expected off AgentBase — guard the call with ' +
+        '`AGENTBASE_HOSTED === "1"` if the path must also run locally.',
+    );
+  }
+
+  const servers = await discoverMcpServers(agentId);
+  const hits = servers.filter((s) =>
+    match.slug ? s.slug === match.slug : match.titleMatch ? match.titleMatch.test(s.title) : false,
+  );
+
+  const wanted = match.slug ? `slug "${match.slug}"` : `title matching ${match.titleMatch}`;
+  const inventory = servers.length
+    ? servers.map((s) => `${s.slug} ("${s.title}")`).join(', ')
+    : '(none — this agent has no MCP subscriptions)';
+
+  if (hits.length === 0) {
+    throw new Error(
+      `No subscribed AgentBase MCP server has ${wanted}. Subscribed: ${inventory}.`,
+    );
+  }
+  if (hits.length > 1) {
+    throw new Error(
+      `${hits.length} subscribed servers match ${wanted} — refusing to guess which one you ` +
+        `meant. Matched: ${hits.map((s) => s.slug).join(', ')}. Address it by exact slug.`,
+    );
+  }
+
+  const only = hits[0];
+  // `url` is API-relative (`/proxy/mcp/org/slug/mcp`) while `base` already ends
+  // at `/proxy/mcp` — so build from org/slug rather than concatenating the two,
+  // which would double the prefix.
+  return `${base}/${only.org}/${only.slug}/mcp`;
 }

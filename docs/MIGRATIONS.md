@@ -122,6 +122,67 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.9.12 — end-user delegation, and addressing a subscribed MCP server (2026-08-21)
+
+**What changed.** Two capabilities AgentBase already provided and the boilerplate dropped on the
+floor.
+
+**1. The end-user subject is carried end to end.** AgentBase supports OBO: a caller sends
+`X-AgentBase-On-Behalf-Of` and the platform resolves *that person's* connected account for a
+user-mode MCP server. Precast never forwarded it, so every MCP call ran as the container's own
+identity — and a user-mode server answers `401 mcp_server_authorization_required`, which reaches
+the operator as *"connect your account"* for an account that **is** connected. A derived project
+had to build its own bespoke OBO path for exactly this reason.
+
+`middleware/auth.ts` now reads the header into an `AsyncLocalStorage` request context;
+`lib/agentbase-mcp.ts` attaches it to every discovered MCP tool call; and
+`currentOnBehalfOf()` / `resolveOnBehalfOf()` (`lib/request-context.ts`) expose it so a project's
+own MCP or HTTP calls use the same subject instead of a parallel mechanism.
+
+**2. `resolveSubscribedServer()`** returns a subscribed server's absolute URL by slug or title,
+from the subscriptions list the agent already fetches — so a **deterministic** call (invoking a
+specific tool yourself rather than letting the model choose) needs no env var and does not go
+stale when a server is renamed.
+
+**Three security properties, each pinned by a test:**
+
+- **Header only, never a request body.** The header is trustworthy because AgentBase's proxy
+  sets it, and only for an OBO-enabled Application against an agent it hosts. A body field is
+  attacker-controlled.
+- **Sent only back to AgentBase.** The guard compares **origins**, not string prefixes — a
+  prefix check accepts `https://api.agentbase.example.com.evil.com`.
+- **Absent means absent.** No header ⇒ nothing attached ⇒ behaviour exactly as before.
+
+**One implementation detail that is easy to get wrong.** The header is decided **per request**
+via the MCP server config's `fetch` hook, not a static `requestInit`. `resolveAgentMcpTools()`
+runs once at agent construction, so a header fixed there would freeze what was true at boot — an
+empty subject for every real turn. The same change fixes a latent bug: the access token was also
+baked at construction and would expire under a long-running container.
+
+**Handled by `pnpm precast:update`.** Nothing — `apps/` code.
+
+**Manual steps.**
+
+1. **Copy `apps/agents/src/mastra/lib/request-context.ts`.**
+2. **Capture in your auth middleware:** wrap `next()` in
+   `runWithRequestContext({ onBehalfOf: c.req.header('x-agentbase-on-behalf-of')?.trim() }, …)`.
+3. **Forward it:** in `agentbase-mcp.ts`, replace the static `requestInit` with the per-request
+   `fetch` that mints the token and calls `attachOnBehalfOf`.
+4. **If you built a bespoke OBO path already** (as `slack-daily-digest` did), point it at
+   `resolveOnBehalfOf()` so there is one source of the subject rather than two that can disagree.
+5. **Copy `resolveSubscribedServer()`** and delete any env var holding an MCP server URL.
+
+**Advisory files touched.** `apps/agents/src/mastra/lib/request-context.spec.ts`,
+`apps/agents/src/mastra/lib/agentbase-mcp.spec.ts`.
+
+**Verify.**
+
+```bash
+pnpm verify
+```
+
+---
+
 ## v0.9.11 — `AGENTS.md`, so non-Claude harnesses aren't blind (2026-08-20)
 
 **What changed.** The repo gains an `AGENTS.md`. Most coding harnesses that are not Claude
