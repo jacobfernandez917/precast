@@ -29,7 +29,7 @@
     "@astryxdesign/cli": "^0.1.5",
     "@playwright/test": "^1.0.0",
     "@tailwindcss/postcss": "^4.3.2",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.4.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "eslint": "^10.4.1",
