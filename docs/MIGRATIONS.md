@@ -122,6 +122,63 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.9.13 — three runtime bugs that all pointed somewhere else (2026-09-23)
+
+**What changed.** Three faults found while debugging a derived project, all of them upstream.
+Each produced a symptom that implicated the wrong thing, which is why they survived.
+
+**1. `ENABLE_AGENTBASE` in `.env` did nothing.** `docker-compose.yml` hard-coded
+`ENABLE_AGENTBASE: '0'` under `environment:`, and a literal there **overrides `env_file`**. So
+the comment beside it (*"Set to '1' … to proxy through AgentBase"*), the `ENABLE_AGENTBASE=1`
+that `.env.example` ships, and the schema's `.default('1')` were all inert — the app answered
+`via: "direct"` whatever you set. Now `${ENABLE_AGENTBASE:-0}`: the self-contained stack still
+defaults to direct, and `.env` can win.
+
+**The generalised guard found a second instance immediately:** `LOG_LEVEL: info` shadowed
+`.env` the same way, so `LOG_LEVEL=debug` silently stayed `info`. Also fixed.
+
+**2. The agents container reported unhealthy while working perfectly.** Both the compose
+healthcheck and `pnpm poc` probe `/api/agents` **with no bearer**, and Mastra protects that path
+once `AGENT_API_TOKEN` is set. `r.ok` is false for 401, so the container was marked sick and
+`pnpm poc` failed — for four days, in the project where this was found.
+
+**This became universal in v0.9.8**, which started minting an `AGENT_API_TOKEN` into every fresh
+`.env`. Before that, a fresh scaffold had an empty token and the probe passed. So v0.9.8 fixed
+one `pnpm poc` failure and introduced another. A 401 now counts as healthy — it proves the
+server is up *and* enforcing; only a connect error or a 5xx is unwell.
+
+**3. Intermittent `fetch failed` that looked like bad credentials.** AgentBase is
+Cloudflare-fronted and publishes AAAA records; Docker's default bridge has IPv6 disabled. A
+container that picks the AAAA gets `ENETUNREACH`. Plain `node` often survives this via Happy
+Eyeballs; Next's fetch runtime does not — hence "works when I test it by hand, fails in the
+app". Both images now start with `--dns-result-order=ipv4first`.
+
+Set on **`CMD`, not `ENV NODE_OPTIONS`** — deliberately. A `NODE_OPTIONS` supplied through
+compose or `.env` would *replace* the image's value and silently drop the flag, which is
+bug 1's shadowing all over again.
+
+**Handled by `pnpm precast:update`.** `docker/`, `scripts/` and the Dockerfiles are managed, so
+all three fixes come across on sync.
+
+**Manual steps.**
+
+1. **Check your own `environment:` blocks** for literals that also appear in `.env.example`.
+   WEB-012 does this for you after you copy the spec.
+2. **If you deploy with a health probe of your own**, apply the same rule: a 401 from an
+   authenticated endpoint means up, not down.
+3. **Copy `apps/web/test/compose-runtime.spec.ts`.**
+
+**Advisory files touched.** `apps/web/test/compose-runtime.spec.ts`.
+
+**Verify.**
+
+```bash
+pnpm verify
+pnpm poc        # should now reach healthy with AGENT_API_TOKEN set
+```
+
+---
+
 ## v0.9.12 — end-user delegation, and addressing a subscribed MCP server (2026-08-21)
 
 **What changed.** Two capabilities AgentBase already provided and the boilerplate dropped on the

@@ -1,6 +1,6 @@
 {
   "$comment": "Precast release identity + the file-ownership map that `pnpm precast:update` syncs against. Read from UPSTREAM at upgrade time, so this list evolves with the boilerplate. See docs/MIGRATIONS.md.",
-  "version": "0.9.12",
+  "version": "0.9.13",
   "repository": "https://github.com/jacobfernandez917/precast.git",
   "branch": "develop",
   "managed": [
@@ -39,6 +39,7 @@
     "apps/web/test/agentbase-discovery.spec.ts",
     "apps/web/test/apc-theme.spec.ts",
     "apps/web/test/bootstrap-llm.spec.ts",
+    "apps/web/test/compose-runtime.spec.ts",
     "apps/web/test/deps-image.spec.ts",
     "apps/web/test/docker-build.spec.ts",
     "apps/web/test/docker-compose-profiles.spec.ts",

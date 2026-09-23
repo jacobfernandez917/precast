@@ -48,4 +48,13 @@ COPY --from=build --chown=node:node /repo/apps/web/public ./apps/web/public
 # copy of the whole bundle in an extra layer.
 USER node
 EXPOSE 45001
-CMD ["node", "apps/web/server.js"]
+# Prefer IPv4 when a host resolves to both. AgentBase is Cloudflare-fronted and
+# publishes AAAA records, while Docker's default bridge has IPv6 disabled — so a
+# container that picks the AAAA gets ENETUNREACH. Plain `node` often survives via
+# Happy Eyeballs; Next's fetch runtime does not, which is why this surfaced as an
+# intermittent `fetch failed` that looked exactly like bad credentials.
+#
+# Set on the CMD, NOT as ENV NODE_OPTIONS: a NODE_OPTIONS supplied through
+# compose or `.env` would REPLACE the image's value and silently drop this —
+# the same shadowing that made ENABLE_AGENTBASE unsettable.
+CMD ["node", "--dns-result-order=ipv4first", "apps/web/server.js"]

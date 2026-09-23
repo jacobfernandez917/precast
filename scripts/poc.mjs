@@ -86,7 +86,12 @@ async function waitForHttp(url, { timeoutMs, expectOk = true }) {
   for (;;) {
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-      if (!expectOk || res.ok) return true;
+      // A 401 means the service is UP and enforcing auth — this probe carries no
+      // bearer, and Mastra protects /api/agents once AGENT_API_TOKEN is set.
+      // Reading it as "not ready" made `pnpm poc` poll until timeout and then
+      // fail on any auth-configured stack, which since v0.9.8 is every fresh
+      // scaffold. Only a connect error or a 5xx means the service is unwell.
+      if (!expectOk || res.ok || res.status < 500) return true;
     } catch {
       // not up yet
     }

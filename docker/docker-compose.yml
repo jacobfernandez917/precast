@@ -61,16 +61,21 @@ services:
     environment:
       MASTRA_HOST: 0.0.0.0
       MASTRA_PORT: 45000
-      LOG_LEVEL: info
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       # host (AGENTS_HOST_PORT, default 45000) → container 45000
       - '${AGENTS_HOST_PORT:-45000}:45000'
+    # A 401 counts as HEALTHY. This probe sends no bearer and Mastra protects
+    # /api/agents once AGENT_API_TOKEN is set, so `r.ok` alone marked a perfectly
+    # working container unhealthy the moment auth was configured — which, since
+    # v0.9.8 mints a token into every fresh .env, is every new project. A 401
+    # proves the server is up AND enforcing; only a connect error or 5xx is unwell.
     healthcheck:
       test:
         - CMD
         - node
         - -e
-        - 'fetch("http://localhost:45000/api/agents").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'
+        - 'fetch("http://localhost:45000/api/agents").then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))'
       interval: 10s
       timeout: 5s
       retries: 10
@@ -98,10 +103,16 @@ services:
       # Reach the agents app over the Docker network, not localhost.
       MASTRA_INTERNAL_URL: http://agents:45000
       # AgentBase is the default transport, but this self-contained stack has no
-      # AgentBase service — so opt into direct in-cluster A2A. Set to "1" (with
-      # the Application credentials + AGENTBASE_AGENT_URL_* — see .env.example)
-      # to proxy through AgentBase instead.
-      ENABLE_AGENTBASE: '0'
+      # AgentBase service — so DEFAULT to direct in-cluster A2A. Set
+      # ENABLE_AGENTBASE=1 in `.env` (with the Application credentials +
+      # AGENTBASE_AGENT_URL_* — see .env.example) to proxy through AgentBase.
+      #
+      # The `${...:-0}` substitution is load-bearing. A bare `ENABLE_AGENTBASE: '0'`
+      # OVERRIDES `env_file`, so `.env` was silently ignored and the app answered
+      # `via: "direct"` however the flag was set — the comment above told you to do
+      # something that did nothing. Every key in this block shadows `.env`; only
+      # hard-code one that must NOT be overridable.
+      ENABLE_AGENTBASE: ${ENABLE_AGENTBASE:-0}
     ports:
       # host (WEB_HOST_PORT, default 45001) → container 45001
       - '${WEB_HOST_PORT:-45001}:45001'
