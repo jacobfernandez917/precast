@@ -166,6 +166,11 @@ failed. The renamer now protects the boilerplate's own file and script names
 (`precast-lock.mjs`, `precast-update.mjs`, `precast.lock.json`, `precast.manifest.json`,
 `precast:update`, `precast:version`), and SMOKE-020 proves no referenced path changes under a
 rename.
+No dependency image had been published since v0.9.5: the deps-image workflow's `tag` job ran
+`actions/setup-node` with `cache: pnpm` before any step installed pnpm, and failed on every push
+from 2026-08-20. Every `pnpm poc` in that window installed from source inside Docker (3 minutes
+on the gate's machine). The step is added and SMOKE-021 guards the order in every workflow. The
+image for this lockfile publishes on the first push after v0.9.15.
 SMOKE-015 was a third victim: its `/^@precast\//` regex was renamed while the scope was not, so it
 failed in every derived project; it now reads the scope from a workspace package. Bootstrap's AgentBase Models fields also changed:
 `AGENTBASE_URL` (the API base) is collected and `AGENTBASE_LLM_BASE_URL` is an optional

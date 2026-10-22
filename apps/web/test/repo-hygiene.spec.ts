@@ -592,3 +592,34 @@ describe('SMOKE-020 — after a rename, every script path a code file names stil
     expect(problems, 'these references break once pnpm rename has run').toEqual([]);
   });
 });
+
+// ── SMOKE-021 ───────────────────────────────────────────────────────────────
+describe('SMOKE-021 — a workflow job that caches pnpm installs pnpm first', () => {
+  /**
+   * `actions/setup-node` with `cache: pnpm` looks for the pnpm binary and fails
+   * the job when it is not on PATH yet. The deps-image workflow's `tag` job
+   * lacked the `pnpm/action-setup` step, so no dependency image was published
+   * between 2026-08-20 (v0.9.5) and 2026-10-22, and every `pnpm poc` in that
+   * window installed from source. Text-based: each job is the indented block
+   * under `jobs:`, and inside it the setup step must precede the cache option.
+   */
+  const workflows = readdirSync(join(REPO_ROOT, '.github/workflows')).filter((f) =>
+    /\.ya?ml$/.test(f),
+  );
+
+  it.each(workflows)('%s: pnpm/action-setup precedes cache: pnpm in every job', (file) => {
+    const text = read(join('.github/workflows', file));
+    const jobsAt = text.indexOf('\njobs:');
+    if (jobsAt < 0) return;
+    const jobs = text.slice(jobsAt + 6).split(/\n(?=  [A-Za-z_-]+:\s*$)/m);
+    for (const job of jobs) {
+      const cacheAt = job.indexOf('cache: pnpm');
+      if (cacheAt < 0) continue;
+      const setupAt = job.indexOf('pnpm/action-setup');
+      expect(
+        setupAt >= 0 && setupAt < cacheAt,
+        `${file}: a job uses cache: pnpm before pnpm/action-setup ran\n${job.slice(0, 200)}`,
+      ).toBe(true);
+    }
+  });
+});
