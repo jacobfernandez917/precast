@@ -39,14 +39,16 @@ describe('assertAgentApiAuthConfigured', () => {
     // `.env.example` ships `AGENT_API_TOKEN=`, which reaches the process as ''.
     // If this ever passed, an image baking NODE_ENV=production would serve an
     // open agent API while looking perfectly configured.
-    expect(() => assertAgentApiAuthConfigured(env({ NODE_ENV: 'production', AGENT_API_TOKEN: '' }))).toThrow(
-      /Refusing to start/,
-    );
+    expect(() =>
+      assertAgentApiAuthConfigured(env({ NODE_ENV: 'production', AGENT_API_TOKEN: '' })),
+    ).toThrow(/Refusing to start/);
   });
 
   it('starts once a token is set', () => {
     expect(() =>
-      assertAgentApiAuthConfigured(env({ NODE_ENV: 'production', AGENT_API_TOKEN: 'a'.repeat(64) })),
+      assertAgentApiAuthConfigured(
+        env({ NODE_ENV: 'production', AGENT_API_TOKEN: 'a'.repeat(64) }),
+      ),
     ).not.toThrow();
   });
 
@@ -64,7 +66,9 @@ describe('assertAgentApiAuthConfigured', () => {
     for (const v of ['0', 'false', 'no', 'true']) {
       const shouldThrow = v !== '1';
       const call = () =>
-        assertAgentApiAuthConfigured(env({ NODE_ENV: 'production', ALLOW_UNAUTHENTICATED_AGENT_API: v }));
+        assertAgentApiAuthConfigured(
+          env({ NODE_ENV: 'production', ALLOW_UNAUTHENTICATED_AGENT_API: v }),
+        );
       if (shouldThrow) expect(call, `"${v}" must not disable the guard`).toThrow();
     }
   });

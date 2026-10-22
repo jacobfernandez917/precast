@@ -12,6 +12,7 @@ const mockedGetToken = vi.mocked(getAgentBaseAccessToken);
 
 const AGENT_URL_VAR = 'AGENTBASE_AGENT_URL_EXAMPLE_AGENT';
 const ENV_KEYS = [
+  'PRECAST_LOCAL_AGENTS',
   'ENABLE_AGENTBASE',
   AGENT_URL_VAR,
   'MASTRA_INTERNAL_URL',
@@ -44,7 +45,8 @@ describe('callAgent — proxy mode (AgentBase)', () => {
     // built in one case leaks into the next and the guard-rail cases pass for
     // the wrong reason.
     resetDiscoveryCacheForTests();
-    process.env.ENABLE_AGENTBASE = '1';
+    process.env.PRECAST_LOCAL_AGENTS = '0';
+    delete process.env.ENABLE_AGENTBASE;
     process.env[AGENT_URL_VAR] = 'https://agentbase.acme.dev/proxy/a2a/acme/example-agent-a1b2c3d4';
   });
 
@@ -129,9 +131,9 @@ describe('callAgent — proxy mode (AgentBase)', () => {
   });
 });
 
-describe('callAgent — direct mode (ENABLE_AGENTBASE=0)', () => {
+describe('callAgent — local agents (PRECAST_LOCAL_AGENTS=1)', () => {
   it('sends a message/send A2A envelope straight to Mastra, bypassing AgentBase entirely', async () => {
-    process.env.ENABLE_AGENTBASE = '0';
+    process.env.PRECAST_LOCAL_AGENTS = '1';
     process.env.MASTRA_INTERNAL_URL = 'http://localhost:4111';
     process.env.AGENT_API_TOKEN = 'mastra-token';
     const fetchSpy = vi.fn(
@@ -154,7 +156,7 @@ describe('callAgent — direct mode (ENABLE_AGENTBASE=0)', () => {
 /** WEB-015: the client asks for cards on every call and hands back what the agent attached. */
 describe('callAgent — A2UI (cards)', () => {
   beforeEach(() => {
-    process.env.ENABLE_AGENTBASE = '0';
+    process.env.PRECAST_LOCAL_AGENTS = '1';
     process.env.MASTRA_INTERNAL_URL = 'http://mastra.test';
   });
 
@@ -236,5 +238,34 @@ describe('callAgent — A2UI (cards)', () => {
     const failed = await callAgent('example-agent', 'hi');
     expect(failed.ok).toBe(false);
     expect(failed.a2ui).toEqual([]);
+  });
+});
+
+/** WEB-017: the pre-v0.10.0 switch still works for one release, and the new one wins. */
+describe('callAgent — the retired ENABLE_AGENTBASE spelling', () => {
+  it('ENABLE_AGENTBASE=0 still means local when PRECAST_LOCAL_AGENTS is unset', async () => {
+    delete process.env.PRECAST_LOCAL_AGENTS;
+    process.env.ENABLE_AGENTBASE = '0';
+    process.env.MASTRA_INTERNAL_URL = 'http://mastra.test';
+    const fetchSpy = vi.fn(
+      async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchSpy);
+    const reply = await callAgent('example-agent', 'hi');
+    expect(reply.via).toBe('direct');
+    expect(String((fetchSpy.mock.calls[0] as unknown as [string])[0])).toBe(
+      'http://mastra.test/api/a2a/example-agent',
+    );
+  });
+
+  it('PRECAST_LOCAL_AGENTS wins over the retired spelling', async () => {
+    process.env.PRECAST_LOCAL_AGENTS = '0';
+    process.env.ENABLE_AGENTBASE = '0';
+    delete process.env.AGENTBASE_URL;
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    const reply = await callAgent('example-agent', 'hi');
+    expect(reply.via).toBe('agentbase');
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

@@ -1,20 +1,20 @@
 /**
  * Server-only client for invoking Mastra agents over the A2A protocol
- * (JSON-RPC 2.0). The transport is chosen by the `ENABLE_AGENTBASE` env flag,
- * and **AgentBase is the default** — you must explicitly opt out to talk to
- * Mastra directly:
+ * (JSON-RPC 2.0). Every call goes through the AgentBase proxy, with one
+ * development exception:
  *
- *   ENABLE_AGENTBASE=0   → talk directly to the Mastra agent API over A2A:
- *                          POST ${MASTRA_INTERNAL_URL}/api/a2a/:agentId
- *                          (auth: Bearer AGENT_API_TOKEN — must match the
- *                          Mastra server's token; omitted when unset)
- *   anything else / unset → proxy through AgentBase's per-agent proxy URL
- *                          (DEFAULT): POST ${AGENTBASE_AGENT_URL_<AGENT_ID>}
- *                          body: the same A2A message/send envelope direct
- *                          mode sends — AgentBase forwards it verbatim
- *                          auth:  Bearer <JWT minted via client_credentials>
+ *   PRECAST_LOCAL_AGENTS=1 → call the local agents app directly over A2A:
+ *                            POST ${MASTRA_INTERNAL_URL}/api/a2a/:agentId
+ *                            (auth: Bearer AGENT_API_TOKEN when set). For a
+ *                            project that is not yet imported into AgentBase;
+ *                            Compose sets it for the local stack.
+ *   unset or 0 (DEFAULT)   → the agent's AgentBase proxy URL, discovered at
+ *                            runtime, with a Bearer minted via client_credentials.
  *
- * Defaulting to AgentBase is a guard rail: forgetting the flag routes through
+ * `ENABLE_AGENTBASE=0` is the pre-v0.10.0 spelling of the local switch and is
+ * still read for one release. There is no deployment mode without AgentBase.
+ *
+ * Defaulting to the proxy is a guard rail: forgetting the switch routes through
  * the audited, zero-trust proxy rather than silently exposing Mastra directly.
  *
  * PROXY URL: DISCOVERED at runtime from this Application's subscriptions —
@@ -99,17 +99,24 @@ interface CallOptions {
 }
 
 /**
- * True when the AgentBase proxy transport is enabled. AgentBase is the DEFAULT:
- * only an explicit `ENABLE_AGENTBASE=0` opts into direct Mastra A2A. A missing
- * or any other value keeps the audited proxy path (guard rail).
+ * True when the web app should call the local agents app directly: the
+ * development switch `PRECAST_LOCAL_AGENTS=1`, or its pre-v0.10.0 spelling
+ * `ENABLE_AGENTBASE=0` when the new one is unset. Anything else is the proxy.
  */
+export function isLocalAgents(): boolean {
+  const local = process.env.PRECAST_LOCAL_AGENTS;
+  if (local !== undefined && local !== '') return local === '1';
+  return process.env.ENABLE_AGENTBASE === '0';
+}
+
+/** True when calls go through the AgentBase proxy (the default). */
 export function isAgentBaseEnabled(): boolean {
-  return process.env.ENABLE_AGENTBASE !== '0';
+  return !isLocalAgents();
 }
 
 /**
- * Invoke a Mastra agent. Proxies through AgentBase by default; calls the Mastra
- * A2A endpoint directly only when `ENABLE_AGENTBASE=0`.
+ * Invoke a Mastra agent. Proxies through AgentBase by default; calls the local
+ * agents app directly only when `PRECAST_LOCAL_AGENTS=1`.
  */
 export async function callAgent(
   agentId: string,

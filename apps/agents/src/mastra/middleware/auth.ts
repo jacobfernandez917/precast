@@ -117,7 +117,6 @@ export function createAuthMiddleware() {
  */
 export const agentAuthMiddleware = createAuthMiddleware();
 
-
 /**
  * Refuse to boot a PRODUCTION deployment whose agent API is unauthenticated.
  *

@@ -9,7 +9,6 @@ import { getMastraStore } from './lib/storage';
 import { agentAuthMiddleware, assertAgentApiAuthConfigured } from './middleware/auth';
 import { a2uiMiddleware } from './middleware/a2ui';
 import { crew, crewAgents } from './crew';
-import { isLlmProviderConfigured } from './lib/default-model';
 import { isAgentBaseLlmConfigured } from './lib/agentbase-model';
 
 // Validate env at boot — fail fast on missing/invalid config. The single root
@@ -22,20 +21,16 @@ const env = parseApiEnv();
 // than warn — a warning in a deploy log is not a control.
 assertAgentApiAuthConfigured();
 
-// Warn LOUDLY at boot, not just at call time (see default-model.ts's
-// unconfiguredLocalModel) — a missing LLM key should surface the moment
-// `mastra dev`/`mastra start` runs, not get discovered mid-conversation.
-// This is advisory only: an AgentBase-hosted deploy legitimately boots
-// without one on its first deploy (see agentbase-model.ts), so we don't fail
-// the boot here, only make the gap impossible to miss in the terminal.
-// Also silent when the AgentBase gateway is configured with account-level
-// credentials (`--llm-provider=agentbase`): that project holds no vendor key
-// on purpose, and warning about it would be wrong.
-if (!isLlmProviderConfigured() && !isAgentBaseLlmConfigured() && env.AGENTBASE_HOSTED !== '1') {
+// Warn LOUDLY at boot, not just at call time: a missing model should be seen
+// the moment `mastra dev`/`mastra start` runs, not mid-conversation. Advisory
+// only: an AgentBase-hosted deploy legitimately boots without one on its first
+// deploy (the org admin sets the model in Studio after import).
+if (!isAgentBaseLlmConfigured() && env.AGENTBASE_HOSTED !== '1') {
   console.warn(
-    '⚠️  No LLM provider configured — agents will boot, but any actual chat/tool-call will fail. ' +
-      'Set ONE of ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY in .env ' +
-      '(or DEFAULT_LLM_MODEL for a specific model).',
+    '⚠️  No model configured — agents will boot, but any chat or tool call will fail. ' +
+      'Set AGENTBASE_LLM_MODEL and the Application credentials (AGENTBASE_URL, ' +
+      'AGENTBASE_TOKEN_URL, AGENTBASE_CLIENT_ID, AGENTBASE_CLIENT_SECRET) in .env, ' +
+      'or run pnpm bootstrap --llm-provider=agentbase.',
   );
 }
 

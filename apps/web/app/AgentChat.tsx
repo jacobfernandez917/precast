@@ -18,7 +18,7 @@ const AgentCards = dynamic(() => import('./a2ui/AgentCards').then((m) => m.Agent
 /**
  * Agent chat demo — sends a message to a Mastra agent through the
  * `/api/a2a/:agentId` route handler, which either proxies via AgentBase or
- * calls Mastra directly over A2A (per `ENABLE_AGENTBASE`). The agent id is
+ * calls the local agents app directly (per `PRECAST_LOCAL_AGENTS`). The agent id is
  * editable so the demo proves multi-agent routing.
  *
  * MEMORY: the route handler returns a `conversationId`; sending it back on the

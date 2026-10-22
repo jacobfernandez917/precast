@@ -54,7 +54,7 @@ export async function getAgentBaseAccessToken(): Promise<AccessTokenResult> {
       error:
         'AgentBase is enabled but AGENTBASE_TOKEN_URL / AGENTBASE_CLIENT_ID / AGENTBASE_CLIENT_SECRET ' +
         'are not fully set. Create an Application in AgentBase Studio and copy its credentials, ' +
-        'or set ENABLE_AGENTBASE=0 to call Mastra directly over A2A.',
+        'or set PRECAST_LOCAL_AGENTS=1 to call the local agents app directly (development only).',
     };
   }
 

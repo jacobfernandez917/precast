@@ -14,17 +14,8 @@
  *      Consecutive keeps the stack one memorable block; random+free means two
  *      Precast projects on one machine don't fight over 3000/4111 the way they
  *      always did. Any port can still be pinned explicitly.
- *   3. Ask which LLM provider the project will use (see LLM_PROVIDERS below —
- *      Anthropic, OpenAI, Google, xAI, Mistral, DeepSeek, Groq, Cerebras,
- *      Perplexity, the OpenRouter / Vercel AI Gateway routers, **AgentBase
- *      Models** — or skip). For a vendor provider it never collects the key
- *      value, only which one to remind about later. AgentBase Models is the one
- *      exception: it needs five interdependent settings (gateway base URL,
- *      token endpoint, client id, client secret, model), so bootstrap asks for
- *      them together and writes them to `.env` — four of five would look
- *      complete and fail at the first chat. No provider is hardcoded as the default; the agents auto-detect
- *      from whichever single key ends up set in `.env` (see
- *      apps/agents/src/mastra/lib/default-model.ts).
+ *   3. Ask where the agents get their model: the organisation's AgentBase
+ *      gateway (collects the Application credentials + a model name), or skip.
  *   4. Ask which APC Design System theme the web app should use — Stockholm,
  *      Prague, Arctic, Nova, or Melbourne (preview them at
  *      https://apc-design-system.917v.dev). All five share one token
@@ -48,7 +39,6 @@
  *   pnpm bootstrap my-project --ports=keep        # keep the committed defaults
  * Non-interactive LLM provider selection (see LLM_PROVIDERS below for the full
  * set, or `skip` to decide later):
- *   pnpm bootstrap my-project --llm-provider=anthropic
  * AgentBase Models non-interactively needs all five:
  *   pnpm bootstrap my-project --llm-provider=agentbase \
  *     --agentbase-base-url=… --agentbase-token-url=… --agentbase-client-id=… \
@@ -83,22 +73,9 @@ import { THEME_IDS, setTheme } from './set-theme.mjs';
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_BRANCH = 'develop';
 const RESERVED_PORTS = { 5432: 'Postgres', 6379: 'Redis' };
-// Keep in sync with PROVIDER_DEFAULTS in
-// apps/agents/src/mastra/lib/default-model.ts — that module owns the canonical
-// list (and each provider's default model); this one only needs the env var to
-// name in the closing reminder.
+// Models come from the organisation's AgentBase gateway. There is no vendor-key
+// option: a project holds the Application credentials and a model name.
 const LLM_PROVIDERS = [
-  { key: 'anthropic', envVar: 'ANTHROPIC_API_KEY', label: 'Anthropic' },
-  { key: 'openai', envVar: 'OPENAI_API_KEY', label: 'OpenAI' },
-  { key: 'google', envVar: 'GOOGLE_GENERATIVE_AI_API_KEY', label: 'Google' },
-  { key: 'xai', envVar: 'XAI_API_KEY', label: 'xAI' },
-  { key: 'mistral', envVar: 'MISTRAL_API_KEY', label: 'Mistral' },
-  { key: 'deepseek', envVar: 'DEEPSEEK_API_KEY', label: 'DeepSeek' },
-  { key: 'groq', envVar: 'GROQ_API_KEY', label: 'Groq' },
-  { key: 'cerebras', envVar: 'CEREBRAS_API_KEY', label: 'Cerebras' },
-  { key: 'perplexity', envVar: 'PERPLEXITY_API_KEY', label: 'Perplexity' },
-  { key: 'openrouter', envVar: 'OPENROUTER_API_KEY', label: 'OpenRouter (router)' },
-  { key: 'vercel', envVar: 'AI_GATEWAY_API_KEY', label: 'Vercel AI Gateway (router)' },
   // Not a vendor key: AgentBase's gateway serves the models your org has
   // already onboarded, and the real provider key stays server-side. `envVar` is
   // null because this option needs a SET of values, collected below — so unlike
@@ -495,8 +472,8 @@ async function resolveLlmProvider() {
   const rl = createInterface({ input: stdin, output: stdout });
   try {
     const skipChoice = LLM_PROVIDERS.length + 1;
-    console.log('\nWhich LLM provider will this project use?');
-    LLM_PROVIDERS.forEach((p, i) => console.log(`  ${i + 1}. ${p.label} (${p.envVar})`));
+    console.log('\nWhere will the agents get their model?');
+    LLM_PROVIDERS.forEach((p, i) => console.log(`  ${i + 1}. ${p.label}`));
     console.log(`  ${skipChoice}. Skip for now (you'll set it up later)`);
     for (;;) {
       const answer = (await rl.question(`Choice [1-${skipChoice}, or a provider name]: `)).trim();
@@ -509,7 +486,7 @@ async function resolveLlmProvider() {
       if (normalized === 'skip') return null;
       const byName = LLM_PROVIDERS.find((p) => p.key === normalized);
       if (byName) return byName;
-      console.error(`  Enter a number 1-${skipChoice}, or a provider name (e.g. anthropic).`);
+      console.error(`  Enter a number 1-${skipChoice}, or "agentbase".`);
     }
   } finally {
     rl.close();
@@ -580,7 +557,7 @@ async function main() {
   );
   console.log(`  6. DELETE Precast's git history and start a blank repo on "${DEFAULT_BRANCH}"`);
   console.log(
-    `  7. Create .env from .env.example${llmProvider ? ` (reminding you to set ${llmProvider.envVar})` : ' (no LLM provider chosen yet — you will be reminded)'}`,
+    `  7. Create .env from .env.example${llmProvider ? ' (with the AgentBase gateway settings)' : ' (no model chosen yet — you will be reminded)'}`,
   );
 
   console.log(
@@ -686,18 +663,13 @@ async function main() {
   if (llmProvider?.key === 'agentbase') {
     console.log('✅ AgentBase Models configured — no vendor key needed; the org key stays');
     console.log('   server-side. Verify with `pnpm poc` and one chat message.');
-  } else if (llmProvider) {
-    console.log(
-      `⚠️  ACTION REQUIRED — set ${llmProvider.envVar} in .env before the agents will respond.`,
-    );
   } else {
+    console.log('⚠️  ACTION REQUIRED — no model configured yet. Before the agents will respond,');
     console.log(
-      '⚠️  ACTION REQUIRED — no LLM provider configured yet. Before the agents will respond,',
+      '   set AGENTBASE_LLM_MODEL and the Application credentials in .env (AGENTBASE_URL,',
     );
-    console.log(
-      '   open .env and set ONE of: ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY',
-    );
-    console.log('   (or DEFAULT_LLM_MODEL for a specific "<provider>/<model>" string).');
+    console.log('   AGENTBASE_TOKEN_URL, AGENTBASE_CLIENT_ID, AGENTBASE_CLIENT_SECRET), or rerun');
+    console.log('   pnpm bootstrap --llm-provider=agentbase.');
   }
 
   printFeedForwardGuidance();
@@ -755,7 +727,7 @@ function copyEnvFile() {
  * Generated unconditionally rather than gated on deployment mode. There is no
  * mode where a local token does harm: on an AgentBase-hosted import the
  * platform mints its own inbound bearer and injects it, overriding whatever
- * `.env` holds (docs/INTEGRATION_AGENTBASE.md §7), and Standalone/External is
+ * `.env` holds (docs/INTEGRATION_AGENTBASE.md §7), and local dev/External is
  * exactly the case that needs one. Gating would mean teaching bootstrap a
  * deployment-mode concept it does not have, for no gain.
  *

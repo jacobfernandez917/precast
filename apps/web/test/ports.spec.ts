@@ -101,7 +101,8 @@ describe('pickConsecutivePorts', () => {
  *
  * shipped a 48-character "API key" containing an em dash to every scaffolded
  * project. Two failures followed, neither of which pointed at the cause:
- * `isLlmProviderConfigured()` saw a non-empty value and stayed quiet, and the
+ * the provider-key check of the time (`isLlmProviderConfigured()`, retired in
+ * v0.10.0) saw a non-empty value and stayed quiet, and the
  * value went into an HTTP header, where a non-latin-1 character made every LLM
  * call die with "Cannot convert argument to a ByteString".
  *

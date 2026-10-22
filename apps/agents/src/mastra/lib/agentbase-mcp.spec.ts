@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  discoverMcpServers,
-  resolveAgentMcpTools,
-  resolveSubscribedServer,
-} from './agentbase-mcp';
+import { discoverMcpServers, resolveAgentMcpTools, resolveSubscribedServer } from './agentbase-mcp';
 import { runWithRequestContext } from './request-context';
 
 // `resolveAgentMcpTools` builds a real MCPClient, so the SDK is mocked to script
@@ -31,7 +27,7 @@ vi.mock('@mastra/mcp', () => ({
  * The two behaviours worth pinning are the ones that are easy to get subtly
  * wrong and impossible to notice afterwards:
  *
- *  - **Inert off AgentBase.** Local dev, Standalone and External mode must be
+ *  - **Inert off AgentBase.** Local dev and External mode must be
  *    completely unaffected — no network call, no throw. If this regressed,
  *    every local `pnpm dev` would start failing on a URL that isn't there.
  *  - **Loud on failure when hosted.** A discovery error must throw, never
@@ -172,7 +168,6 @@ describe('discoverMcpServers — hosted', () => {
   });
 });
 
-
 /**
  * Connect-time failures, partitioned (AGT-007).
  *
@@ -187,7 +182,13 @@ describe('discoverMcpServers — hosted', () => {
  */
 describe('resolveAgentMcpTools — connect failures', () => {
   const SERVERS = [
-    { org: '917ventures', slug: 'slack-mcp', title: 'Slack', scopes: [], url: '/proxy/mcp/917ventures/slack-mcp/mcp' },
+    {
+      org: '917ventures',
+      slug: 'slack-mcp',
+      title: 'Slack',
+      scopes: [],
+      url: '/proxy/mcp/917ventures/slack-mcp/mcp',
+    },
   ];
 
   function hostedWithSubscription() {
@@ -251,7 +252,6 @@ describe('resolveAgentMcpTools — connect failures', () => {
   });
 });
 
-
 /**
  * OBO-1 end to end (AGT-012) and MCPADDR-1 (AGT-013).
  *
@@ -263,8 +263,20 @@ describe('resolveAgentMcpTools — connect failures', () => {
  */
 describe('OBO — the subject reaches the MCP call', () => {
   const SERVERS = [
-    { org: 'acme', slug: 'slack-mcp', title: 'Slack MCP', scopes: [], url: '/proxy/mcp/acme/slack-mcp/mcp' },
-    { org: 'acme', slug: 'weather', title: 'Weather', scopes: [], url: '/proxy/mcp/acme/weather/mcp' },
+    {
+      org: 'acme',
+      slug: 'slack-mcp',
+      title: 'Slack MCP',
+      scopes: [],
+      url: '/proxy/mcp/acme/slack-mcp/mcp',
+    },
+    {
+      org: 'acme',
+      slug: 'weather',
+      title: 'Weather',
+      scopes: [],
+      url: '/proxy/mcp/acme/weather/mcp',
+    },
   ];
 
   function hostedWith(servers = SERVERS) {
@@ -335,8 +347,20 @@ describe('OBO — the subject reaches the MCP call', () => {
 
 describe('resolveSubscribedServer', () => {
   const SERVERS = [
-    { org: 'acme', slug: 'slack-mcp-2e688547', title: 'Slack MCP', scopes: [], url: '/proxy/mcp/acme/slack-mcp-2e688547/mcp' },
-    { org: 'acme', slug: 'slack-admin', title: 'Slack Admin', scopes: [], url: '/proxy/mcp/acme/slack-admin/mcp' },
+    {
+      org: 'acme',
+      slug: 'slack-mcp-2e688547',
+      title: 'Slack MCP',
+      scopes: [],
+      url: '/proxy/mcp/acme/slack-mcp-2e688547/mcp',
+    },
+    {
+      org: 'acme',
+      slug: 'slack-admin',
+      title: 'Slack Admin',
+      scopes: [],
+      url: '/proxy/mcp/acme/slack-admin/mcp',
+    },
   ];
   function hostedWith(servers = SERVERS) {
     hosted();
@@ -354,16 +378,16 @@ describe('resolveSubscribedServer', () => {
 
   it('resolves an absolute URL by exact slug — no env var involved', async () => {
     hostedWith();
-    await expect(resolveSubscribedServer('example-agent', { slug: 'slack-mcp-2e688547' })).resolves.toBe(
-      'https://api.agentbase.test/proxy/mcp/acme/slack-mcp-2e688547/mcp',
-    );
+    await expect(
+      resolveSubscribedServer('example-agent', { slug: 'slack-mcp-2e688547' }),
+    ).resolves.toBe('https://api.agentbase.test/proxy/mcp/acme/slack-mcp-2e688547/mcp');
   });
 
   it('names what WAS subscribed when nothing matches', async () => {
     hostedWith();
-    await expect(
-      resolveSubscribedServer('example-agent', { slug: 'nope' }),
-    ).rejects.toThrow(/slack-mcp-2e688547/);
+    await expect(resolveSubscribedServer('example-agent', { slug: 'nope' })).rejects.toThrow(
+      /slack-mcp-2e688547/,
+    );
   });
 
   it('REFUSES to guess when several match', async () => {

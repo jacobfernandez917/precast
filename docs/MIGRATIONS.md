@@ -122,6 +122,64 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.10.0 — AgentBase only: Standalone removed, vendor keys gone (2026-10-22)
+
+**What changed.** Phase 2 of the AgentBase SDK plan. A Precast project now runs on AgentBase or
+not at all: the **Standalone** mode is gone, and so are the vendor LLM keys.
+
+- The web app's transport switch is a development setting, `PRECAST_LOCAL_AGENTS` (`1` calls the
+  local agents app directly, before the project is imported; unset or `0` goes through the
+  AgentBase proxy). `ENABLE_AGENTBASE=0`, the old spelling, is still read for one release and
+  then removed. Compose sets `PRECAST_LOCAL_AGENTS` to `1` by default for the local stack, so
+  `pnpm poc` answers chat on a fresh project; set it to `0` (and `COMPOSE_PROFILES=web,keycloak`)
+  once AgentBase hosts the agents.
+- Models come only from the organisation's AgentBase gateway. `default-model.ts` and its
+  provider table are deleted; `resolveAgentModel(agentId)` takes no fallback and returns a
+  call-time-failing model, naming what to set, when nothing is configured. The twelve
+  `*_API_KEY` settings and `DEFAULT_LLM_MODEL` are gone from the env schema and `.env.example`.
+- `.env.example` is rewritten around what a person acts on: 25 settings and 48 comment lines,
+  down from 31 and 174.
+- `pnpm bootstrap --llm-provider` accepts `agentbase` or `skip`.
+- `pnpm smoke:chat` now reads a Task reply's `artifacts` and `history` as well as its message
+  parts (Mastra 1.78 answers with a `response.txt` artifact), so the round trip reports the
+  text instead of "no text part". First time the round trip ran green (SMOKE-016): a fresh
+  scaffold on 2026-10-22 answered through the organisation's gateway.
+
+**Upside:** one deploy story, one model source, a readable `.env`, and a fresh project whose chat
+works locally before import. **Downside:** a project cannot run without an AgentBase org, and a
+project that used its own vendor key loses that option; the gateway is the only path.
+
+**Handled by `pnpm precast:update`.** `docker/docker-compose.yml`, `scripts/bootstrap.mjs`,
+`scripts/smoke-chat.mjs`, `CLAUDE.md`.
+
+**Manual steps.**
+
+1. **A Standalone project:** there is no upgrade path for that mode. Either stay on v0.9.x or
+   move to External: create an Application in AgentBase Studio, put its credentials and
+   `AGENTBASE_URL` in `.env`, register the agents' address (§4C), and remove any vendor key.
+2. **`.env`:** replace `ENABLE_AGENTBASE=0` with `PRECAST_LOCAL_AGENTS=1` (and `=1` with
+   `PRECAST_LOCAL_AGENTS=0`, or delete it). Remove `*_API_KEY` and `DEFAULT_LLM_MODEL`; set
+   `AGENTBASE_LLM_MODEL` to a model the Application is subscribed to.
+3. **Port `packages/shared/src/env.ts`:** drop the vendor keys and `DEFAULT_LLM_MODEL`, add
+   `PRECAST_LOCAL_AGENTS` (default `'0'`) and keep `ENABLE_AGENTBASE` optional.
+4. **`apps/agents`:** delete `lib/default-model.ts` and its spec; change every
+   `resolveAgentModel(ID, resolveDefaultModel())` to `resolveAgentModel(ID)`; port the
+   resolver's `unconfiguredLocalModel` and the boot warning from `index.ts`.
+5. **`apps/web`:** port `isLocalAgents()` in `app/lib/a2a-client.ts` and the two error
+   messages in `agentbase-auth.ts` / `agentbase-discovery.ts`; copy the spec changes
+   (`a2a-client.spec.ts` WEB-017, `compose-runtime.spec.ts` WEB-012).
+
+**Advisory files touched.** `.env.example`, `packages/shared/src/env.ts`, the specs above.
+
+**Verify.**
+
+```bash
+pnpm verify
+pnpm poc && pnpm smoke:chat   # a chat turn through the gateway, locally
+```
+
+---
+
 ## v0.9.15 — Postgres by default: `pnpm db:provision` and `pnpm bootstrap --db=` (2026-10-22)
 
 **What changed.** The first step of the plan that makes Precast the AgentBase SDK
@@ -301,7 +359,7 @@ Each produced a symptom that implicated the wrong thing, which is why they survi
 
 **1. `ENABLE_AGENTBASE` in `.env` did nothing.** `docker-compose.yml` hard-coded
 `ENABLE_AGENTBASE: '0'` under `environment:`, and a literal there **overrides `env_file`**. So
-the comment beside it (*"Set to '1' … to proxy through AgentBase"*), the `ENABLE_AGENTBASE=1`
+the comment beside it (_"Set to '1' … to proxy through AgentBase"_), the `ENABLE_AGENTBASE=1`
 that `.env.example` ships, and the schema's `.default('1')` were all inert — the app answered
 `via: "direct"` whatever you set. Now `${ENABLE_AGENTBASE:-0}`: the self-contained stack still
 defaults to direct, and `.env` can win.
@@ -317,7 +375,7 @@ once `AGENT_API_TOKEN` is set. `r.ok` is false for 401, so the container was mar
 **This became universal in v0.9.8**, which started minting an `AGENT_API_TOKEN` into every fresh
 `.env`. Before that, a fresh scaffold had an empty token and the probe passed. So v0.9.8 fixed
 one `pnpm poc` failure and introduced another. A 401 now counts as healthy — it proves the
-server is up *and* enforcing; only a connect error or a 5xx is unwell.
+server is up _and_ enforcing; only a connect error or a 5xx is unwell.
 
 **3. Intermittent `fetch failed` that looked like bad credentials.** AgentBase is
 Cloudflare-fronted and publishes AAAA records; Docker's default bridge has IPv6 disabled. A
@@ -326,7 +384,7 @@ Eyeballs; Next's fetch runtime does not — hence "works when I test it by hand,
 app". Both images now start with `--dns-result-order=ipv4first`.
 
 Set on **`CMD`, not `ENV NODE_OPTIONS`** — deliberately. A `NODE_OPTIONS` supplied through
-compose or `.env` would *replace* the image's value and silently drop the flag, which is
+compose or `.env` would _replace_ the image's value and silently drop the flag, which is
 bug 1's shadowing all over again.
 
 **Handled by `pnpm precast:update`.** `docker/`, `scripts/` and the Dockerfiles are managed, so
@@ -357,10 +415,10 @@ pnpm poc        # should now reach healthy with AGENT_API_TOKEN set
 floor.
 
 **1. The end-user subject is carried end to end.** AgentBase supports OBO: a caller sends
-`X-AgentBase-On-Behalf-Of` and the platform resolves *that person's* connected account for a
+`X-AgentBase-On-Behalf-Of` and the platform resolves _that person's_ connected account for a
 user-mode MCP server. Precast never forwarded it, so every MCP call ran as the container's own
 identity — and a user-mode server answers `401 mcp_server_authorization_required`, which reaches
-the operator as *"connect your account"* for an account that **is** connected. A derived project
+the operator as _"connect your account"_ for an account that **is** connected. A derived project
 had to build its own bespoke OBO path for exactly this reason.
 
 `middleware/auth.ts` now reads the header into an `AsyncLocalStorage` request context;
@@ -428,7 +486,7 @@ contract), lists the commands, explains what the Claude-only hooks do and what h
 them, and sends the reader to `CLAUDE.md` for the rest. One source of truth.
 
 **The guard is the interesting half.** A pointer file rots, so `SMOKE-018` asserts the file's
-*claims* rather than its existence: every doc it links to must resolve, every `pnpm` command it
+_claims_ rather than its existence: every doc it links to must resolve, every `pnpm` command it
 names must be a real script, and every invariant it states must still be stated in `CLAUDE.md`.
 Drop a rule from `CLAUDE.md` and the test fails until `AGENTS.md` catches up.
 
@@ -459,7 +517,7 @@ pnpm verify
 **What changed.** `AGENTBASE_LLM_BASE_URL` no longer has to be copied out of Studio. Name the
 model in `AGENTBASE_LLM_MODEL` and the base URL is looked up.
 
-v0.9.9 recorded that it *couldn't* be derived from `AGENTBASE_URL`, because the route is
+v0.9.9 recorded that it _couldn't_ be derived from `AGENTBASE_URL`, because the route is
 per-model — `{AGENTBASE_URL}/proxy/llm/<org>/<model-slug>/v1`. That is still true as
 concatenation. But `agentbase.list_models` returns `orgSlug` **and** `slug`, so both missing
 pieces are recoverable from the model you already named: AGENTDISC-1 applied to models.
@@ -506,7 +564,7 @@ xAI, OpenRouter — instead of eleven.
 
 `DEFAULT_LLM_MODEL` is no longer pre-printed either, for the same reason — a comment explains
 what it does and when you would want it. It remains fully supported, and is still the only way
-to pin one *specific* model (a bare `ANTHROPIC_API_KEY` gets that provider's default) or to
+to pin one _specific_ model (a bare `ANTHROPIC_API_KEY` gets that provider's default) or to
 reach the ~100 community providers Mastra resolves but does not auto-detect.
 
 **Nothing lost.** Mistral, DeepSeek, Groq, Cerebras, Perplexity and AI Gateway are still
@@ -546,7 +604,7 @@ pnpm verify    # SMOKE-008 and SMOKE-017 both read .env.example directly
 
 ## v0.9.8 — a fresh scaffold boots again (2026-08-20)
 
-**What changed.** Two bugs that only appear on a *brand-new* project, found by asking a
+**What changed.** Two bugs that only appear on a _brand-new_ project, found by asking a
 question no test asked: what is actually in `.env` after `pnpm bootstrap`?
 
 **1. `pnpm poc` failed on a fresh scaffold.** `.env.example` ships `AGENT_API_TOKEN=` — empty,
@@ -617,7 +675,7 @@ was a testing artifact rather than the `USER` change.
 - **`USER` must come after the final `COPY`.** Switching earlier copies into a root-owned
   `WORKDIR`, which fails or silently drops permissions.
 - **`--chown=node:node` is not optional.** Without it the bundle stays root-owned. It is still
-  *readable*, so the app boots normally and the gap only appears the first time something needs
+  _readable_, so the app boots normally and the gap only appears the first time something needs
   to write — long after the change looks proven.
 
 **Handled by `pnpm precast:update`.** Nothing — the Dockerfiles live under `apps/`.
@@ -650,10 +708,10 @@ pnpm verify
 including four high-severity Next.js advisories** that were live in every deployed Precast web
 app: Middleware/Proxy bypass in App Router, SSRF in Server Actions, SSRF in rewrites, and a DoS.
 
-| | Before | After |
-| --- | --- | --- |
-| Total | 40 (1 critical, 21 high) | **15** |
-| **Production deps** | 13 (6 high) | **2** |
+|                     | Before                   | After  |
+| ------------------- | ------------------------ | ------ |
+| Total               | 40 (1 critical, 21 high) | **15** |
+| **Production deps** | 13 (6 high)              | **2**  |
 
 **Next.js `16.2.10` → `16.3.1`.** The pin was already `^16` so the range permitted the fix, but
 the lockfile held the vulnerable build — meaning every install and every scaffolded project got
@@ -707,7 +765,7 @@ pnpm verify && pnpm test:e2e
 ## v0.9.5 — the pre-1.0 hardening pass (2026-08-20)
 
 **What changed.** A gap audit of the repo turned up fifteen items; this release closes fourteen
-of them. Most were things the boilerplate *promised* and did not do.
+of them. Most were things the boilerplate _promised_ and did not do.
 
 **The three that matter most:**
 
@@ -726,16 +784,16 @@ of them. Most were things the boilerplate *promised* and did not do.
 
 **Also in this release.**
 
-| | |
-| --- | --- |
+|                      |                                                                                                                                                                                                     |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Keycloak healthcheck | `pnpm poc` no longer reports the stack healthy while Keycloak is still booting. Uses bash `/dev/tcp` against the management port (the image has no curl), verified live against a running container |
-| Secret guard | `.env.example` is checked for non-placeholder credentials, high-entropy tokens, and the APP-019 inline-comment bug that once shipped a comment as a 48-char "API key" |
-| `engines` | `package.json` now pins Node, so a wrong runtime fails at install rather than confusingly later. Asserted to agree with `.nvmrc` |
-| `pnpm verify` | One command for typecheck + lint + test (what CI runs). `pnpm verify:all` adds build + e2e |
-| Dependabot | Weekly, grouped by what moves together — fifteen separate patch PRs a week is how teams learn to ignore it |
-| E2E coverage | 3 specs → 8, covering the A2A route's validation, error shape, and that it never leaks a stack trace or env value |
-| Deprecated actions | `checkout`/`setup-node`/`artifact` bumped v4 → v5 (Node 20 shim) |
-| GHCR grant | The `permission_denied: write_package` first-run failure is documented in the workflow header — **including that the role defaults to Read, which still cannot push** |
+| Secret guard         | `.env.example` is checked for non-placeholder credentials, high-entropy tokens, and the APP-019 inline-comment bug that once shipped a comment as a 48-char "API key"                               |
+| `engines`            | `package.json` now pins Node, so a wrong runtime fails at install rather than confusingly later. Asserted to agree with `.nvmrc`                                                                    |
+| `pnpm verify`        | One command for typecheck + lint + test (what CI runs). `pnpm verify:all` adds build + e2e                                                                                                          |
+| Dependabot           | Weekly, grouped by what moves together — fifteen separate patch PRs a week is how teams learn to ignore it                                                                                          |
+| E2E coverage         | 3 specs → 8, covering the A2A route's validation, error shape, and that it never leaks a stack trace or env value                                                                                   |
+| Deprecated actions   | `checkout`/`setup-node`/`artifact` bumped v4 → v5 (Node 20 shim)                                                                                                                                    |
+| GHCR grant           | The `permission_denied: write_package` first-run failure is documented in the workflow header — **including that the role defaults to Read, which still cannot push**                               |
 
 **Handled by `pnpm precast:update`.** The workflows, `dependabot.yml`, `docker-compose.yml`
 and `eslint.config.js` are managed and come across. `package.json`, `.env.example`,
@@ -750,7 +808,7 @@ and `eslint.config.js` are managed and come across. `package.json`, `.env.exampl
    `parseApiEnv()`. **Check your production env before deploying this**: if you are running
    without `AGENT_API_TOKEN` today, this will refuse to start. That is the point, but it
    should not be a surprise at deploy time.
-3. **Copy `apps/web/test/repo-hygiene.spec.ts`.** It asserts things about *your* repo, so
+3. **Copy `apps/web/test/repo-hygiene.spec.ts`.** It asserts things about _your_ repo, so
    expect a few honest failures on first run — that is it working.
 4. **Add `engines` to `package.json`** and a Keycloak healthcheck if you run one.
 5. **`pnpm smoke:chat`** is new and needs a running stack plus a provider key. It is the
@@ -861,7 +919,7 @@ each end user connects their own account, so such a container could never boot a
 Connect failures are now partitioned. Authorization-pending servers are **skipped with a loud
 `console.warn`** naming the server and agent and saying its tools are omitted until an account
 is connected. **Every other failure still throws, verbatim** — DNS, 5xx, upstream down. The
-fail-loud design against *silent tool loss* is intact; only the OAuth-pending case is
+fail-loud design against _silent tool loss_ is intact; only the OAuth-pending case is
 reclassified. **Discovery** failures are not touched at all.
 
 Reproduced live on a hosted import of a Precast-derived repo before the fix, which is where
@@ -879,12 +937,12 @@ lint fix below **is** picked up automatically: `eslint.config.js` is a managed f
    guards against cause cycles — a self-referencing `cause` would otherwise hang the boot,
    which is a worse bug than the one being fixed.
 2. **Copy `apps/agents/src/mastra/lib/agentbase-mcp.spec.ts`.** Three cases, and they fix the
-   *boundary* rather than the bug: auth-pending is skipped, non-auth still throws, and a
+   _boundary_ rather than the bug: auth-pending is skipped, non-auth still throws, and a
    healthy server's tools survive next to a skipped one. Widen the predicate and case 2 fails —
    which is the point, because a too-generous `isMcpAuthError` silently restores the
    silent-tool-loss failure mode this path exists to prevent.
 3. **Update any comment at your `...(await resolveAgentMcpTools(...))` call sites** that says a
-   hosted connect failure fails the boot. It is now true of every failure *except* one.
+   hosted connect failure fails the boot. It is now true of every failure _except_ one.
 4. **Nothing to change in `.env` or the env schema.**
 
 **Advisory files touched.** `apps/agents/src/mastra/lib/agentbase-mcp.spec.ts`.
@@ -916,22 +974,22 @@ proxy — so naming the credentials after one of them was always a misnomer. (`a
 already minted its token from the LLM-named pair, precisely because a token for one
 authenticates the other.)
 
-| Concern                | Write this                                       | Was                             |
-| ---------------------- | ------------------------------------------------ | ------------------------------- |
-| Client id              | `AGENTBASE_CLIENT_ID`                            | `AGENTBASE_LLM_CLIENT_ID`       |
-| Client secret          | `AGENTBASE_CLIENT_SECRET`                        | `AGENTBASE_LLM_CLIENT_SECRET`   |
-| Token endpoint         | `AGENTBASE_TOKEN_URL`                            | `AGENTBASE_LLM_TOKEN_URL`       |
-| Per-agent override     | `AGENTBASE_CLIENT_ID_<AGENT_ID>`                 | `AGENTBASE_LLM_CLIENT_ID_<…>`   |
-| LLM gateway URL        | `AGENTBASE_LLM_BASE_URL` — **unchanged**         | —                               |
-| Model                  | `AGENTBASE_LLM_MODEL[_<AGENT_ID>]` — **unchanged** | —                             |
-| MCP proxy root         | `AGENTBASE_MCP_BASE_URL` — **unchanged**         | —                               |
+| Concern            | Write this                                         | Was                           |
+| ------------------ | -------------------------------------------------- | ----------------------------- |
+| Client id          | `AGENTBASE_CLIENT_ID`                              | `AGENTBASE_LLM_CLIENT_ID`     |
+| Client secret      | `AGENTBASE_CLIENT_SECRET`                          | `AGENTBASE_LLM_CLIENT_SECRET` |
+| Token endpoint     | `AGENTBASE_TOKEN_URL`                              | `AGENTBASE_LLM_TOKEN_URL`     |
+| Per-agent override | `AGENTBASE_CLIENT_ID_<AGENT_ID>`                   | `AGENTBASE_LLM_CLIENT_ID_<…>` |
+| LLM gateway URL    | `AGENTBASE_LLM_BASE_URL` — **unchanged**           | —                             |
+| Model              | `AGENTBASE_LLM_MODEL[_<AGENT_ID>]` — **unchanged** | —                             |
+| MCP proxy root     | `AGENTBASE_MCP_BASE_URL` — **unchanged**           | —                             |
 
 The rule: **identity is unprefixed; capability endpoints and settings keep their infix.** The
 web app's `AGENTBASE_CLIENT_ID` was already the unprefixed form, so this consolidates two
 parallel credential sets into one rather than inventing a name.
 
 **Nothing breaks if you do nothing.** The old names are still read, and deliberately so:
-AgentBase *injects* `AGENTBASE_LLM_CLIENT_ID_<AGENT_ID>` into a hosted container, and this repo
+AgentBase _injects_ `AGENTBASE_LLM_CLIENT_ID_<AGENT_ID>` into a hosted container, and this repo
 does not control the injector. Resolution per setting is per-agent canonical → per-agent legacy
 → account canonical → account legacy, so an org admin's Studio choice still outranks anything in
 a repo `.env`. Pinned by `agentbase-model.spec.ts`.

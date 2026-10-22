@@ -42,33 +42,11 @@ export const EnvSchema = z.object({
   WEB_PORT: z.coerce.number().default(45001),
   WEB_HOST: z.string().default('0.0.0.0'),
 
-  // ── LLM provider ───────────────────────────────────────────────────────────
-  // Mastra's model gateway reads the provider key matching the agent's
-  // `provider/model` string. No provider is hardcoded as "the" default — set
-  // whichever ONE of these keys matches the provider you want; the agents
-  // auto-detect from whichever is present (see
-  // apps/agents/src/mastra/lib/default-model.ts, which owns the canonical
-  // list + each provider's default model).
-  //
-  // These are the providers Mastra ships a first-party package for. Mastra
-  // also resolves 100+ community providers by the same `provider/model`
-  // string — use DEFAULT_LLM_MODEL for those; they just aren't auto-detected.
-  ANTHROPIC_API_KEY: z.string().optional(),
-  OPENAI_API_KEY: z.string().optional(),
-  // Google accepts either name; GOOGLE_GENERATIVE_AI_API_KEY is canonical.
-  GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
-  GOOGLE_API_KEY: z.string().optional(),
-  XAI_API_KEY: z.string().optional(),
-  MISTRAL_API_KEY: z.string().optional(),
-  DEEPSEEK_API_KEY: z.string().optional(),
-  GROQ_API_KEY: z.string().optional(),
-  CEREBRAS_API_KEY: z.string().optional(),
-  PERPLEXITY_API_KEY: z.string().optional(),
-  // Routers/aggregators — their model ids are themselves `vendor/model`.
-  OPENROUTER_API_KEY: z.string().optional(),
-  AI_GATEWAY_API_KEY: z.string().optional(), // Vercel AI Gateway
-  // Optional override: a "<provider>/<model>" string, wins over auto-detect.
-  DEFAULT_LLM_MODEL: z.string().optional(),
+  // ── LLM access ─────────────────────────────────────────────────────────────
+  // Models come from the AgentBase LLM gateway only, authenticated with the
+  // Application credentials below (AGENTBASE_LLM_MODEL + AGENTBASE_URL +
+  // AGENTBASE_TOKEN_URL + AGENTBASE_CLIENT_ID/SECRET). No vendor *_API_KEY is
+  // read anywhere since v0.10.0; AgentBase holds the provider keys.
 
   // ── Database ───────────────────────────────────────────────────────────────
   // Postgres, always — see ADR-002. A provisioned Postgres is a precondition of
@@ -97,10 +75,15 @@ export const EnvSchema = z.object({
   MASTRA_INTERNAL_URL: z.string().url().default('http://localhost:45000'),
 
   // ── AgentBase (A2A registry/proxy) ─────────────────────────────────────────
-  // AgentBase is the DEFAULT transport (guard rail): the web app proxies A2A
-  // calls through AgentBase unless ENABLE_AGENTBASE=0, in which case it talks to
-  // Mastra directly over A2A (see MASTRA_INTERNAL_URL + AGENT_API_TOKEN).
-  ENABLE_AGENTBASE: z.enum(['0', '1']).default('1'),
+  // The AgentBase proxy is the only transport: the web app sends every A2A
+  // call through it. The one exception is the development switch below.
+  // Development switch: '1' makes the web app call the local agents app
+  // directly over A2A (before the project is imported into AgentBase); unset
+  // or '0' goes through the AgentBase proxy. Never a deployment mode.
+  PRECAST_LOCAL_AGENTS: z.enum(['0', '1']).default('0'),
+  // Deprecated alias from before v0.10.0: ENABLE_AGENTBASE=0 meant what
+  // PRECAST_LOCAL_AGENTS=1 means now. Read for one release, then removed.
+  ENABLE_AGENTBASE: z.enum(['0', '1']).optional(),
   // AgentBase auth is a developer "Application" (OAuth2 client_credentials) —
   // NOT a static token. The web app mints its own short-lived JWT from these
   // (see apps/web/app/lib/agentbase-auth.ts); create the Application in
@@ -128,15 +111,15 @@ export const EnvSchema = z.object({
 
   // ── AgentBase LLM gateway (org-admin-configured model per imported agent) ──
   // AgentBase injects these into the `apps/agents` container; never present in
-  // Standalone/External deployment mode or plain local dev. See
+  // External mode or plain local dev. See
   // docs/INTEGRATION_AGENTBASE.md §7.9.
   //   AGENTBASE_HOSTED='1'  — always injected on an AgentBase-hosted (imported)
   //     container. When set, an agent with NO model configured fails loudly at
   //     call time rather than falling back to a `.env` provider key: on
   //     AgentBase the model must be set per agent from the org's onboarded
-  //     models. When absent (local/Standalone/External), the agent falls back
-  //     to `resolveDefaultModel()` (see default-model.ts above) — no single
-  //     provider key is required.
+  //     models. When absent (local/External), the agent uses the account-level
+  //     AGENTBASE_LLM_MODEL below, and fails at call time with the same kind of
+  //     message when that is unset too.
   //   AGENTBASE_LLM_BASE_URL / _TOKEN_URL — shared per container; injected once
   //     any agent has a model set.
   //   AGENTBASE_LLM_CLIENT_ID_<AGENT_ID> / _CLIENT_SECRET_<AGENT_ID> /
@@ -157,8 +140,7 @@ export const EnvSchema = z.object({
   //   AGENTBASE_LLM_MODEL / _MODEL_<AGENT_ID> — "<provider>/<model>". A genuine
   //     LLM setting, so it keeps the infix. ACCOUNT-level when unsuffixed:
   //     supplied by the developer rather than injected, which is what makes
-  //     "AgentBase Models" usable as a provider from local dev / Standalone /
-  //     External where nothing is injected. The suffixed per-agent var always
+  //     models usable from local dev / External where nothing is injected. The suffixed per-agent var always
   //     wins, so an org admin's Studio choice can never be overridden by a repo
   //     `.env`.
   AGENTBASE_LLM_MODEL: z.string().optional(),

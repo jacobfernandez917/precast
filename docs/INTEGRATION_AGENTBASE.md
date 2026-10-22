@@ -238,10 +238,10 @@ discovery). Shipping the manifest just makes the contract explicit.
 
 ## 7. Next ↔ Mastra wiring
 
-Precast ships a **Next.js** app (`apps/web`) that talks to Mastra agents **only through its server-side route handler / `callAgent()` util** — client code never calls Mastra. The transport is selected by the `ENABLE_AGENTBASE` env flag, and **AgentBase is the default** (guard rail — a missing flag proxies through the audited path, not directly at Mastra):
+Precast ships a **Next.js** app (`apps/web`) that talks to Mastra agents **only through its server-side route handler / `callAgent()` util** — client code never calls Mastra. Calls go through the AgentBase proxy; the development switch `PRECAST_LOCAL_AGENTS=1` calls the local agents app directly before the project is imported. (`ENABLE_AGENTBASE=0`, the pre-v0.10.0 spelling, is read for one release.)
 
 ```
-ENABLE_AGENTBASE=1 or unset  (proxy mode — DEFAULT)
+PRECAST_LOCAL_AGENTS unset or 0  (through AgentBase, the default)
 ┌─────────┐  POST /api/a2a/:id   ┌──────────────┐  POST <per-agent proxy URL>  ┌──────────┐
 │  Next   │ ────────────────────▶│  AgentBase   │  the plain A2A envelope      │  Mastra  │
 │ (React) │  (route handler)     │  (proxy)     │  Bearer <Application JWT>    │ (agents) │
@@ -253,7 +253,7 @@ ENABLE_AGENTBASE=1 or unset  (proxy mode — DEFAULT)
                               Keycloak /realms/agentbase/protocol/openid-connect/token
                               (grant_type=client_credentials, AGENTBASE_CLIENT_ID/_SECRET)
 
-ENABLE_AGENTBASE=0  (direct mode — explicit opt-out)
+PRECAST_LOCAL_AGENTS=1  (local agents, development before the first import)
 ┌─────────┐  POST /api/a2a/:id   ┌──────────────────────────────────────────────────┐
 │  Next   │ ────────────────────▶│ Mastra  POST $MASTRA_INTERNAL_URL/api/a2a/:id     │
 │ (React) │  (route handler)     │ A2A message/send · Bearer AGENT_API_TOKEN         │
@@ -262,13 +262,13 @@ ENABLE_AGENTBASE=0  (direct mode — explicit opt-out)
 
 ### 7.1 Routing
 
-| Layer                        | Route                                        | Description                                                       |
-| ---------------------------- | -------------------------------------------- | ----------------------------------------------------------------- |
-| **Client component**         | `POST /api/a2a/:agentId`                     | Client sends message → route handler                              |
-| **Next.js route handler**    | `POST /api/a2a/:agentId`                     | Validates input, calls `callAgent()`, returns a normalized reply  |
-| **Server util**              | `callAgent()`                                | Branches on `ENABLE_AGENTBASE` (see modes below)                  |
-| **Proxy mode** (default, ≠0) | `POST $AGENTBASE_AGENT_URL_<AGENT_ID>`       | The plain A2A `message/send` envelope; `Bearer <Application JWT>` |
-| **Direct mode** (`=0`)       | `POST $MASTRA_INTERNAL_URL/api/a2a/:agentId` | A2A `message/send`; `Bearer AGENT_API_TOKEN`                      |
+| Layer                           | Route                                        | Description                                                       |
+| ------------------------------- | -------------------------------------------- | ----------------------------------------------------------------- |
+| **Client component**            | `POST /api/a2a/:agentId`                     | Client sends message → route handler                              |
+| **Next.js route handler**       | `POST /api/a2a/:agentId`                     | Validates input, calls `callAgent()`, returns a normalized reply  |
+| **Server util**                 | `callAgent()`                                | Branches on `PRECAST_LOCAL_AGENTS` (see below)                    |
+| **Through AgentBase** (default) | `POST $AGENTBASE_AGENT_URL_<AGENT_ID>`       | The plain A2A `message/send` envelope; `Bearer <Application JWT>` |
+| **Local agents** (`=1`)         | `POST $MASTRA_INTERNAL_URL/api/a2a/:agentId` | A2A `message/send`; `Bearer AGENT_API_TOKEN`                      |
 
 `callAgent()` returns a normalized `{ ok, text, error?, via, raw }`. Both modes actually send the **same request body** and share the same response shape: AgentBase's per-agent proxy takes the plain A2A `message/send` envelope as-is (org + agent are already encoded in the URL, so there's no wrapper object) and **relays Mastra's real A2A response verbatim** — `buildA2aMessageEnvelope()` in `a2a-client.ts` is shared by both modes. **Guard rail:** if AgentBase mode is active but the target agent's `AGENTBASE_AGENT_URL_<AGENT_ID>` isn't set, or the Application credentials (`AGENTBASE_CLIENT_ID`/`_SECRET`/`AGENTBASE_TOKEN_URL`) aren't fully set, `callAgent()` returns a clear error reply instead of a broken request.
 
@@ -276,11 +276,11 @@ ENABLE_AGENTBASE=0  (direct mode — explicit opt-out)
 
 ### 7.2 Files
 
-- `apps/web/app/lib/a2a-client.ts` — `callAgent()` util; branches on `ENABLE_AGENTBASE` (proxy vs direct), reads the target agent's full proxy URL from `AGENTBASE_AGENT_URL_<AGENT_ID>`, and normalizes the reply
+- `apps/web/app/lib/a2a-client.ts` — `callAgent()` util; branches on `PRECAST_LOCAL_AGENTS` (proxy vs local), reads the target agent's full proxy URL from `AGENTBASE_AGENT_URL_<AGENT_ID>`, and normalizes the reply
 - `apps/web/app/lib/agentbase-auth.ts` — mints + caches the Application's OAuth2 `client_credentials` access token (RS256 JWT, ~30 min TTL, auto-refreshed)
 - `apps/web/app/api/a2a/[agentId]/route.ts` — Next.js route handler exposed to the frontend
 - `apps/web/app/AgentChat.tsx` — client component with an agent chat input (shows which transport handled the reply)
-- Env: `ENABLE_AGENTBASE` (toggle), `MASTRA_INTERNAL_URL` (direct base), `AGENTBASE_CLIENT_ID`/`AGENTBASE_CLIENT_SECRET`/`AGENTBASE_TOKEN_URL` (Application auth) + `AGENTBASE_AGENT_URL_<AGENT_ID>` per agent (proxy), `AGENT_API_TOKEN` (Mastra bearer)
+- Env: `PRECAST_LOCAL_AGENTS` (development switch), `MASTRA_INTERNAL_URL` (local base), `AGENTBASE_CLIENT_ID`/`AGENTBASE_CLIENT_SECRET`/`AGENTBASE_TOKEN_URL` (Application auth) + `AGENTBASE_AGENT_URL_<AGENT_ID>` per agent (proxy), `AGENT_API_TOKEN` (Mastra bearer)
 
 ### 7.3 Configuration
 
@@ -307,7 +307,7 @@ const data = await res.json();
 
 Mastra protects its A2A/agent routes with a static bearer (`AGENT_API_TOKEN`) — enforced when set, open when unset (local dev). Studio (`/`) and card discovery stay open. The token that reaches Mastra depends on the mode:
 
-**Proxy mode (`ENABLE_AGENTBASE=1`):** the web app is a **developer Application** on AgentBase — an OAuth2 `client_credentials` client, not a static-token holder.
+**Through AgentBase (the default):** the web app is a **developer Application** on AgentBase — an OAuth2 `client_credentials` client, not a static-token holder.
 
 ```
 Next server (a2a-client.ts)
@@ -322,7 +322,7 @@ AgentBase proxy
 Mastra agent → POST /api/a2a/:agentId  (verifies Bearer <AGENT_API_TOKEN>)
 ```
 
-**Direct mode (`ENABLE_AGENTBASE=0`):**
+**Local agents (`PRECAST_LOCAL_AGENTS=1`, development only):**
 
 ```
 Next route handler → POST $MASTRA_INTERNAL_URL/api/a2a/:agentId
@@ -350,8 +350,8 @@ Mastra agent  (verifies Bearer <AGENT_API_TOKEN>)
 AGENT_API_TOKEN=your-secret-token
 
 # .env (or environment) — Next side
-ENABLE_AGENTBASE=1                                # default (proxy); set 0 for direct A2A
-MASTRA_INTERNAL_URL=http://localhost:45000         # direct-mode Mastra base URL
+PRECAST_LOCAL_AGENTS=0                            # 1 = call the local agents app directly (development)
+MASTRA_INTERNAL_URL=http://localhost:45000         # where the local agents app answers
 AGENTBASE_CLIENT_ID=your-application-client-id    # from AgentBase Studio → Applications
 AGENTBASE_CLIENT_SECRET=your-application-secret   # shown once at creation/rotation
 AGENTBASE_TOKEN_URL=https://keycloak.example.com/realms/agentbase/protocol/openid-connect/token
@@ -360,7 +360,7 @@ AGENTBASE_AGENT_URL_EXAMPLE_AGENT=https://agentbase.example.com/proxy/a2a/your-o
 
 ### 7.7 Design rule
 
-> **The web app talks to agents only over A2A, only through `callAgent()`.** `apps/web` interacts with Mastra agents **exclusively via the A2A protocol** (JSON-RPC 2.0) — with or without AgentBase — and always through the server-side `callAgent()` util (never from client code). `callAgent()` is the single switch point: `ENABLE_AGENTBASE=1` (default) proxies through AgentBase as a developer Application (OAuth2 `client_credentials` JWT, each agent's own `AGENTBASE_AGENT_URL_<AGENT_ID>`, audit + zero-trust forwarding); `=0` calls Mastra directly at `POST /api/a2a/:id` (A2A `message/send`) with the `AGENT_API_TOKEN` bearer. The web app must **never** use Mastra's non-A2A surfaces — native REST (`POST /api/agents/:id/generate` | `/stream`), agent listing (`GET /api/agents`), or Studio. This is enforced by `apps/web/test/a2a-only.spec.ts` (fails the build on any non-A2A agent route in web source).
+> **The web app talks to agents only over A2A, only through `callAgent()`.** `apps/web` interacts with Mastra agents **exclusively via the A2A protocol** (JSON-RPC 2.0) — with or without AgentBase — and always through the server-side `callAgent()` util (never from client code). `callAgent()` is the single switch point: by default it proxies through AgentBase as a developer Application (OAuth2 `client_credentials` JWT, each agent's own `AGENTBASE_AGENT_URL_<AGENT_ID>`, audit + zero-trust forwarding); the development switch `PRECAST_LOCAL_AGENTS=1` calls the local agents app directly at `POST /api/a2a/:id` (A2A `message/send`) with the `AGENT_API_TOKEN` bearer, for a project not yet imported. The web app must **never** use Mastra's non-A2A surfaces — native REST (`POST /api/agents/:id/generate` | `/stream`), agent listing (`GET /api/agents`), or Studio. This is enforced by `apps/web/test/a2a-only.spec.ts` (fails the build on any non-A2A agent route in web source).
 
 ### 7.8 Related: Mastra → AgentBase registration
 
@@ -370,7 +370,7 @@ The second integration axis — registering the Mastra agent itself on AgentBase
 
 This is a **third, separate integration axis** from §7 (which covers Next ↔ Mastra) — it's about **which model each imported Mastra agent itself calls**, and who controls that choice.
 
-**The rule:** _locally_ (and in Standalone/External deployment mode) an agent uses `resolveDefaultModel()` (`apps/agents/src/mastra/lib/default-model.ts`), which auto-detects a model from whichever provider key is set in this repo's own `.env` — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_GENERATIVE_AI_API_KEY` — or reads an explicit `DEFAULT_LLM_MODEL` override; no provider is hardcoded. _On AgentBase_ (an imported, AgentBase-hosted container) the model is instead **set per agent from the org's onboarded models** — and an agent with no model set does **not** silently read an env key; it fails loudly until configured.
+**The rule:** the model always comes from the organisation's AgentBase gateway. _Locally_ an agent uses the account-level `AGENTBASE_LLM_MODEL` with the Application credentials in `.env` (`pnpm bootstrap --llm-provider=agentbase`); _on AgentBase_ the org admin's per-agent choice from Studio's "LLM configuration" card is injected and wins. No vendor key is read anywhere since v0.10.0.
 
 1. Import the repo (§4A). AgentBase always injects `AGENTBASE_HOSTED=1` into the container. On the **first** deploy no model can be set yet (see the one-deploy lag below) — the container still boots and its agents are discoverable, but _calling_ an unconfigured agent returns a clear error telling you to set its model in Studio (it never falls back to an env key on AgentBase).
 2. In Studio, open the agent → **LLM configuration** → pick one of the org's already-onboarded models (from the **Models** page — that's where the org's own provider key lives) → **Save**.
@@ -387,15 +387,15 @@ This is a **third, separate integration axis** from §7 (which covers Next ↔ M
 
    `<AGENT_ID>` is the agent's own Mastra `id` (uppercased/underscored — same convention as `AGENTBASE_AGENT_URL_<AGENT_ID>` in §7), since one container can host several agents, each with its own choice.
 
-   **On the `LLM_` infix in the last three.** Those are *credentials*, and credentials are not LLM-specific — the very same Application token authenticates the MCP proxy (§7.10) and the A2A proxy (§7). Precast's canonical names therefore drop the infix:
+   **On the `LLM_` infix in the last three.** Those are _credentials_, and credentials are not LLM-specific — the very same Application token authenticates the MCP proxy (§7.10) and the A2A proxy (§7). Precast's canonical names therefore drop the infix:
 
    ```
    AGENTBASE_TOKEN_URL / AGENTBASE_CLIENT_ID[_<AGENT_ID>] / AGENTBASE_CLIENT_SECRET[_<AGENT_ID>]
    ```
 
-   Those are what you write in `.env` and what `pnpm bootstrap` emits. The `AGENTBASE_LLM_*` credential forms above are still **read**, and must be: AgentBase injects them and this repo does not control the injector. Resolution order per setting is per-agent canonical → per-agent legacy → account canonical → account legacy, so an admin's Studio choice still outranks anything in a repo `.env`. Capability-specific *settings* keep their infix — `AGENTBASE_LLM_BASE_URL`, `AGENTBASE_LLM_MODEL`, `AGENTBASE_MCP_BASE_URL` — because those genuinely differ per capability.
+   Those are what you write in `.env` and what `pnpm bootstrap` emits. The `AGENTBASE_LLM_*` credential forms above are still **read**, and must be: AgentBase injects them and this repo does not control the injector. Resolution order per setting is per-agent canonical → per-agent legacy → account canonical → account legacy, so an admin's Studio choice still outranks anything in a repo `.env`. Capability-specific _settings_ keep their infix — `AGENTBASE_LLM_BASE_URL`, `AGENTBASE_LLM_MODEL`, `AGENTBASE_MCP_BASE_URL` — because those genuinely differ per capability.
 
-4. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel(agentId, fallback)` implements the rule: when both `AGENTBASE_LLM_BASE_URL` and this agent's `AGENTBASE_LLM_MODEL_<AGENT_ID>` are set, it builds an OpenAI-compatible model (`@ai-sdk/openai-compatible`) pointed at the gateway, minting/caching its own client_credentials bearer per call (mirrors `agentbase-auth.ts`'s pattern) — the org's real provider key never reaches the container. When `AGENTBASE_HOSTED=1` but this agent has no model, it returns a model that **fails at call time** with an actionable message (never an env key). Only when _not_ AgentBase-hosted does it return `fallback` unchanged — each agent passes `resolveDefaultModel()`'s result as that `fallback` (see §7.9 above).
+4. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel(agentId)` implements the rule: the per-agent model injected on a hosted container wins, else the account-level `AGENTBASE_LLM_MODEL`, else a model that fails at call time naming what to set (Studio when hosted, `.env` locally). The gateway route is derived from `AGENTBASE_URL` and the model's subscription (`AGENTBASE_LLM_BASE_URL` overrides it).
 
 **Note the one-deploy lag:** a brand-new agent's own Mastra `id` isn't knowable to AgentBase until its first container boots and gets probed (for manifest-less repos) — so gateway wiring only takes effect starting from the deploy _after_ the agent is first known to the registry, once an admin has configured it. This is why the fail-fast is at **call time**, not boot time: crashing at construction would stop the container from booting and deadlock that first discovery deploy. It's a one-time bootstrapping gap per agent, not an ongoing one.
 
@@ -445,18 +445,18 @@ Two things a hosted agent needs that used to require a bespoke path in each proj
 #### The end-user subject
 
 AgentBase supports **end-user delegation**: a caller sends
-`X-AgentBase-On-Behalf-Of: <subject>` and the platform resolves *that person's* connected
+`X-AgentBase-On-Behalf-Of: <subject>` and the platform resolves _that person's_ connected
 account for a user-mode MCP server. Without forwarding it, every MCP call an agent makes runs
 as the container's own identity — and a user-mode server answers
-`401 mcp_server_authorization_required`, which reaches the operator as *"connect your account"*
+`401 mcp_server_authorization_required`, which reaches the operator as _"connect your account"_
 for an account that is already connected.
 
 The boilerplate now carries it end to end:
 
-| | |
-| --- | --- |
-| **Captured** | `middleware/auth.ts` reads the header into an `AsyncLocalStorage` request context |
-| **Forwarded** | `lib/agentbase-mcp.ts` attaches it to every discovered MCP tool call |
+|               |                                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Captured**  | `middleware/auth.ts` reads the header into an `AsyncLocalStorage` request context                                  |
+| **Forwarded** | `lib/agentbase-mcp.ts` attaches it to every discovered MCP tool call                                               |
 | **Available** | `currentOnBehalfOf()` / `resolveOnBehalfOf()` from `lib/request-context.ts`, for a project's own MCP or HTTP calls |
 
 Three properties are deliberate, and each is pinned by a test:
@@ -464,7 +464,7 @@ Three properties are deliberate, and each is pinned by a test:
 - **Header only — never a request body.** The header is trustworthy because AgentBase's proxy
   sets it, and only for an OBO-enabled Application against an agent it hosts. A body field is
   attacker-controlled; reading a subject from one would let any caller impersonate any user.
-- **Sent only back to AgentBase.** The outbound wrapper compares *origins* and returns early for
+- **Sent only back to AgentBase.** The outbound wrapper compares _origins_ and returns early for
   anything else — a string prefix would accept `https://api.agentbase.example.com.evil.com`.
   An agent calling a third-party endpoint must not tell it who its user is.
 - **Absent means absent.** No header → nothing is attached → behaviour is exactly as before.
@@ -476,8 +476,8 @@ Precedence when a project has its own source as well:
 import { resolveOnBehalfOf } from '../lib/request-context';
 
 const subject = resolveOnBehalfOf({
-  explicit: input.actAsUser,             // a tool that was told whom to act for
-  projectFallback: () => sessionUser(),  // your own mapping, consulted last
+  explicit: input.actAsUser, // a tool that was told whom to act for
+  projectFallback: () => sessionUser(), // your own mapping, consulted last
 });
 ```
 
@@ -497,7 +497,7 @@ const url = await resolveSubscribedServer(AGENT_ID, { titleMatch: /slack/i });
 ```
 
 No env var, and nothing to update when a server is renamed. It **fails loudly** on zero matches
-(naming what *was* subscribed) and refuses to choose on several — sending a user's data to the
+(naming what _was_ subscribed) and refuses to choose on several — sending a user's data to the
 wrong server is far worse than an error read once.
 
 ### 7.12 Interactive cards (A2UI)
@@ -521,12 +521,12 @@ export const myAgent = new Agent({
 
 The example agent ships with cards on. Remove both lines to answer in text only.
 
-| Piece | Where | What it does |
-| --- | --- | --- |
-| `show_card` tool | `tools/show-card.ts` | The model fills a flat card against a JSON Schema built from the catalog's limits. It never writes A2UI, so model text cannot decide what a person sees |
-| Card slot | `lib/request-context.ts` | Holds the card for the current turn only; concurrent turns never see each other's |
-| A2UI middleware | `middleware/a2ui.ts` | Appends the card to the A2A reply as one `application/a2ui+json` data part, in the form the caller's A2A version expects, and lists the extension on the agent card |
-| Shared package | `packages/a2ui/` | The pinned catalog, the card format, and the A2A part helpers |
+| Piece            | Where                    | What it does                                                                                                                                                        |
+| ---------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `show_card` tool | `tools/show-card.ts`     | The model fills a flat card against a JSON Schema built from the catalog's limits. It never writes A2UI, so model text cannot decide what a person sees             |
+| Card slot        | `lib/request-context.ts` | Holds the card for the current turn only; concurrent turns never see each other's                                                                                   |
+| A2UI middleware  | `middleware/a2ui.ts`     | Appends the card to the A2A reply as one `application/a2ui+json` data part, in the form the caller's A2A version expects, and lists the extension on the agent card |
+| Shared package   | `packages/a2ui/`         | The pinned catalog, the card format, and the A2A part helpers                                                                                                       |
 
 A button press comes back to the agent as a text message with a JSON payload, either
 `raya.interaction` from Raya or `a2ui.action` from other A2UI clients. Mastra fails a whole turn on
@@ -558,7 +558,6 @@ is a plain `<img>` with `referrerPolicy="no-referrer"`, since the URL is agent-a
 allowlist.
 
 ---
-
 
 ## 8. Source references
 

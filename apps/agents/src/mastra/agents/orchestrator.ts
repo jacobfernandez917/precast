@@ -1,7 +1,6 @@
 import { Agent } from '@mastra/core/agent';
 import type { SubAgent } from '@mastra/core/agent';
 import { resolveAgentModel } from '../lib/agentbase-model';
-import { resolveDefaultModel } from '../lib/default-model';
 
 /**
  * The crew's front-door agent id. Kept here (not in crew.ts) so both the crew
@@ -73,10 +72,10 @@ export function createOrchestrator(members: Record<string, Agent>): Agent {
       'using the roster below.\n\n' +
       'Crew members:\n' +
       roster,
-    // AgentBase-hosted → org-admin-chosen model; otherwise the repo's default
-    // provider (see agentbase-model.ts / default-model.ts) — same resolution as
+    // AgentBase-hosted → org-admin-chosen model; otherwise the account-level
+    // AGENTBASE_LLM_MODEL in .env (see agentbase-model.ts) — same resolution as
     // any other agent.
-    model: resolveAgentModel(ORCHESTRATOR_ID, resolveDefaultModel()),
+    model: resolveAgentModel(ORCHESTRATOR_ID),
     // In-process Agent Network: each member is callable as a routing target.
     agents: members,
   });

@@ -16,7 +16,7 @@ Precast is built to be driven by coding agents (Claude Code, OpenClaw, or any ot
 - **Feed-forward planning templates** — PRD, data model, agent spec, and a design system guide in `templates/`, each a worked example you copy into `docs/` and fill in before building.
 - **PRD-driven scaffolding** — already have a PRD? Hand it to your coding agent ("scaffold from this PRD") and it expands the PRD into the feed-forward docs and stubs the agents/UI, asking about anything vague. Drop the PRD at `docs/PRD.md`. (Delivered via the Precast scaffold skill; see `templates/PRD.md` for the shape — a loose PRD works too.)
 - **Mocks for missing dependencies** — when an external REST API, MCP server, or A2A agent is referenced but you haven't supplied the real one, the scaffold generates a **standards-conforming mock** (real service interface, realistic payloads, swappable by config) so the MVP runs end-to-end. Real config in `.env` → the real dependency is used instead. Never mocks over something you provided.
-- **Deployment mode chosen up front** — the scaffold asks how the project will run and wires it accordingly: **Standalone** (no AgentBase; direct A2A), **External agent** (you host, onboarded to AgentBase by registering its endpoint), or **Imported** (AgentBase imports the repo and hosts it). This sets `ENABLE_AGENTBASE`, keeps or drops `agentbase.import.json`, and points at the right onboarding path — see [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md).
+- **Hosted on AgentBase, chosen up front** — the scaffold asks how the project will run and wires it accordingly: **Imported** (AgentBase imports the repository and hosts it, the default) or **External** (you host the agents and register their address; AgentBase proxies to them). There is no mode without AgentBase. This keeps or drops `agentbase.import.json` and points at the right onboarding path — see [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md).
 - **Five APC Design System themes, chosen at scaffold time** — **Stockholm**, **Prague**, **Arctic**, **Nova**, **Melbourne**, previewable at **[apc-design-system.917v.dev](https://apc-design-system.917v.dev)**. They layer onto Astryx as token overrides (light + dark per theme), so switching is `pnpm set-theme <name>` rather than a UI rewrite. See [docs/DESIGN_SYSTEM_APC.md](docs/DESIGN_SYSTEM_APC.md).
 - **Designs the UI when you don't** — no mockups? The scaffold builds a clean, modern, responsive interface from **Astryx** components on APC tokens, with real human-facing copy (no internal jargon or placeholders) and realistic mock data so screens look real out of the box. Provide a design and it follows yours instead.
 
@@ -56,7 +56,7 @@ pnpm bootstrap      # interactive, or: pnpm bootstrap my-project
 8. **Record where this project came from** in `precast.lock.json`, then **delete Precast's git history** and re-initialize a **blank repo on the `develop` branch** with a single initial commit, hooks activated.
 9. **Create `.env` from `.env.example`** and print an explicit reminder naming the exact env var to fill in.
 
-Non-interactively, pass flags: `pnpm bootstrap my-project --llm-provider=anthropic --theme=arctic`. Ports are auto-picked unless you pin them (`--mastra-port=45000 --web-port=45001 --keycloak-port=45002`, any subset) or keep the current ones (`--ports=keep`).
+Non-interactively, pass flags: `pnpm bootstrap my-project --llm-provider=agentbase --agentbase-url=… --agentbase-token-url=… --agentbase-client-id=… --agentbase-client-secret=… --agentbase-model=<slug> --db=<postgresql://…> --theme=arctic`. Ports are auto-picked unless you pin them (`--mastra-port=45000 --web-port=45001 --keycloak-port=45002`, any subset) or keep the current ones (`--ports=keep`).
 
 ### Prerequisite: a container runtime
 
@@ -80,7 +80,7 @@ pnpm poc            # build + start the stack, wait for health, print the URLs
 Then:
 
 ```bash
-# .env already exists (bootstrap created it) — just add your provider key
+# .env already exists (bootstrap created it, with the model, Application credentials and DATABASE_URL you gave it)
 pnpm build && pnpm test # verify
 git remote add origin <url> && git push -u origin develop
 ```
@@ -98,7 +98,7 @@ pnpm build
 pnpm dev                               # all apps, or: pnpm dev:agents / pnpm dev:web
 ```
 
-The web app runs at `http://localhost:45001` and the Mastra agent API + Studio playground at `http://localhost:45000`. The placeholder example agent needs an LLM key to converse (build/test work without it) — set **one** provider key in `.env` and the agents auto-detect which to use: Anthropic, OpenAI, Google, xAI, Mistral, DeepSeek, Groq, Cerebras, Perplexity, or a router (OpenRouter, Vercel AI Gateway). See `apps/agents/src/mastra/lib/default-model.ts` for the canonical list and each provider's default model, or set `DEFAULT_LLM_MODEL` to a `<provider>/<model>` string to pick a specific model — including from any of the 100+ other providers Mastra resolves but doesn't auto-detect.
+The web app runs at `http://localhost:45001` and the Mastra agent API + Studio playground at `http://localhost:45000`. The placeholder example agent needs a model to converse (build/test work without one): models come from your organisation's AgentBase LLM gateway, so set `AGENTBASE_LLM_MODEL` (a slug from `agentbase.list_models`) plus the Application credentials (`AGENTBASE_URL`, `AGENTBASE_TOKEN_URL`, `AGENTBASE_CLIENT_ID`, `AGENTBASE_CLIENT_SECRET`) in `.env`, or answer the bootstrap prompt. No vendor API key is read anywhere; AgentBase holds the provider keys.
 
 There is a **single `.env` at the repo root** — don't create per-app `.env` files. The dev/start scripts load it (via `dotenv-cli`), Docker Compose loads it (`env_file: ../.env`), and production uses the real environment.
 
@@ -112,10 +112,10 @@ pnpm dev:web:verbose      # web only
 
 In dev the output is pretty-printed and colorized; in production it's structured JSON. Set `LOG_LEVEL` (`fatal`→`trace`) in `.env` for finer control.
 
-**Important:** the web app talks to Mastra agents **only over A2A** (JSON-RPC 2.0), always through its server-side `callAgent()` util — never Mastra's native REST, and never from client code. This holds with or without AgentBase; the transport is selected by `ENABLE_AGENTBASE`, and **AgentBase is the default** (guard rail — you must explicitly opt out):
+**Important:** the web app talks to Mastra agents **only over A2A** (JSON-RPC 2.0), always through its server-side `callAgent()` util — never Mastra's native REST, and never from client code. Calls go through the AgentBase proxy, with one development switch:
 
-- `ENABLE_AGENTBASE=1` or **unset (default)** → route A2A calls through **each agent's own AgentBase proxy URL** (`AGENTBASE_AGENT_URL_<AGENT_ID>` — copy the "Invocation Endpoint" from the agent's listing in AgentBase Studio; one env var per agent). Auth is a developer **Application** (OAuth2 `client_credentials`) — the app mints its own short-lived JWT from `AGENTBASE_CLIENT_ID`/`AGENTBASE_CLIENT_SECRET`/`AGENTBASE_TOKEN_URL`, never a pasted static token. Your Application must also be **subscribed** to each agent's listing (even your own). If AgentBase is enabled but misconfigured, the call fails loudly with a fix-it message.
-- `ENABLE_AGENTBASE=0` → talk to Mastra **directly over A2A** at `POST $MASTRA_INTERNAL_URL/api/a2a/:agentId` with `Authorization: Bearer $AGENT_API_TOKEN`.
+- `PRECAST_LOCAL_AGENTS` **unset or `0` (default)** → route A2A calls through **each agent's own AgentBase proxy URL**, discovered at runtime from the Application's subscriptions. Auth is a developer **Application** (OAuth2 `client_credentials`) — the app mints its own short-lived JWT from `AGENTBASE_CLIENT_ID`/`AGENTBASE_CLIENT_SECRET`/`AGENTBASE_TOKEN_URL`, never a pasted static token. Your Application must be **subscribed** to each agent's listing (even your own). If AgentBase is misconfigured, the call fails loudly with a fix-it message.
+- `PRECAST_LOCAL_AGENTS=1` → call the **local agents app directly over A2A** at `POST $MASTRA_INTERNAL_URL/api/a2a/:agentId` with `Authorization: Bearer $AGENT_API_TOKEN`. For a project that is not yet imported; `pnpm poc`'s Compose stack sets it. (`ENABLE_AGENTBASE=0`, the pre-v0.10.0 spelling, is still read for one release.)
 
 See [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) for both flows.
 
@@ -123,7 +123,7 @@ Any **A2A client can also invoke the agents directly** (JSON-RPC 2.0) at `POST /
 
 **Interactive cards (A2UI).** An agent with the `show_card` tool can attach one card to a reply: a title, text, label and value fields, up to five buttons and a dropdown, sent as an A2UI v0.9.1 surface in the `raya.blocks.v1` catalog that Raya and AgentBase also use. The web app draws it under the reply with `@a2ui/react` on Astryx, and a press goes back to the agent as text on the same conversation. The example agent ships with cards on; see [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) §7.12.
 
-**Which LLM an imported agent uses is also org-admin-configurable.** _Locally_ (and in Standalone/External mode) an agent auto-detects its model from whichever provider key is set in `.env` — see `resolveDefaultModel()` above; no single provider is hardcoded. _On AgentBase_ the model is instead set per agent from the org's onboarded models, via Studio's "LLM configuration" card — and an agent with no model set fails loudly rather than reading an env key. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel()` implements this split. See [docs/INTEGRATION_AGENTBASE.md §7.9](docs/INTEGRATION_AGENTBASE.md#79-org-admin-llm-configuration-for-imported-agents).
+**Models come from the organisation's AgentBase gateway.** No vendor key is held anywhere in a project. Locally an agent uses `AGENTBASE_LLM_MODEL` with the Application credentials in `.env` (`pnpm bootstrap --llm-provider=agentbase` collects them; `agentbase.list_models` is the catalogue). Once imported, an org admin sets the model per agent from Studio's "LLM configuration" card, and that choice wins; an imported agent with no model set fails at call time until one is chosen. See [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) §7.9.
 
 **Orchestrator crew.** Declare your agents in `apps/agents/src/mastra/crew.ts` (the single source of truth) via `defineCrew({ members: [...] })`. With two or more members you automatically get a `crew-orchestrator` — a single point of contact that routes to the right specialist **in-process** (Mastra Agent Network); each member still serves its own A2A card and is independently invocable, and a single-member project pays no orchestrator hop. On import, `agentbase.import.json`'s `orchestration` block (emitted by `pnpm emit:import-manifest`) lets AgentBase offer **full crew** (register every agent) or **orchestrator only** (register just the front door; members stay internal). See [docs/plans/orchestrator-crew-plan.md](docs/plans/orchestrator-crew-plan.md).
 
@@ -131,7 +131,7 @@ To move ports at any time, run `pnpm set-ports --mastra=45000 --web=45001 --keyc
 
 To publish the Docker containers on **different host ports** (without changing the app/container ports), set `AGENTS_HOST_PORT` / `WEB_HOST_PORT` / `KEYCLOAK_HOST_PORT` in the root `.env` — e.g. `AGENTS_HOST_PORT=60000`, `WEB_HOST_PORT=60001`, `KEYCLOAK_HOST_PORT=60002` map host `60000`→`agents`, `60001`→`web`, `60002`→`keycloak`. They default to the app port (Keycloak's container port is always `8080`), and only affect `pnpm docker:up`.
 
-**Choosing which services to build/run:** set `COMPOSE_PROFILES` in the root `.env` (Compose's own mechanism) to a comma-separated subset of `agents,web,keycloak` — default is all three. Useful once the pieces are deployed to different places, e.g. Mastra agents hosted elsewhere (an AgentBase import) but you still need this stack's Next.js web app + Keycloak running somewhere: `COMPOSE_PROFILES=web,keycloak` builds/starts only those two. If you exclude `agents`, also point the web app's transport at the real agents endpoint (`ENABLE_AGENTBASE=1` + `AGENTBASE_AGENT_URL_<AGENT_ID>`, or `MASTRA_INTERNAL_URL`) — it can no longer reach a local `agents` container.
+**Choosing which services to build/run:** set `COMPOSE_PROFILES` in the root `.env` (Compose's own mechanism) to a comma-separated subset of `agents,web,keycloak` — default is all three. Useful once the pieces are deployed to different places, e.g. Mastra agents hosted elsewhere (an AgentBase import) but you still need this stack's Next.js web app + Keycloak running somewhere: `COMPOSE_PROFILES=web,keycloak` builds/starts only those two. If you exclude `agents`, also set `PRECAST_LOCAL_AGENTS=0` so the web app goes through AgentBase — it can no longer reach a local `agents` container.
 
 All `pnpm docker:*` scripts route through `scripts/docker-compose.mjs`, which fails fast with a clear message if the root `.env` is missing — Compose itself does **not** read the repo-root `.env` by default when invoked with `-f docker/docker-compose.yml`, so this wrapper is what makes `AGENTS_HOST_PORT`/`COMPOSE_PROFILES`/etc. actually take effect.
 

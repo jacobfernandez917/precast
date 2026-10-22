@@ -8,7 +8,7 @@ import { log } from '../../../lib/logger';
  * POST /api/a2a/:agentId
  *
  * Frontend-facing proxy route that forwards chat messages to a Mastra agent.
- * Depending on `ENABLE_AGENTBASE`, `callAgent()` either proxies through the
+ * Depending on `PRECAST_LOCAL_AGENTS`, `callAgent()` either proxies through the
  * AgentBase A2A proxy or calls the Mastra A2A endpoint directly. This is the
  * ONLY route the client should use to talk to agents — never call Mastra
  * directly from client code.

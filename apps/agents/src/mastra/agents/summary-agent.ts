@@ -1,7 +1,6 @@
 import { Agent } from '@mastra/core/agent';
 import { exampleTool } from '../tools/example-tool';
 import { resolveAgentModel } from '../lib/agentbase-model';
-import { resolveDefaultModel } from '../lib/default-model';
 
 const AGENT_ID = 'summary-agent';
 
@@ -30,6 +29,6 @@ export const summaryAgent = new Agent({
   instructions:
     'You are a placeholder assistant used to verify multi-agent wiring. ' +
     'Summarize whatever text you are given in one short sentence.',
-  model: resolveAgentModel(AGENT_ID, resolveDefaultModel()),
+  model: resolveAgentModel(AGENT_ID),
   tools: { exampleTool },
 });

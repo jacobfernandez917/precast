@@ -29,16 +29,16 @@ const code = (rel: string) =>
 describe('WEB-012 — compose must not hard-code values that belong to .env', () => {
   const compose = code('docker/docker-compose.yml');
 
-  it('ENABLE_AGENTBASE is overridable from .env', () => {
-    // A bare `ENABLE_AGENTBASE: '0'` OVERRIDES env_file, so setting it in .env
-    // did nothing — while the comment beside it, .env.example, and the env
-    // schema all told you to set it to 1. The app answered `via: "direct"`
-    // regardless, and nothing reported a conflict.
+  it('PRECAST_LOCAL_AGENTS is overridable from .env', () => {
+    // A bare literal here OVERRIDES env_file, so setting the switch in .env
+    // did nothing (seen with its predecessor ENABLE_AGENTBASE): the app kept
+    // one transport however the flag was set, and nothing reported a conflict.
     expect(
-      /ENABLE_AGENTBASE:\s*\$\{ENABLE_AGENTBASE:-[01]\}/.test(compose),
-      'ENABLE_AGENTBASE must use ${ENABLE_AGENTBASE:-0} substitution, not a literal',
+      /PRECAST_LOCAL_AGENTS:\s*\$\{PRECAST_LOCAL_AGENTS:-[01]\}/.test(compose),
+      'PRECAST_LOCAL_AGENTS must use ${PRECAST_LOCAL_AGENTS:-1} substitution, not a literal',
     ).toBe(true);
-    expect(/ENABLE_AGENTBASE:\s*['"][01]['"]/.test(compose), 'no literal value').toBe(false);
+    expect(/PRECAST_LOCAL_AGENTS:\s*['"][01]['"]/.test(compose), 'no literal value').toBe(false);
+    expect(compose, 'the retired switch is gone from compose').not.toContain('ENABLE_AGENTBASE');
   });
 
   it('no service hard-codes a key that .env.example also ships', () => {
@@ -50,8 +50,13 @@ describe('WEB-012 — compose must not hard-code values that belong to .env', ()
     // Keys a container must control regardless of .env — ports it binds inside
     // the network, and the Docker-DNS address of a sibling service.
     const INTENTIONAL = new Set([
-      'MASTRA_HOST', 'MASTRA_PORT', 'WEB_HOST', 'WEB_PORT',
-      'MASTRA_INTERNAL_URL', 'MASTRA_DB_SCHEMA', 'COMPOSE_PROFILES',
+      'MASTRA_HOST',
+      'MASTRA_PORT',
+      'WEB_HOST',
+      'WEB_PORT',
+      'MASTRA_INTERNAL_URL',
+      'MASTRA_DB_SCHEMA',
+      'COMPOSE_PROFILES',
     ]);
     const shadowed: string[] = [];
     for (const m of compose.matchAll(/^\s{6}([A-Z_][A-Z0-9_]*):\s*(.+)$/gm)) {

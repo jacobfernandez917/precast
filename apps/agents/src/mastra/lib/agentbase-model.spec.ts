@@ -51,28 +51,27 @@ function setConfig() {
 }
 
 describe('resolveAgentModel', () => {
-  it('falls back to the plain router string when not AgentBase-hosted and unconfigured (local dev)', () => {
+  it('is unconfigured (fails at call time) when not AgentBase-hosted and no account model is set', () => {
     delete process.env.AGENTBASE_HOSTED;
     delete process.env.AGENTBASE_LLM_BASE_URL;
     delete process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT;
-    expect(resolveAgentModel('example-agent', 'google/gemini-2.5-flash')).toBe(
-      'google/gemini-2.5-flash',
+    expect((resolveAgentModel('example-agent') as { modelId: string }).modelId).toBe(
+      'unconfigured',
     );
   });
 
-  it('falls back (local) when only the base URL is set but this agent has no model chosen', () => {
+  it('stays unconfigured when only the base URL is set but this agent has no model chosen', () => {
     delete process.env.AGENTBASE_HOSTED;
     process.env.AGENTBASE_LLM_BASE_URL = 'https://agentbase.example.com/llm/v1';
     delete process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT;
-    expect(resolveAgentModel('example-agent', 'google/gemini-2.5-flash')).toBe(
-      'google/gemini-2.5-flash',
+    expect((resolveAgentModel('example-agent') as { modelId: string }).modelId).toBe(
+      'unconfigured',
     );
   });
 
   it('builds a gateway-backed model when both are set, keyed to this specific agent id', () => {
     setConfig();
-    const result = resolveAgentModel('example-agent', 'google/gemini-2.5-flash');
-    expect(result).not.toBe('google/gemini-2.5-flash');
+    const result = resolveAgentModel('example-agent');
     expect(typeof result).toBe('object');
     expect((result as { modelId: string }).modelId).toBe('google/gemini-2.5-flash');
     expect((result as { provider: string }).provider).toBe('agentbase.chat');
@@ -81,8 +80,8 @@ describe('resolveAgentModel', () => {
   it('does not use another agent’s env vars (one config per agent id)', () => {
     setConfig(); // only *_EXAMPLE_AGENT is set; not AgentBase-hosted
     delete process.env.AGENTBASE_HOSTED;
-    expect(resolveAgentModel('summary-agent', 'anthropic/claude-sonnet-5')).toBe(
-      'anthropic/claude-sonnet-5',
+    expect((resolveAgentModel('summary-agent') as { modelId: string }).modelId).toBe(
+      'unconfigured',
     );
   });
 
@@ -90,16 +89,15 @@ describe('resolveAgentModel', () => {
     process.env.AGENTBASE_HOSTED = '1';
     delete process.env.AGENTBASE_LLM_BASE_URL;
     delete process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT;
-    const result = resolveAgentModel('example-agent', 'google/gemini-2.5-flash');
-    // A model object, never the fallback string — the org must set the model in Studio.
-    expect(result).not.toBe('google/gemini-2.5-flash');
+    const result = resolveAgentModel('example-agent');
+    // The org must set the model in Studio; no env key is consulted.
     expect((result as { modelId: string }).modelId).toBe('unconfigured');
   });
 
   it('the unconfigured-hosted model fails at CALL time with an actionable message', async () => {
     process.env.AGENTBASE_HOSTED = '1';
     delete process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT;
-    const result = resolveAgentModel('example-agent', 'google/gemini-2.5-flash') as unknown as {
+    const result = resolveAgentModel('example-agent') as unknown as {
       doGenerate: (o: unknown) => Promise<unknown>;
     };
     await expect(
@@ -172,7 +170,7 @@ describe('account-level AgentBase credentials (--llm-provider=agentbase)', () =>
   /**
    * AGT-008. The platform injects SUFFIXED per-agent vars when it hosts the
    * container; a developer supplies UNSUFFIXED ones in `.env` so the org's
-   * onboarded models are usable from local dev / Standalone / External, where
+   * onboarded models are usable from local dev / External, where
    * nothing is injected.
    */
   const ORIGINAL = { ...process.env };
@@ -211,9 +209,8 @@ describe('account-level AgentBase credentials (--llm-provider=agentbase)', () =>
     process.env.AGENTBASE_CLIENT_SECRET = 'secret';
     process.env.AGENTBASE_LLM_MODEL = 'anthropic/claude-sonnet-5';
 
-    // A gateway-backed model object, not the plain fallback string.
-    const model = resolveAgentModel('example-agent', 'google/gemini-2.5-flash');
-    expect(typeof model).not.toBe('string');
+    const model = resolveAgentModel('example-agent');
+    expect((model as { modelId: string }).modelId).toBe('anthropic/claude-sonnet-5');
   });
 
   it('lets an injected PER-AGENT model win over the account-level one', () => {
@@ -227,16 +224,15 @@ describe('account-level AgentBase credentials (--llm-provider=agentbase)', () =>
     process.env.AGENTBASE_LLM_MODEL = 'account/model';
     process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT = 'admin/chosen-model';
 
-    const model = resolveAgentModel('example-agent', 'google/gemini-2.5-flash');
-    expect(typeof model).not.toBe('string');
+    const model = resolveAgentModel('example-agent');
     expect(JSON.stringify(model)).toContain('admin/chosen-model');
   });
 
   it('stays out of the way when nothing AgentBase is set', () => {
     clearAgentBase();
     expect(isAgentBaseLlmConfigured()).toBe(false);
-    expect(resolveAgentModel('example-agent', 'google/gemini-2.5-flash')).toBe(
-      'google/gemini-2.5-flash',
+    expect((resolveAgentModel('example-agent') as { modelId: string }).modelId).toBe(
+      'unconfigured',
     );
   });
 });
@@ -356,7 +352,12 @@ describe('credential resolution: canonical names, legacy fallback', () => {
 describe('resolveLlmBaseUrl', () => {
   const API = 'https://api.agentbase.test';
   const MODELS = [
-    { slug: 'sonnet-prod-a1b2', modelId: 'claude-sonnet-5', provider: 'anthropic', orgSlug: 'acme' },
+    {
+      slug: 'sonnet-prod-a1b2',
+      modelId: 'claude-sonnet-5',
+      provider: 'anthropic',
+      orgSlug: 'acme',
+    },
     { slug: 'gpt-cheap-c3d4', modelId: 'gpt-5.1', provider: 'openai', orgSlug: 'acme' },
   ];
 

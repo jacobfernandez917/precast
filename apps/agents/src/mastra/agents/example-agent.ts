@@ -2,7 +2,6 @@ import { Agent } from '@mastra/core/agent';
 import { exampleTool } from '../tools/example-tool';
 import { cardTools, SHOW_CARD_INSTRUCTIONS } from '../tools/show-card';
 import { resolveAgentModel } from '../lib/agentbase-model';
-import { resolveDefaultModel } from '../lib/default-model';
 import { createAgentMemory } from '../lib/memory';
 import { resolveAgentMcpTools } from '../lib/agentbase-mcp';
 
@@ -27,11 +26,10 @@ export const exampleAgent = new Agent({
     'recalling it from the transcript later.\n\n' +
     // Cards (A2UI): remove this and `...cardTools` below to answer in text only.
     SHOW_CARD_INSTRUCTIONS,
-  // Uses AgentBase's LLM gateway when imported + org-admin-configured
-  // (see docs/INTEGRATION_AGENTBASE.md); otherwise resolveDefaultModel()
-  // auto-detects from whichever provider key is set in this repo's own
-  // `.env` (Anthropic, OpenAI, or Google — see default-model.ts).
-  model: resolveAgentModel(AGENT_ID, resolveDefaultModel()),
+  // Always the AgentBase gateway: the per-agent model an org admin set in
+  // Studio once imported, else AGENTBASE_LLM_MODEL from this repo's own .env
+  // (see docs/INTEGRATION_AGENTBASE.md §7.9). No vendor key is read anywhere.
+  model: resolveAgentModel(AGENT_ID),
   // Local tools, plus whatever MCP servers AgentBase says this agent is
   // subscribed to. TOP-LEVEL AWAIT is deliberate: the toolset is part of the
   // agent's identity, so it must be settled before the agent is constructed and

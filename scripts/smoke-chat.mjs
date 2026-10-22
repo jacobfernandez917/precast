@@ -8,8 +8,8 @@
  * gap is invisible precisely because every individual piece is green.
  *
  * It is a script rather than a test because it needs things CI does not have: a
- * running agents container and a working provider key. It fails loudly and
- * specifically when either is missing — "no LLM key" and "container not running"
+ * running agents container and a configured gateway model. It fails loudly and
+ * specifically when either is missing — "no model configured" and "container not running"
  * are different problems with different fixes, and collapsing them into one
  * "smoke failed" is what makes this kind of check useless.
  *
@@ -23,7 +23,7 @@ const flag = (name, fallback) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
 };
 
-const base = (flag('url', process.env.MASTRA_INTERNAL_URL || 'http://localhost:45000')).replace(
+const base = flag('url', process.env.MASTRA_INTERNAL_URL || 'http://localhost:45000').replace(
   /\/+$/,
   '',
 );
@@ -32,21 +32,22 @@ const prompt = flag('text', 'Reply with exactly the word: pong');
 const token = process.env.AGENT_API_TOKEN;
 
 const LLM_KEYS = [
-  'ANTHROPIC_API_KEY',
-  'OPENAI_API_KEY',
-  'GOOGLE_GENERATIVE_AI_API_KEY',
-  'GOOGLE_API_KEY',
+  'AGENTBASE_LLM_MODEL',
   'AGENTBASE_CLIENT_ID',
+  'AGENTBASE_CLIENT_SECRET',
+  'AGENTBASE_TOKEN_URL',
+  'AGENTBASE_URL',
 ];
 const fail = (msg) => {
   console.error(`\n✖ ${msg}\n`);
   process.exit(1);
 };
 
-if (!LLM_KEYS.some((k) => process.env[k])) {
+const missingKeys = LLM_KEYS.filter((k) => !process.env[k]);
+if (missingKeys.length) {
   fail(
-    'No LLM provider is configured, so a chat round trip cannot succeed.\n' +
-      `  Set one of: ${LLM_KEYS.join(', ')} in .env.\n` +
+    'The AgentBase gateway is not configured, so a chat round trip cannot succeed.\n' +
+      `  Missing in .env: ${missingKeys.join(', ')}.\n` +
       '  This is a real gap, not a skip — the round trip stays unproven until it runs.',
   );
 }
@@ -96,14 +97,26 @@ if (body.error) {
   fail(`The agent returned a JSON-RPC error: ${body.error.message ?? JSON.stringify(body.error)}`);
 }
 
-// A2A replies nest the text in parts[]; walk defensively rather than assuming a
-// shape, so a protocol change reports "no text" instead of throwing.
-const parts = body?.result?.parts ?? body?.result?.message?.parts ?? [];
-const text = parts
-  .filter((p) => p?.kind === 'text' && typeof p.text === 'string')
-  .map((p) => p.text)
-  .join('')
-  .trim();
+// A2A replies nest the text in parts[], in one of several places depending on
+// whether the agent answered with a Message or a Task. Same order as the web
+// client (apps/web/app/lib/a2a-client.ts): message parts, then the task's
+// final status message, then its artifacts (where Mastra 1.78 puts the reply),
+// then the last agent turn in history. Walked defensively so a protocol change
+// reports "no text" instead of throwing.
+const textOf = (parts) =>
+  (parts ?? [])
+    .filter((p) => p?.kind === 'text' && typeof p.text === 'string')
+    .map((p) => p.text)
+    .join('')
+    .trim();
+const result = body?.result ?? {};
+const lastAgentTurn = [...(result.history ?? [])].reverse().find((m) => m?.role === 'agent');
+const text =
+  textOf(result.parts) ||
+  textOf(result.message?.parts) ||
+  textOf(result.status?.message?.parts) ||
+  textOf((result.artifacts ?? []).flatMap((a) => a?.parts ?? [])) ||
+  textOf(lastAgentTurn?.parts);
 
 if (!text) {
   console.error(JSON.stringify(body, null, 2).slice(0, 800));

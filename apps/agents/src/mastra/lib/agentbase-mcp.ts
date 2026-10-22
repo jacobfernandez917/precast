@@ -36,7 +36,7 @@ import { attachOnBehalfOf } from './request-context';
  * holds a vendor MCP secret — discovery deliberately returns no `baseUrl` and no
  * `authConfig`, so there is nothing here to route around the proxy with.
  *
- * OFF AgentBase (local dev, Standalone, External) this is inert: it returns an
+ * OFF AgentBase (local dev, External) this is inert: it returns an
  * empty toolset and never throws, so nothing about local development changes.
  *
  * ONE EXCEPTION to fail-loud, and only one. A subscribed server whose connect
@@ -250,9 +250,7 @@ export async function resolveSubscribedServer(
     : '(none — this agent has no MCP subscriptions)';
 
   if (hits.length === 0) {
-    throw new Error(
-      `No subscribed AgentBase MCP server has ${wanted}. Subscribed: ${inventory}.`,
-    );
+    throw new Error(`No subscribed AgentBase MCP server has ${wanted}. Subscribed: ${inventory}.`);
   }
   if (hits.length > 1) {
     throw new Error(

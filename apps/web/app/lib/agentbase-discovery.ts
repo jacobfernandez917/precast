@@ -40,8 +40,7 @@ export interface AgentRoute {
 }
 
 export type DiscoveryResult =
-  | { ok: true; routes: Map<string, AgentRoute> }
-  | { ok: false; error: string };
+  { ok: true; routes: Map<string, AgentRoute> } | { ok: false; error: string };
 
 export type ResolveResult = { ok: true; url: string } | { ok: false; error: string };
 
@@ -110,7 +109,10 @@ async function callNativeTool(
       }),
     });
   } catch (err) {
-    return { ok: false, error: `${name} request failed: ${(err as Error)?.message ?? String(err)}` };
+    return {
+      ok: false,
+      error: `${name} request failed: ${(err as Error)?.message ?? String(err)}`,
+    };
   }
 
   if (!res.ok) return { ok: false, error: `${name} returned HTTP ${res.status} ${res.statusText}` };
@@ -119,7 +121,8 @@ async function callNativeTool(
     result?: { content?: Array<{ text?: string }>; isError?: boolean };
     error?: { message?: string };
   };
-  if (body.error) return { ok: false, error: `${name} failed: ${body.error.message ?? 'unknown error'}` };
+  if (body.error)
+    return { ok: false, error: `${name} failed: ${body.error.message ?? 'unknown error'}` };
 
   const text = body.result?.content?.[0]?.text ?? '';
   let value: unknown;
@@ -172,7 +175,7 @@ async function runDiscovery(): Promise<DiscoveryResult> {
       error:
         'AgentBase is enabled (the default) but AGENTBASE_URL is not configured — it is unset ' +
         'or still the placeholder from .env.example — so agent routes cannot be discovered. ' +
-        'Set AGENTBASE_URL to your AgentBase API base, or set ENABLE_AGENTBASE=0 to call ' +
+        'Set AGENTBASE_URL to your AgentBase API base, or set PRECAST_LOCAL_AGENTS=1 to call ' +
         'Mastra directly over A2A.',
     };
   }
@@ -185,7 +188,11 @@ async function runDiscovery(): Promise<DiscoveryResult> {
   if (!listed.ok) return { ok: false, error: listed.error };
 
   const items = ((listed.value as { items?: SubscriptionRow[] })?.items ?? []).filter(
-    (row) => row.targetType === 'agent' && row.status === 'ACTIVE' && row.targetSlug && row.providerTenantSlug,
+    (row) =>
+      row.targetType === 'agent' &&
+      row.status === 'ACTIVE' &&
+      row.targetSlug &&
+      row.providerTenantSlug,
   );
 
   const routes = new Map<string, AgentRoute>();
@@ -195,7 +202,12 @@ async function runDiscovery(): Promise<DiscoveryResult> {
     items.map(async (row) => ({
       org: row.providerTenantSlug as string,
       slug: row.targetSlug as string,
-      agentId: await readCardAgentId(base, token, row.providerTenantSlug as string, row.targetSlug as string),
+      agentId: await readCardAgentId(
+        base,
+        token,
+        row.providerTenantSlug as string,
+        row.targetSlug as string,
+      ),
     })),
   );
 

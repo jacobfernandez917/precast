@@ -611,7 +611,7 @@ describe('SMOKE-021 — a workflow job that caches pnpm installs pnpm first', ()
     const text = read(join('.github/workflows', file));
     const jobsAt = text.indexOf('\njobs:');
     if (jobsAt < 0) return;
-    const jobs = text.slice(jobsAt + 6).split(/\n(?=  [A-Za-z_-]+:\s*$)/m);
+    const jobs = text.slice(jobsAt + 6).split(/\n(?= {2}[A-Za-z_-]+:\s*$)/m);
     for (const job of jobs) {
       const cacheAt = job.indexOf('cache: pnpm');
       if (cacheAt < 0) continue;

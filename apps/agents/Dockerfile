@@ -57,5 +57,5 @@ EXPOSE 45000
 #
 # Set on the CMD, NOT as ENV NODE_OPTIONS: a NODE_OPTIONS supplied through
 # compose or `.env` would REPLACE the image's value and silently drop this —
-# the same shadowing that made ENABLE_AGENTBASE unsettable.
+# the same shadowing that once made the transport switch unsettable.
 CMD ["node", "--dns-result-order=ipv4first", "index.mjs"]

@@ -5,7 +5,7 @@ import type { LanguageModelV4 } from '@ai-sdk/provider';
  * ABIMP-LLM — lets the org admin choose which LLM (and key) an IMPORTED
  * agent uses from AgentBase Studio, without ever touching this repo's
  * `.env`. AgentBase injects these into the container at deploy time (never
- * present locally / in Standalone or External deployment mode):
+ * present locally or in External mode):
  *
  *   AGENTBASE_HOSTED                       "1" on any AgentBase-hosted container
  *   AGENTBASE_LLM_BASE_URL                 shared gateway base URL
@@ -30,15 +30,12 @@ import type { LanguageModelV4 } from '@ai-sdk/provider';
  * uppercased/underscored — mirrors `envVarNameForAgent()` in
  * apps/web/app/lib/a2a-client.ts, since one container can host several agents.
  *
- * `resolveAgentModel(agentId, fallback)` returns a model built against that
- * gateway when the agent is configured. On an AgentBase-hosted container
- * (`AGENTBASE_HOSTED=1`), an agent with NO model configured yet gets a
- * call-time-failing model — never an env key; on AgentBase the model is set
- * per agent from the org's onboarded models. Off AgentBase (local, Standalone,
- * External), it returns `fallback` unchanged. Callers pass the result of
- * `resolveDefaultModel()` (./default-model.ts) as `fallback` — either a plain
- * `"<provider>/<model>"` string for Mastra's built-in router, or (if no
- * provider key is configured) that helper's own call-time-failing model.
+ * `resolveAgentModel(agentId)` always returns a model built against that
+ * gateway. On an AgentBase-hosted container (`AGENTBASE_HOSTED=1`) the
+ * per-agent injected model wins; off AgentBase (local dev, External) the
+ * account-level AGENTBASE_LLM_MODEL from this repo's own `.env` is used. With
+ * neither, the agent gets a call-time-failing model whose message names what
+ * to set. There is no vendor-key path: no `*_API_KEY` is read anywhere.
  */
 
 interface TokenResponse {
@@ -87,7 +84,7 @@ function envVarName(agentId: string, key: AgentBaseEnvKey): string {
  * the SUFFIXED vars per agent — the org admin's choice, made in Studio. The
  * UNSUFFIXED vars are the developer's own Application credentials, written to
  * `.env` by `pnpm bootstrap --llm-provider=agentbase`, so a project can use the
- * org's onboarded models from local dev, Standalone or External mode where
+ * org's onboarded models from local dev or External mode where
  * nothing is injected. Per-agent wins deliberately: on a hosted container the
  * admin's choice must not be overridable by a value left in the repo's `.env`.
  */
@@ -133,7 +130,7 @@ export function isAgentBaseLlmConfigured(agentId?: string): boolean {
     ? Boolean(agentBaseEnv(agentId, 'CLIENT_ID') && agentBaseEnv(agentId, 'CLIENT_SECRET'))
     : Boolean(
         (process.env.AGENTBASE_CLIENT_ID || process.env.AGENTBASE_LLM_CLIENT_ID) &&
-          (process.env.AGENTBASE_CLIENT_SECRET || process.env.AGENTBASE_LLM_CLIENT_SECRET),
+        (process.env.AGENTBASE_CLIENT_SECRET || process.env.AGENTBASE_LLM_CLIENT_SECRET),
       );
   const hasGateway = Boolean(process.env.AGENTBASE_LLM_BASE_URL?.trim()) || isLlmBaseUrlDerivable();
   return Boolean(hasGateway && tokenUrl() && hasCreds);
@@ -176,9 +173,7 @@ export async function getAgentBaseToken(agentId: string): Promise<string> {
     }),
   });
   if (!res.ok) {
-    throw new Error(
-      `AgentBase token request failed (HTTP ${res.status}) for agent "${agentId}".`,
-    );
+    throw new Error(`AgentBase token request failed (HTTP ${res.status}) for agent "${agentId}".`);
   }
   const json = (await res.json()) as TokenResponse;
   tokenCache.set(agentId, {
@@ -187,7 +182,6 @@ export async function getAgentBaseToken(agentId: string): Promise<string> {
   });
   return json.access_token;
 }
-
 
 /**
  * The LLM gateway base for this agent's model — injected, or DERIVED.
@@ -278,16 +272,18 @@ export async function resolveLlmBaseUrl(agentId: string): Promise<string> {
   // bare model id are the other two things a person reasonably types. Accept all
   // three rather than making the user learn which one this field wants.
   const match = items.find(
-    (m) =>
-      m.slug === wanted ||
-      `${m.provider}/${m.modelId}` === wanted ||
-      m.modelId === wanted,
+    (m) => m.slug === wanted || `${m.provider}/${m.modelId}` === wanted || m.modelId === wanted,
   );
   if (!match?.orgSlug || !match.slug) {
-    const known = items.map((m) => m.slug).filter(Boolean).sort();
+    const known = items
+      .map((m) => m.slug)
+      .filter(Boolean)
+      .sort();
     throw new Error(
       `No subscribed AgentBase model matches AGENTBASE_LLM_MODEL="${wanted}". ` +
-        (known.length ? `Available: ${known.join(', ')}. ` : 'This application has no published models. ') +
+        (known.length
+          ? `Available: ${known.join(', ')}. `
+          : 'This application has no published models. ') +
         'Use the model slug, or "<provider>/<model-id>".',
     );
   }
@@ -330,22 +326,38 @@ function unconfiguredHostedModel(agentId: string): LanguageModelV4 {
 }
 
 /**
- * Resolves the model for an agent:
- *
- *   - **On AgentBase, configured** → a model pointed at AgentBase's LLM gateway
- *     (the org admin's chosen onboarded model; key injected server-side, never
- *     in this container).
- *   - **On AgentBase, not yet configured** → a call-time-failing model — never
- *     an env key (see `unconfiguredHostedModel`).
- *   - **Local / Standalone / External** (not AgentBase-hosted) → `fallback`
- *     unchanged: typically the result of `resolveDefaultModel()`
- *     (./default-model.ts), which auto-detects the provider key from this
- *     repo's own `.env`.
+ * A model that fails at CALL time, for a project that has not configured its
+ * gateway yet. Boot still succeeds and the agent card is still served, so a
+ * fresh scaffold runs; the first chat says exactly what to set.
  */
-export function resolveAgentModel(
-  agentId: string,
-  fallback: string | LanguageModelV4,
-): string | LanguageModelV4 {
+function unconfiguredLocalModel(agentId: string): LanguageModelV4 {
+  const provider = createOpenAICompatible({
+    name: 'agentbase',
+    baseURL: 'https://agentbase.invalid/llm/v1',
+    apiKey: 'unused',
+    fetch: async () => {
+      throw new Error(
+        `Agent "${agentId}" has no model configured. Models come from your organisation's ` +
+          'AgentBase gateway: set AGENTBASE_LLM_MODEL (a slug from agentbase.list_models) and ' +
+          'the Application credentials AGENTBASE_URL, AGENTBASE_TOKEN_URL, AGENTBASE_CLIENT_ID ' +
+          'and AGENTBASE_CLIENT_SECRET in .env, or run pnpm bootstrap --llm-provider=agentbase.',
+      );
+    },
+  });
+  return provider('unconfigured');
+}
+
+/**
+ * The model an agent calls. Always the AgentBase gateway:
+ *   - a per-agent model injected by AgentBase on a hosted container
+ *     (AGENTBASE_LLM_MODEL_<AGENT>) wins, else the account-level
+ *     AGENTBASE_LLM_MODEL from this repo's own .env;
+ *   - with neither, a call-time-failing model whose message names what to
+ *     set: the Studio model picker when hosted, the .env keys when local.
+ * No vendor key is read anywhere; AgentBase resolves the provider key
+ * server-side and it never reaches this container.
+ */
+export function resolveAgentModel(agentId: string): LanguageModelV4 {
   const modelId = agentBaseEnv(agentId, 'MODEL');
   // Usable if the base URL is injected, OR derivable from AGENTBASE_URL + the
   // model name (see resolveLlmBaseUrl). The derivation is deliberately NOT done
@@ -378,12 +390,7 @@ export function resolveAgentModel(
     return provider(modelId);
   }
 
-  // On AgentBase but no model chosen for this agent yet → fail loudly at call
-  // time, never fall back to an env key.
-  if (isHostedByAgentBase()) return unconfiguredHostedModel(agentId);
-
-  // Not AgentBase-hosted → env-based provider key + the agent's own model.
-  return fallback;
+  return isHostedByAgentBase() ? unconfiguredHostedModel(agentId) : unconfiguredLocalModel(agentId);
 }
 
 /** Test-only: clear the in-memory token cache between test cases. */
