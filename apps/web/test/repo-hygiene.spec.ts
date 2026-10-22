@@ -2,6 +2,7 @@ import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, dirname, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { replaceToken } from '../../../scripts/rename-project.mjs';
 
 /**
  * Repo-hygiene fitness guards — SMOKE-001…015 and DOC-001…007.
@@ -82,11 +83,15 @@ describe('SMOKE-002 — root package.json is coherent', () => {
 });
 
 describe('SMOKE-015 — every workspace package.json is valid', () => {
-  const dirs = ['apps/agents', 'apps/web', 'packages/shared'];
+  const dirs = ['apps/agents', 'apps/web', 'packages/shared', 'packages/a2ui'];
   it.each(dirs)('%s/package.json parses and is named', (dir) => {
     const pkg = JSON.parse(read(join(dir, 'package.json')));
     expect(pkg.name, `${dir} needs a name`).toBeTruthy();
-    expect(pkg.name).toMatch(/^@precast\//);
+    // The scope is read from a workspace package rather than written as a
+    // literal: a regex literal here was rewritten by the renamer in every derived
+    // project while the scope itself stayed, so this case failed there.
+    const scope = JSON.parse(read('packages/shared/package.json')).name.split('/')[0];
+    expect(pkg.name.startsWith(`${scope}/`), `${dir} must stay in the ${scope} scope`).toBe(true);
   });
 });
 
@@ -94,8 +99,7 @@ describe('SMOKE-015 — every workspace package.json is valid', () => {
 describe('SMOKE-003/004/007/010 — JSON configs parse', () => {
   // turbo.json and tsconfig.base.json allow comments (JSONC), so strip them
   // before parsing rather than reporting a false failure.
-  const stripJsonc = (t: string) =>
-    t.replace(/^\s*\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  const stripJsonc = (t: string) => t.replace(/^\s*\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
   const FILES = ['tsconfig.base.json', 'turbo.json', '.prettierrc', '.claude/settings.json'];
   it.each(FILES)('%s is valid JSON', (rel) => {
     if (rel === '.claude/settings.json' && !exists(rel)) return; // optional, local-only
@@ -209,7 +213,11 @@ describe('SMOKE-011 — eslint config', () => {
 // ── SMOKE-012 ───────────────────────────────────────────────────────────────
 describe('SMOKE-012 — internal doc links resolve', () => {
   it('every relative .md link points at a file that exists', () => {
-    const roots = ['README.md', 'CLAUDE.md', ...readdirSync(join(REPO_ROOT, 'docs')).map((f) => join('docs', f))];
+    const roots = [
+      'README.md',
+      'CLAUDE.md',
+      ...readdirSync(join(REPO_ROOT, 'docs')).map((f) => join('docs', f)),
+    ];
     const broken: string[] = [];
     for (const rel of roots.filter((r) => r.endsWith('.md'))) {
       const abs = join(REPO_ROOT, rel);
@@ -318,9 +326,7 @@ describe('DOC-005 — ADRs are well formed', () => {
   it('ADR ids are unique and sequential from 000', () => {
     const ids = adrs.map(([, id]) => Number(id.slice(4)));
     expect(new Set(ids).size, 'duplicate ADR ids').toBe(ids.length);
-    expect([...ids].sort((a, b) => a - b)).toEqual(
-      Array.from({ length: ids.length }, (_, i) => i),
-    );
+    expect([...ids].sort((a, b) => a - b)).toEqual(Array.from({ length: ids.length }, (_, i) => i));
   });
 });
 
@@ -355,7 +361,6 @@ describe('DOC-007 — SCRIPTS.md documents every root script', () => {
     expect(missing, `undocumented scripts: ${missing.join(', ')}`).toEqual([]);
   });
 });
-
 
 // ── SMOKE-017 ───────────────────────────────────────────────────────────────
 describe('SMOKE-017 — a fresh scaffold can actually boot', () => {
@@ -463,7 +468,9 @@ describe('SMOKE-018 — AGENTS.md stays true to the repo', () => {
     const cited = [...new Set([...agents.matchAll(/`pnpm ([a-z:]+)`/g)].map((m) => m[1]))];
     expect(cited.length, 'AGENTS.md should name the commands an agent needs').toBeGreaterThan(3);
     const missing = cited.filter((c) => !scripts.includes(c));
-    expect(missing, `AGENTS.md cites commands that do not exist: ${missing.join(', ')}`).toEqual([]);
+    expect(missing, `AGENTS.md cites commands that do not exist: ${missing.join(', ')}`).toEqual(
+      [],
+    );
   });
 
   it('every invariant it states is still stated in CLAUDE.md', () => {
@@ -495,5 +502,93 @@ describe('SMOKE-018 — AGENTS.md stays true to the repo', () => {
       /\b4[5-9]\d{3}\b/.test(agents),
       'AGENTS.md must not hardcode ports — set-ports.mjs does not rewrite it',
     ).toBe(false);
+  });
+});
+
+// ── SMOKE-019 ───────────────────────────────────────────────────────────────
+describe('SMOKE-019 — the renamer cannot break a code identifier', () => {
+  /**
+   * `pnpm rename` rewrites every case form of the placeholder in the files it
+   * targets (apps/ and packages/ code), which is right for prose, package names
+   * and container names and wrong inside a code identifier: with a hyphenated
+   * project name `getPrecastStore` became `getPrecast-pocStore`, a parse error
+   * on the new project's first commit, and `process.env.PRECAST_ENFORCE_DOC_FRESHNESS`
+   * became a subtraction (both seen live, 2026-10-22). Strings, comments and JSX
+   * text are stripped first; what remains is identifiers, and an identifier the
+   * renamer would change is an offender. The spec detects by running the
+   * renamer, so it carries no literal that the renamer would rewrite in a
+   * derived project.
+   */
+  const stripNonCode = (src: string) =>
+    src
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/(^|[^:\\])\/\/.*$/gm, '$1')
+      .replace(/`(?:\\[\s\S]|[^`\\])*`/g, '""')
+      .replace(/'(?:\\.|[^'\\\n])*'/g, '""')
+      .replace(/"(?:\\.|[^"\\\n])*"/g, '""')
+      .replace(/>[^<>{}]+</g, '><');
+
+  const codeFiles = (dir: string): string[] =>
+    readdirSync(join(REPO_ROOT, dir), { withFileTypes: true }).flatMap((d) => {
+      const rel = `${dir}/${d.name}`;
+      if (d.isDirectory()) {
+        return ['node_modules', 'dist', '.next', '.mastra', '.turbo', 'coverage', 'docs'].includes(
+          d.name,
+        )
+          ? []
+          : codeFiles(rel);
+      }
+      return /\.(ts|tsx|mts|mjs|cjs|js)$/.test(d.name) ? [rel] : [];
+    });
+
+  it('finds no identifier under apps/ or packages/ that a hyphenated name would mangle', () => {
+    const offenders: string[] = [];
+    for (const rel of [...codeFiles('apps'), ...codeFiles('packages')]) {
+      const code = stripNonCode(read(rel));
+      for (const m of code.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) {
+        if (replaceToken(m[0], 'x-y') !== m[0]) offenders.push(`${rel}: ${m[0]}`);
+      }
+    }
+    expect(offenders, 'rename these so a hyphenated project name cannot mangle them').toEqual([]);
+  });
+});
+
+// ── SMOKE-020 ───────────────────────────────────────────────────────────────
+describe('SMOKE-020 — after a rename, every script path a code file names still exists', () => {
+  /**
+   * The renamer rewrites strings too. A spec that imports a script by path
+   * (`scripts/precast-lock.mjs`) must still point at a file after the rename, or
+   * `next build`, which typechecks the specs, fails in the derived project. The
+   * renamer protects the boilerplate's own file names; this proves the set of
+   * protected names is complete for every path actually referenced.
+   */
+  const codeFiles = (dir: string): string[] =>
+    readdirSync(join(REPO_ROOT, dir), { withFileTypes: true }).flatMap((d) => {
+      const rel = `${dir}/${d.name}`;
+      if (d.isDirectory()) {
+        return ['node_modules', 'dist', '.next', '.mastra', '.turbo', 'coverage', 'docs'].includes(
+          d.name,
+        )
+          ? []
+          : codeFiles(rel);
+      }
+      return /\.(ts|tsx|mts|mjs|cjs|js)$/.test(d.name) ? [rel] : [];
+    });
+
+  it('leaves every referenced scripts/*.mjs and root json name unchanged, and the scripts present', () => {
+    const problems: string[] = [];
+    for (const rel of [...codeFiles('apps'), ...codeFiles('packages')]) {
+      const src = read(rel);
+      const refs = new Set<string>();
+      for (const m of src.matchAll(/scripts\/[\w.-]+\.mjs/g)) refs.add(m[0]);
+      for (const m of src.matchAll(/['"`]([\w-]+\.(?:lock|manifest)\.json)['"`]/g)) refs.add(m[1]!);
+      for (const ref of refs) {
+        if (replaceToken(ref, 'x-y') !== ref) problems.push(`${rel} → ${ref} would be renamed`);
+        if (ref.startsWith('scripts/') && !existsSync(join(REPO_ROOT, ref))) {
+          problems.push(`${rel} → ${ref} does not exist`);
+        }
+      }
+    }
+    expect(problems, 'these references break once pnpm rename has run').toEqual([]);
   });
 });

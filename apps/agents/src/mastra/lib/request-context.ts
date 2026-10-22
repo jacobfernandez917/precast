@@ -34,6 +34,11 @@ export const ON_BEHALF_OF_HEADER = 'x-agentbase-on-behalf-of';
 export interface RequestContext {
   /** The end-user subject this turn acts for, e.g. `U03A8NAEH39`. */
   onBehalfOf?: string;
+  /**
+   * The card `show_card` drew during this turn, as A2UI messages, waiting for the A2UI middleware
+   * to attach it to the reply. Set by the tool, taken once by the middleware.
+   */
+  pendingCard?: unknown[];
 }
 
 const storage = new AsyncLocalStorage<RequestContext>();
@@ -52,6 +57,26 @@ export function runWithRequestContext<T>(ctx: RequestContext, fn: () => T): T {
  */
 export function currentOnBehalfOf(): string | undefined {
   return storage.getStore()?.onBehalfOf;
+}
+
+/**
+ * Hold a card for the current turn's reply. A later call replaces an earlier one, so an agent that
+ * corrects its card sends the corrected one. Returns false outside a request, where no reply will
+ * ever pick it up.
+ */
+export function setPendingCard(messages: unknown[]): boolean {
+  const store = storage.getStore();
+  if (!store) return false;
+  store.pendingCard = messages;
+  return true;
+}
+
+/** The card waiting for this turn's reply, removed so it can be attached once. */
+export function takePendingCard(): unknown[] | undefined {
+  const store = storage.getStore();
+  const card = store?.pendingCard;
+  if (store) delete store.pendingCard;
+  return card;
 }
 
 /**

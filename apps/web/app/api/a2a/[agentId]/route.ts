@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { pressText, readPressAction } from '@precast/a2ui';
 import { callAgent, type AgentReply } from '../../../lib/a2a-client';
 import { resolveAgentContext } from '../../../lib/agent-context';
 import { log } from '../../../lib/logger';
@@ -12,7 +13,10 @@ import { log } from '../../../lib/logger';
  * ONLY route the client should use to talk to agents — never call Mastra
  * directly from client code.
  *
- * Request body: `{ text: string; conversationId?: string }`
+ * Request body: `{ text: string; conversationId?: string }`, or, for a press on a card the
+ * agent drew, `{ action: { name, value?, surfaceId?, sourceComponentId?, context? };
+ * conversationId?: string }`. A press is sent to the agent as text (`pressText`), never as a
+ * data part: Mastra fails a turn on data parts, and text survives every transport.
  *
  * IDENTITY: the memory scope (`resourceId`) and the thread id are derived
  * SERVER-SIDE by `resolveAgentContext()` and are deliberately not accepted from
@@ -38,23 +42,35 @@ export async function POST(
 
   const body = (await request.json().catch(() => null)) as {
     text?: unknown;
+    action?: unknown;
     conversationId?: unknown;
   } | null;
 
-  if (!body || typeof body.text !== 'string' || body.text.trim().length === 0) {
+  // A press carries no text of its own; the action's fields are checked and bounded first.
+  const press = body?.action !== undefined ? readPressAction(body.action) : null;
+  if (body?.action !== undefined && !press) {
+    log.warn({ agentId }, 'POST /api/a2a rejected — invalid action');
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  }
+  const text = press ? pressText(press) : body?.text;
+
+  if (typeof text !== 'string' || text.trim().length === 0) {
     log.warn({ agentId }, 'POST /api/a2a rejected — missing or invalid text field');
     return NextResponse.json({ error: 'Missing or invalid text field' }, { status: 400 });
   }
 
   const requestedConversation =
-    typeof body.conversationId === 'string' ? body.conversationId : undefined;
+    typeof body?.conversationId === 'string' ? body.conversationId : undefined;
   const { resourceId, threadId, conversationId, isNewResource } =
     await resolveAgentContext(requestedConversation);
 
-  const reply = await callAgent(agentId, body.text, { threadId, resourceId });
+  const reply = await callAgent(agentId, text, { threadId, resourceId });
 
   if (reply.ok) {
-    log.info({ agentId, via: reply.via, isNewResource }, 'POST /api/a2a — agent replied');
+    log.info(
+      { agentId, via: reply.via, isNewResource, press: Boolean(press), cards: reply.a2ui.length },
+      'POST /api/a2a — agent replied',
+    );
   } else {
     log.error({ agentId, via: reply.via, error: reply.error }, 'POST /api/a2a — agent call failed');
   }

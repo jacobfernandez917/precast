@@ -18,7 +18,7 @@ import { parseApiEnv, resolveMastraDbUrl, resolvePostgresSsl } from '@precast/sh
  */
 let store: PostgresStore | undefined;
 
-export function getPrecastStore(): PostgresStore {
+export function getMastraStore(): PostgresStore {
   if (!store) {
     const env = parseApiEnv();
     const connectionString = resolveMastraDbUrl(env);

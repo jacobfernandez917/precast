@@ -18,8 +18,11 @@ const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const src = readFileSync(join(REPO_ROOT, 'scripts/bootstrap.mjs'), 'utf8');
 
 const REQUIRED_FIELDS = [
+  // The API base: the LLM gateway route is derived from it and the model
+  // (v0.9.10), so it is what gets collected; AGENTBASE_LLM_BASE_URL is an
+  // optional override (asserted below).
+  'AGENTBASE_URL',
   // Capability-specific settings keep the LLM_ infix...
-  'AGENTBASE_LLM_BASE_URL',
   'AGENTBASE_LLM_MODEL',
   // ...credentials do not: one Application authenticates models, MCP and A2A.
   'AGENTBASE_TOKEN_URL',
@@ -54,12 +57,25 @@ describe('bootstrap: AgentBase Models provider', () => {
   });
 
   it('never writes the retired credential names', () => {
-    const table = src.slice(src.indexOf('const AGENTBASE_LLM_FIELDS'), src.indexOf('const rawArgs'));
+    const table = src.slice(
+      src.indexOf('const AGENTBASE_LLM_FIELDS'),
+      src.indexOf('const rawArgs'),
+    );
     for (const env of RETIRED_FIELDS) {
       expect(table, `${env} is read for compatibility but must never be WRITTEN`).not.toContain(
         `'${env}'`,
       );
     }
+  });
+
+  it('keeps the gateway base URL optional, since it is derived from the API base', () => {
+    const table = src.slice(
+      src.indexOf('const AGENTBASE_LLM_FIELDS'),
+      src.indexOf('const rawArgs'),
+    );
+    const entry = table.slice(table.indexOf("env: 'AGENTBASE_LLM_BASE_URL'"));
+    expect(entry.slice(0, entry.indexOf('}'))).toMatch(/optional:\s*true/);
+    expect(src).toMatch(/!f\.optional && !values\[f\.env\]/);
   });
 
   it('exposes a flag for each setting so it works non-interactively', () => {
@@ -68,6 +84,7 @@ describe('bootstrap: AgentBase Models provider', () => {
       src.indexOf('const rawArgs'),
     );
     for (const flag of [
+      'agentbase-url',
       'agentbase-base-url',
       'agentbase-token-url',
       'agentbase-client-id',

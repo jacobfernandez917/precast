@@ -57,6 +57,11 @@
  * as an argument, since there is nobody at the prompt to answer):
  *   pnpm bootstrap my-project --theme=arctic
  *
+ *   # Postgres: have Precast create one on your organisation's database server, paste a URL, or decide later.
+ *   PRECAST_RDS_SUPERUSER_URL=postgresql://… pnpm bootstrap my-project --db=provision
+ *   pnpm bootstrap my-project --db=postgresql://user:pass@host:5432/db
+ *   pnpm bootstrap my-project --db=later
+ *
  * This is destructive to .git on purpose: a project bootstrapped from Precast
  * must not inherit Precast's commit history. It runs LAST so a failure earlier
  * leaves your git history intact.
@@ -116,9 +121,9 @@ const LLM_PROVIDERS = [
  */
 const AGENTBASE_LLM_FIELDS = [
   {
-    env: 'AGENTBASE_LLM_BASE_URL',
-    flag: 'agentbase-base-url',
-    prompt: 'AgentBase LLM gateway base URL (e.g. https://api.agentbase.../llm/v1)',
+    env: 'AGENTBASE_URL',
+    flag: 'agentbase-url',
+    prompt: 'AgentBase API base URL (the API, not Studio; e.g. https://agentbase-api.example.com)',
     secret: false,
   },
   {
@@ -142,8 +147,17 @@ const AGENTBASE_LLM_FIELDS = [
   {
     env: 'AGENTBASE_LLM_MODEL',
     flag: 'agentbase-model',
-    prompt: 'Model to use, as onboarded in your org (e.g. anthropic/claude-sonnet-5)',
+    prompt: 'Model to use, as onboarded in your org (slug or provider/model)',
     secret: false,
+  },
+  // Optional since v0.9.10: the gateway base is derived from AGENTBASE_URL and
+  // the model at runtime. A value here overrides that derivation.
+  {
+    env: 'AGENTBASE_LLM_BASE_URL',
+    flag: 'agentbase-base-url',
+    prompt: 'LLM gateway base URL override (optional; blank derives it from the API base)',
+    secret: false,
+    optional: true,
   },
 ];
 
@@ -309,7 +323,7 @@ async function resolveAgentBaseLlm(rl) {
     if (fromFlag) values[field.env] = fromFlag;
   }
 
-  const missing = AGENTBASE_LLM_FIELDS.filter((f) => !values[f.env]);
+  const missing = AGENTBASE_LLM_FIELDS.filter((f) => !f.optional && !values[f.env]);
   if (missing.length === 0) return values;
 
   if (!rl) {
@@ -332,7 +346,98 @@ async function resolveAgentBaseLlm(rl) {
       console.error('    Required — all five are needed for the gateway to answer.');
     }
   }
+  const override = AGENTBASE_LLM_FIELDS.find((f) => f.optional);
+  if (override && !values[override.env]) {
+    const answer = (await rl.question(`  ${override.prompt}: `)).trim();
+    if (answer) values[override.env] = answer;
+  }
   return values;
+}
+
+/**
+ * Postgres for the project. Every Precast project needs one it does not run (ADR-002), and a
+ * placeholder DATABASE_URL passes validation and then fails the first `pnpm poc` healthcheck,
+ * so the question is asked here, not discovered later.
+ *
+ *   --db=provision   Precast creates one on your organisation's database server
+ *                    (scripts/provision-db.mjs; needs PRECAST_RDS_SUPERUSER_URL in the shell)
+ *   --db=<url>       a postgresql:// URL you already have
+ *   --db=later       leave the placeholder; `pnpm db:provision` any time
+ *
+ * Returns { mode, url?, superuserUrl? }. The admin credential is passed to the provisioning
+ * script through its environment, never written into .env.
+ */
+async function resolveDatabase(rl) {
+  let choice = flagVal('db');
+  if (!choice && rl) {
+    console.log('\nPostgres for this project:');
+    console.log("  1. Create one now on your organisation's database server (needs the admin URL)");
+    console.log('  2. Paste a postgresql:// URL you already have');
+    console.log('  3. Later (pnpm db:provision, or edit DATABASE_URL in .env)');
+    for (;;) {
+      const answer = (await rl.question('Choice [1-3]: ')).trim();
+      if (answer === '1') {
+        choice = 'provision';
+        break;
+      }
+      if (answer === '3' || answer === '') {
+        choice = 'later';
+        break;
+      }
+      if (answer === '2') {
+        const url = (await rl.question('  postgresql:// URL: ')).trim();
+        if (/^postgres(ql)?:\/\//.test(url)) {
+          choice = url;
+          break;
+        }
+        console.error('    That is not a postgres:// URL.');
+        continue;
+      }
+      if (/^postgres(ql)?:\/\//.test(answer)) {
+        choice = answer;
+        break;
+      }
+      console.error('    1, 2 or 3.');
+    }
+  }
+  if (!choice || choice === 'later') return { mode: 'later' };
+  if (/^postgres(ql)?:\/\//.test(choice)) return { mode: 'url', url: choice };
+  if (choice !== 'provision') {
+    console.error(`❌ --db must be "provision", "later" or a postgresql:// URL (got "${choice}").`);
+    process.exit(1);
+  }
+
+  const fromFlag = flagVal('superuser-url');
+  const fromEnv = process.env.PRECAST_RDS_SUPERUSER_URL || process.env.RDS_SUPERUSER_URL;
+  let superuserUrl = fromFlag || fromEnv;
+  if (!superuserUrl && !rl) {
+    console.error(
+      '\n❌ --db=provision needs the provisioning credential: set PRECAST_RDS_SUPERUSER_URL in ' +
+        "your shell (or pass --superuser-url=). It is your organisation's database-server admin " +
+        'URL and is never written into the project.',
+    );
+    process.exit(1);
+  }
+  if (!superuserUrl) {
+    console.log(
+      '\nTo create the database I need the provisioning credential: the admin URL of your',
+    );
+    console.log(
+      "organisation's database server (whoever runs AgentBase has it). It is used once, from",
+    );
+    console.log(
+      'this shell, and never written into the project; the project gets its own DATABASE_URL.',
+    );
+    for (;;) {
+      const answer = (await rl.question('  Admin URL (postgresql://…): ')).trim();
+      if (/^postgres(ql)?:\/\//.test(answer)) {
+        superuserUrl = answer;
+        break;
+      }
+      console.error('    That is not a postgres:// URL.');
+    }
+  }
+  return { mode: 'provision', superuserUrl };
 }
 
 async function resolveApcTheme() {
@@ -446,6 +551,15 @@ async function main() {
     }
   }
   const apcTheme = await resolveApcTheme();
+  let database;
+  {
+    const rl = nameArg ? null : createInterface({ input: stdin, output: stdout });
+    try {
+      database = await resolveDatabase(rl);
+    } finally {
+      rl?.close();
+    }
+  }
   const manifest = readManifest(rootDir);
 
   console.log(`\nThis will:`);
@@ -467,6 +581,14 @@ async function main() {
   console.log(`  6. DELETE Precast's git history and start a blank repo on "${DEFAULT_BRANCH}"`);
   console.log(
     `  7. Create .env from .env.example${llmProvider ? ` (reminding you to set ${llmProvider.envVar})` : ' (no LLM provider chosen yet — you will be reminded)'}`,
+  );
+
+  console.log(
+    database.mode === 'provision'
+      ? "  8. Create a Postgres database on your organisation's database server and write DATABASE_URL"
+      : database.mode === 'url'
+        ? '  8. Write your Postgres URL into .env as DATABASE_URL'
+        : '  8. Leave DATABASE_URL for later (pnpm db:provision)',
   );
 
   if (!(await confirm('\nProceed?'))) {
@@ -513,6 +635,26 @@ async function main() {
   const envCreated = copyEnvFile();
   if (envCreated) writeEnvValues(generateLocalSecrets());
   if (agentBaseLlm) writeEnvValues(agentBaseLlm);
+  if (database.mode === 'url') writeEnvValues({ DATABASE_URL: database.url });
+  if (database.mode === 'provision') {
+    // 8. Provisioning talks to the database server and can fail for reasons this
+    // script cannot fix (network, a refused credential). The project exists either
+    // way, so a failure here is reported and left to `pnpm db:provision`. The
+    // admin URL travels in the child's environment, not on its command line.
+    const label = flagVal('db-label') || `the ${name} project`;
+    console.log('\n$ node scripts/provision-db.mjs --label …');
+    const res = spawnSync('node', ['scripts/provision-db.mjs', '--label', label], {
+      cwd: rootDir,
+      stdio: 'inherit',
+      env: { ...process.env, PRECAST_RDS_SUPERUSER_URL: database.superuserUrl },
+    });
+    if (res.status !== 0) {
+      console.error(
+        '\n⚠️  The database was not created. The project is set up; run `pnpm db:provision` once the cause above is fixed, ' +
+          'or paste a URL into DATABASE_URL in .env. `pnpm poc` needs one or the other.',
+      );
+    }
+  }
 
   console.log(`\n✅ ${name} is ready.`);
   if (lock) {
@@ -645,7 +787,7 @@ function writeEnvValues(values) {
   }
 
   writeFileSync(envPath, text, 'utf-8');
-  console.log(`\nWrote ${Object.keys(values).length} AgentBase gateway settings into .env.`);
+  console.log(`\nWrote into .env: ${Object.keys(values).join(', ')}.`);
 }
 
 function printFeedForwardGuidance() {

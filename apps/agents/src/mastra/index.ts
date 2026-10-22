@@ -5,8 +5,9 @@ import './telemetry/otel';
 import { Mastra } from '@mastra/core/mastra';
 import { PinoLogger } from '@mastra/loggers';
 import { parseApiEnv } from '@precast/shared';
-import { getPrecastStore } from './lib/storage';
+import { getMastraStore } from './lib/storage';
 import { agentAuthMiddleware, assertAgentApiAuthConfigured } from './middleware/auth';
+import { a2uiMiddleware } from './middleware/a2ui';
 import { crew, crewAgents } from './crew';
 import { isLlmProviderConfigured } from './lib/default-model';
 import { isAgentBaseLlmConfigured } from './lib/agentbase-model';
@@ -77,7 +78,7 @@ export const mastra = new Mastra({
   // Durable Postgres store for everything Mastra persists (threads, messages,
   // working memory, workflow state). The same instance is handed to each
   // agent's Memory so the process keeps one connection pool — see lib/storage.ts.
-  storage: getPrecastStore(),
+  storage: getMastraStore(),
   logger: new PinoLogger({
     name: 'precast-agents',
     level: LOG_LEVEL_MAP[env.LOG_LEVEL],
@@ -85,8 +86,9 @@ export const mastra = new Mastra({
   server: {
     host: env.MASTRA_HOST,
     port: env.MASTRA_PORT,
-    // Static bearer token auth for agent API routes.
-    // Off when AGENT_API_TOKEN is unset; enforced when present.
-    middleware: agentAuthMiddleware,
+    // Static bearer token auth for agent API routes (off when AGENT_API_TOKEN is
+    // unset), then A2UI cards. Order matters: auth opens the per-request store
+    // that `show_card` writes to and the A2UI middleware reads.
+    middleware: [agentAuthMiddleware, a2uiMiddleware],
   },
 });

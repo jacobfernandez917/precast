@@ -11,6 +11,7 @@ export default defineConfig({
       '@precast/shared': fileURLToPath(
         new URL('../../packages/shared/src/index.ts', import.meta.url),
       ),
+      '@precast/a2ui': fileURLToPath(new URL('../../packages/a2ui/src/index.ts', import.meta.url)),
     },
   },
 });

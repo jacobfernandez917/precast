@@ -35,6 +35,12 @@ test.describe('POST /api/a2a/:agentId', () => {
     expect(body).not.toMatch(/AGENTBASE_CLIENT_SECRET|AGENT_API_TOKEN/);
   });
 
+  test('refuses a malformed card press before reaching an agent', async ({ request }) => {
+    const res = await request.post('/api/a2a/example-agent', { data: { action: 'retry' } });
+    expect(res.status()).toBe(400);
+    expect((await res.json()).error).toBe('Invalid action');
+  });
+
   test('answers with a JSON body whatever the outcome', async ({ request }) => {
     // The UI parses JSON unconditionally; an HTML error page here surfaces as an
     // unhandled parse error in the browser rather than a readable message.

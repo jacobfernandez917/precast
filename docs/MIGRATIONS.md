@@ -122,6 +122,173 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.9.15 — Postgres by default: `pnpm db:provision` and `pnpm bootstrap --db=` (2026-10-22)
+
+**What changed.** The first step of the plan that makes Precast the AgentBase SDK
+(`precast-ground-zero/plans/agentbase-sdk.md`, Phase 1). A project no longer has to find a
+Postgres database: `scripts/provision-db.mjs` (`pnpm db:provision`) creates one on the
+organisation's shared database server, Hannibal's provisioner ported into Precast as a core
+capability. It makes a database with its own scoped role and base64url password (CREATE ROLE,
+CREATE DATABASE … OWNER, REVOKE ALL … FROM PUBLIC, no drop path, no enumeration), verifies the
+new credentials connect, and writes `DATABASE_URL` into `.env`. The admin credential comes from
+the shell of the machine running the scaffold (`PRECAST_RDS_SUPERUSER_URL`, or Hannibal's
+`RDS_SUPERUSER_URL`), is never read from or written into the project, and is never part of
+anything returned. The RDS CA bundle is vendored at `scripts/certs/` because node-postgres
+verifies certificates and Node's trust store has no Amazon roots; `PRECAST_RDS_CA_BUNDLE_PATH`
+overrides it. `pnpm bootstrap` gained `--db=provision|<url>|later` and, interactively, a
+three-way question; `--db=provision` passes the admin URL to the script through its
+environment, not its command line, and runs it last, so a failure leaves a complete project
+behind with a clear instruction rather than aborting bootstrap.
+
+The scaffold skill in the Precast plugin was rewritten at the same time: eight questions in
+three waves replace the six, Standalone is no longer offered (Imported and External remain),
+the LLM question becomes a model choice from the org's gateway, and the database question
+defaults to provisioning. The skill tells the person where in Studio each Application
+credential is.
+
+**Found by the gate.** Scaffolding `precast-poc` failed at bootstrap's first commit: `pnpm rename`
+turned the identifier `getPrecastStore` into `getPrecast-pocStore` (every case form of the
+placeholder is rewritten, which is right for prose and names and wrong inside code), and the
+hyphen is a parse error. Any project name with a hyphen hit this since v0.9.0-era storage.ts
+(2026-08-07). The identifier is `getMastraStore` now; the renamer leaves `PRECAST_*` environment names alone
+(`process.env.PRECAST_ENFORCE_DOC_FRESHNESS` in a spec had become a subtraction); and SMOKE-019
+refuses any identifier under `apps/` or `packages/` that the renamer would change.
+A fresh clone could not run `pnpm poc` at all: `scripts/poc.mjs` and `pnpm docker:up` pass
+`-f docker/docker-compose.override.yml` unconditionally, the file is git-ignored (only its
+`.example` is committed), Compose errors on an explicit `-f` it cannot open, and it auto-merges
+the override only when no `-f` is given. Every maintainer checkout had the file, so nobody
+hit it; the gate's clean copy did, and Hannibal's checkout has no override either.
+`scripts/docker-compose.mjs` now drops that `-f` when the file is absent (APP-024).
+A fourth victim surfaced in the web image build: `apps/web/test/precast-sync.spec.ts` imports
+`scripts/precast-lock.mjs` and `precast-update.mjs` by path, the renamer rewrote the strings to
+`precast-poc-…`, the scripts keep their names, and `next build` (which typechecks the specs)
+failed. The renamer now protects the boilerplate's own file and script names
+(`precast-lock.mjs`, `precast-update.mjs`, `precast.lock.json`, `precast.manifest.json`,
+`precast:update`, `precast:version`), and SMOKE-020 proves no referenced path changes under a
+rename.
+SMOKE-015 was a third victim: its `/^@precast\//` regex was renamed while the scope was not, so it
+failed in every derived project; it now reads the scope from a workspace package. Bootstrap's AgentBase Models fields also changed:
+`AGENTBASE_URL` (the API base) is collected and `AGENTBASE_LLM_BASE_URL` is an optional
+override, since v0.9.10 derives the gateway route from the API base and the model.
+
+**Handled by `pnpm precast:update`.** `scripts/provision-db.mjs`, `scripts/bootstrap.mjs`.
+
+**Manual steps.**
+
+1. Add `"db:provision": "node scripts/provision-db.mjs"` to the root `package.json` scripts, and
+   `pg@^8.23.0` to its devDependencies (the script imports it).
+2. Optional: the `.env.example` comment above `DATABASE_URL` that names the script.
+3. Copy `apps/web/test/provision-db.spec.ts` (TOOL-008), the SMOKE-019 block of
+   `apps/web/test/repo-hygiene.spec.ts`, and the `AGENTBASE_URL` change in
+   `apps/web/test/bootstrap-llm.spec.ts`.
+4. If your project was scaffolded with a hyphenated name and `apps/agents/src/mastra/lib/storage.ts`
+   still compiles, you were scaffolded before 2026-08-07 and nothing to do; otherwise rename
+   `getPrecastStore` (however the renamer spelled it) to `getMastraStore` in `storage.ts`,
+   `memory.ts` and `index.ts`.
+
+**Advisory files touched.** `package.json`, `.env.example`.
+
+**Verify.**
+
+```bash
+pnpm verify
+PRECAST_RDS_SUPERUSER_URL=postgresql://… pnpm db:provision --label "a test"   # creates a database, writes DATABASE_URL
+```
+
+---
+
+## v0.9.14 — interactive cards (A2UI), and Mastra 1.78 (2026-10-21)
+
+Shipped in the same commit as v0.9.15; there is no `v0.9.14` tag. Upgrade straight to v0.9.15 and
+work both entries.
+
+**What changed.** Three things.
+
+**1. Agents can attach an interactive card to a reply.** A new workspace package,
+`packages/a2ui`, holds A2UI v0.9.1 support: the `raya.blocks.v1` catalog pinned by sha256, the
+`show_card` card format, and helpers for A2A parts on both wire versions. In `apps/agents`, a
+`show_card` tool holds a card for the current turn, and a middleware appends it to the A2A reply
+as an `application/a2ui+json` data part and lists the extension on the agent card. The same
+middleware turns an A2UI button press into text, because Mastra fails a whole turn on any data
+part. See `docs/INTEGRATION_AGENTBASE.md` §7.12.
+
+**2. Mastra moved to the latest release.** `@mastra/core` 1.57 → 1.78, `@mastra/memory` 1.26 →
+1.38, `@mastra/pg` 1.19 → 1.31, `@mastra/loggers` 1.2 → 1.3, the `mastra` CLI 1.23 → 1.34, and
+`@mastra/mcp` 1.16 → 2.4, a major version. Precast's own MCP use (`MCPClient`,
+`listToolsWithErrors`) is unchanged by 2.0. What 2.0 removed is server-side and elicitation API:
+`startSSE`, `startHonoSSE`, `mcp.elicitation.onRequest()` (now a per-server `inputRequests`
+option) and `context.mcp.elicitation.sendRequest()` (now `context.suspend()`). pnpm warns that
+`@modelcontextprotocol/ext-apps` wants zod 4; it only imports `zod/v4`, which zod 3.25 ships, so
+the warning is harmless. Mastra 1.78 also answers in A2A 1.0 when a caller sends
+`A2A-Version: 1.0`.
+
+**3. The deps image finds workspace packages by glob.** `deps.Dockerfile` copied each manifest by
+name, and `scripts/deps-image.mjs` hashed a fixed list, so a new package had to be added in two
+places or the image's frozen install failed. Both now glob `apps/*` and `packages/*`, which also
+means syncing these files into a project that lacks `packages/a2ui` cannot break its build.
+
+**4. Workspace packages resolve through their built `exports`.** `tsconfig.base.json` mapped
+`@precast/shared` to `packages/shared/src/index.ts`. That only ever built because the web app's
+two imports of it are `import type`, which the bundler erases: the first runtime import of a
+workspace package (`@precast/a2ui`) failed `next build` with `Can't resolve './protocol.js'`,
+since Next's webpack cannot follow the `./x.js` specifiers an ESM source uses. The `paths` block
+is gone; apps now resolve both packages the way Node, Mastra and Docker already did, through
+`package.json` `exports` into `dist/`. Typecheck and `dev` keep working because every path
+there builds the packages first (`turbo` `^build`, the `dev` scripts, the Dockerfiles), and
+Vitest aliases `src` in each app's `vitest.config.ts`.
+
+**Handled by `pnpm precast:update`.** `docker/deps.Dockerfile`, `scripts/deps-image.mjs`,
+`tsconfig.base.json` (the `paths` block removed) and `.prettierignore` (the pinned catalog must
+never be reformatted).
+
+**Manual steps.**
+
+1. **Upgrade Mastra** in `apps/agents/package.json` to the versions above, then run
+   `pnpm install`. If your project calls the `@mastra/mcp` APIs listed under point 2, port them.
+2. **Copy `packages/a2ui/` whole.** Copy the catalog file byte for byte; SHR-002 checks its digest.
+3. **Copy into `apps/agents/src/mastra/`:** `middleware/a2ui.ts`, `tools/show-card.ts`, and the
+   `pendingCard` field plus `setPendingCard()` / `takePendingCard()` in `lib/request-context.ts`.
+4. **Register the middleware after auth** in `index.ts`:
+   `middleware: [agentAuthMiddleware, a2uiMiddleware]`. The order matters: auth opens the
+   per-request store the card is held in.
+5. **Wire the package into `apps/agents`.** Add `"@precast/a2ui": "workspace:*"`, and the dev
+   dependencies `hono@4.13.3` and `@mastra/deployer@^1.78.0`. Add `--filter @precast/a2ui` to the
+   `dev` and `dev:verbose` build step, and `--filter "./packages/a2ui"` to the build line in
+   `apps/agents/Dockerfile`.
+6. **Turn cards on where you want them:** `tools: { ...cardTools }` plus `SHOW_CARD_INSTRUCTIONS`
+   appended to the agent's instructions. Nothing changes for an agent without `show_card`.
+7. **Copy the tests:** `apps/agents/src/mastra/middleware/a2ui.spec.ts` and
+   `apps/agents/src/mastra/a2ui.integration.spec.ts`.
+8. **Web app, to render cards.** Add `@a2ui/react@0.14.0`, `@a2ui/web_core@0.14.0`, `zod@^3.24.0`
+   and `"@precast/a2ui": "workspace:*"` to `apps/web/package.json`; add `--filter @precast/a2ui`
+   to its `dev` scripts and `--filter "./packages/a2ui"` to `apps/web/Dockerfile`; add the
+   `@precast/a2ui` alias to `apps/web/vitest.config.ts`.
+9. **Copy `apps/web/app/a2ui/`** (`catalog.tsx`, `AgentCards.tsx`), then port the diffs to
+   `app/lib/a2a-client.ts` (extension header, `a2uiClientCapabilities`, `AgentReply.a2ui`),
+   `app/api/a2a/[agentId]/route.ts` (the `{ action }` body) and `app/AgentChat.tsx` (cards under
+   each reply, presses sent back). If you replaced `AgentChat`, the three pieces are: keep
+   `reply.a2ui` per turn, render `<AgentCards messages onPress>` through `next/dynamic` with
+   `ssr: false`, and post `{ action, conversationId }` from `onPress`.
+10. **Copy the web tests:** `apps/web/test/a2a-route.spec.ts`, the A2UI block in
+    `apps/web/test/a2a-client.spec.ts`, `apps/web/e2e/agent-cards.spec.ts`, and the press case in
+    `apps/web/e2e/a2a-route.spec.ts`.
+
+**Advisory files touched.** `apps/web/test/deps-image.spec.ts` (APP-023 and the `--parents`
+flag), `apps/web/test/repo-hygiene.spec.ts` (`packages/a2ui` in SMOKE-015).
+
+**Verify.**
+
+```bash
+pnpm install
+pnpm verify
+pnpm -F @precast/agents test   # AGT-014 to AGT-016 cover the cards
+```
+
+The lockfile hash changes with the Mastra upgrade, so the first `pnpm poc` builds from
+`node:24-alpine` until CI publishes the matching deps image.
+
+---
+
 ## v0.9.13 — three runtime bugs that all pointed somewhere else (2026-09-23)
 
 **What changed.** Three faults found while debugging a derived project, all of them upstream.

@@ -500,6 +500,63 @@ No env var, and nothing to update when a server is renamed. It **fails loudly** 
 (naming what *was* subscribed) and refuses to choose on several — sending a user's data to the
 wrong server is far worse than an error read once.
 
+### 7.12 Interactive cards (A2UI)
+
+An agent can attach one interactive card to a reply: a title, text, label and value fields, up to
+five buttons and one dropdown. The card travels as an A2UI v0.9.1 surface in the catalog
+`raya.blocks.v1`, the same vocabulary Raya renders and AgentBase's composed agents emit, so a
+Precast agent's cards show in Raya with no AgentBase change.
+
+Turn it on per agent:
+
+```ts
+import { cardTools, SHOW_CARD_INSTRUCTIONS } from '../tools/show-card';
+
+export const myAgent = new Agent({
+  instructions: `${myInstructions}\n\n${SHOW_CARD_INSTRUCTIONS}`,
+  tools: { ...myTools, ...cardTools },
+  // ...
+});
+```
+
+The example agent ships with cards on. Remove both lines to answer in text only.
+
+| Piece | Where | What it does |
+| --- | --- | --- |
+| `show_card` tool | `tools/show-card.ts` | The model fills a flat card against a JSON Schema built from the catalog's limits. It never writes A2UI, so model text cannot decide what a person sees |
+| Card slot | `lib/request-context.ts` | Holds the card for the current turn only; concurrent turns never see each other's |
+| A2UI middleware | `middleware/a2ui.ts` | Appends the card to the A2A reply as one `application/a2ui+json` data part, in the form the caller's A2A version expects, and lists the extension on the agent card |
+| Shared package | `packages/a2ui/` | The pinned catalog, the card format, and the A2A part helpers |
+
+A button press comes back to the agent as a text message with a JSON payload, either
+`raya.interaction` from Raya or `a2ui.action` from other A2UI clients. Mastra fails a whole turn on
+any `data` part, so the middleware turns a press with no text into text and drops every other data
+part. AgentBase's proxy already strips data parts for imported agents; this covers the direct
+transport too.
+
+Current limits:
+
+- Cards attach to `message/send` replies. A streamed reply (`message/stream`) and a non-blocking
+  send whose answer arrives later go out as text, and the middleware logs the dropped card.
+- A signed agent card is left as it is, so it does not list the extension.
+- A caller that declares `a2uiClientCapabilities` without `raya.blocks.v1` gets no card. A caller
+  that declares nothing gets it, since the text reply stands on its own.
+
+#### In the Precast web app
+
+`apps/web` renders the cards under each reply. `callAgent()` sends the extension header and
+`a2uiClientCapabilities` on every call and returns the attached messages as `AgentReply.a2ui`.
+`app/a2ui/AgentCards.tsx` feeds them to `@a2ui/react`'s message processor, which validates each
+component against the catalog in `app/a2ui/catalog.tsx` (the thirteen `raya.blocks.v1` components
+on Astryx, so cards follow the APC theme) and drops what it does not name. The renderer loads
+client-only with `next/dynamic`, because `@a2ui/react` extends `HTMLElement` at import.
+
+A press posts `{ action }` to `/api/a2a/:agentId` on the same conversation, and the route turns it
+into the `a2ui.action` text above, so direct and AgentBase transports behave the same. Two
+rendering choices differ from Raya: `Embed` is drawn as a link rather than an iframe, and `Image`
+is a plain `<img>` with `referrerPolicy="no-referrer"`, since the URL is agent-authored and on no
+allowlist.
+
 ---
 
 

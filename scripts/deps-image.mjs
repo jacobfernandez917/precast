@@ -28,7 +28,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -48,17 +48,27 @@ export const FALLBACK_BASE = 'node:24-alpine';
  * between pnpm versions; folding in the declared ranges keeps the key stable
  * for the thing we actually care about.
  */
+/**
+ * The root manifest plus every `apps/*` and `packages/*` manifest, sorted. Found rather than
+ * listed, matching the glob in deps.Dockerfile, so a new package is part of the key from day one.
+ */
+export function workspaceManifests(dir = rootDir) {
+  const found = ['apps', 'packages'].flatMap((group) => {
+    const base = join(dir, group);
+    if (!existsSync(base)) return [];
+    return readdirSync(base, { withFileTypes: true })
+      .filter((d) => d.isDirectory() && existsSync(join(base, d.name, 'package.json')))
+      .map((d) => `${group}/${d.name}/package.json`);
+  });
+  return ['package.json', ...found.sort()];
+}
+
 export function lockHash(dir = rootDir) {
   const lockPath = join(dir, 'pnpm-lock.yaml');
   if (!existsSync(lockPath)) return null;
   const h = createHash('sha256').update(readFileSync(lockPath));
 
-  for (const rel of [
-    'package.json',
-    'apps/agents/package.json',
-    'apps/web/package.json',
-    'packages/shared/package.json',
-  ]) {
+  for (const rel of workspaceManifests(dir)) {
     const abs = join(dir, rel);
     if (!existsSync(abs)) continue;
     const pkg = JSON.parse(readFileSync(abs, 'utf-8'));

@@ -1,5 +1,5 @@
 import { Memory } from '@mastra/memory';
-import { getPrecastStore } from './storage';
+import { getMastraStore } from './storage';
 
 /**
  * Conversation memory for a Precast agent.
@@ -43,7 +43,7 @@ import { getPrecastStore } from './storage';
 export function createAgentMemory(): Memory {
   return new Memory({
     // Shared store — one pool for the process. See lib/storage.ts.
-    storage: getPrecastStore(),
+    storage: getMastraStore(),
     options: {
       // Recent turns replayed verbatim into context.
       lastMessages: 20,

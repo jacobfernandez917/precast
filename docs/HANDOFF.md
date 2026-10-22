@@ -111,7 +111,7 @@ apps/agents/src/mastra/crew.ts    ← THE CREW — single source of truth for th
 apps/agents/src/mastra/agents/    ← example-agent.ts + summary-agent.ts (neutral placeholder members) + orchestrator.ts (createOrchestrator — in-process Agent Network front door)
 apps/agents/src/mastra/lib/crew.ts ← defineCrew()/crewAgents() — N=1 pass-through, activate at 2+, guards; drives registration (and Phase-2 manifest)
 apps/agents/src/mastra/lib/agentbase-model.ts ← resolveAgentModel() — org-admin-configured LLM per imported agent, else the agent's own fallback string
-apps/agents/src/mastra/lib/storage.ts ← getPrecastStore() — the single shared PostgresStore (one connection pool)
+apps/agents/src/mastra/lib/storage.ts ← getMastraStore() — the single shared PostgresStore (one connection pool)
 apps/agents/src/mastra/lib/memory.ts  ← createAgentMemory() — Memory config + why semanticRecall is off
 apps/agents/src/mastra/tools/     ← example-tool.ts (+ .spec.ts) — neutral placeholder
 apps/agents/Dockerfile            ← multi-stage build of the Mastra .mastra/output bundle

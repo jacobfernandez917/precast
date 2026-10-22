@@ -10,7 +10,7 @@ Precast is built to be driven by coding agents (Claude Code, OpenClaw, or any ot
 
 - **Monorepo structure** — pnpm workspaces + Turborepo (`apps/*` deployables, `packages/*` shared libs).
 - **Documentation contract** — a `CLAUDE.md → HANDOFF.md → PROGRESS.md → authoritative docs` chain that keeps context flowing between sessions and agents.
-- **Guardrails** — pre-commit doc-contract enforcement, lint-staged, EditorConfig, zod-based env validation, and fitness tests (A2A-only web→agents, rename-proof Docker builds). Both apps' `dev` scripts build `@precast/shared` first, so a fresh scaffold's first `pnpm dev` never trips a missing-`dist` error.
+- **Guardrails** — pre-commit doc-contract enforcement, lint-staged, EditorConfig, zod-based env validation, and fitness tests (A2A-only web→agents, rename-proof Docker builds). Both apps' `dev` scripts build `@precast/shared` and `@precast/a2ui` first, so a fresh scaffold's first `pnpm dev` never trips a missing-`dist` error.
 - **Progress automation** — Claude Code hooks auto-journal every edit into `PROGRESS.md`.
 - **Neutral runnable starters** — a **Mastra** agent API (a placeholder example agent + tool + durable memory, served with a Studio playground) and a **Next.js** web app (App Router, **Astryx** components coloured by the **APC Design System**) on a shared TypeScript package, plus a Docker Compose stack for the apps (multi-stage images) with a local **Keycloak** for dev auth, while **Postgres and Redis** are used as **remote/managed** services via `.env`. They carry no domain — just enough to prove the wiring, build, type-check, lint, and test green out of the box. You build the real structure from the feed-forward docs + tech stack.
 - **Feed-forward planning templates** — PRD, data model, agent spec, and a design system guide in `templates/`, each a worked example you copy into `docs/` and fill in before building.
@@ -49,11 +49,12 @@ pnpm bootstrap      # interactive, or: pnpm bootstrap my-project
 1. **Ask for the project name**, then show an **auto-picked port block** for the stack — a random, verified-free, **consecutive** triple in `45000`–`49100` (agents / web / keycloak, e.g. `45000` / `45001` / `45002`). Press Enter to accept, or type a base port for the block. Random-and-free means two Precast projects on one machine never fight over `3000`/`4111`; staying under `49152` keeps the ports out of the OS ephemeral range, where an outbound socket could grab one first.
 2. **Ask which LLM provider** you'll use — Anthropic, OpenAI, or Google — so it can remind you exactly which key to set (never collects the actual key value).
 3. **Ask which APC Design System theme** the web app should use — **Stockholm** (default), **Prague**, **Arctic**, **Nova**, or **Melbourne**. Preview them at **[apc-design-system.917v.dev](https://apc-design-system.917v.dev)**; change your mind later with `pnpm set-theme <name>`.
-4. **Rename** the `precast` placeholder to your project name everywhere it matters.
-5. **Apply the chosen ports and theme** across `.env.example`, config, pnpm scripts, Docker, and docs.
-6. **Update dependencies** to their latest compatible versions.
-7. **Record where this project came from** in `precast.lock.json`, then **delete Precast's git history** and re-initialize a **blank repo on the `develop` branch** with a single initial commit, hooks activated.
-8. **Create `.env` from `.env.example`** and print an explicit reminder naming the exact env var to fill in.
+4. **Ask where the Postgres database comes from** — create one now on your organisation's database server (`--db=provision`, with the admin URL in your shell as `PRECAST_RDS_SUPERUSER_URL`; writes `DATABASE_URL` for you and never stores the admin credential), paste a URL you already have (`--db=postgresql://…`), or decide later (`--db=later`, then `pnpm db:provision` any time).
+5. **Rename** the `precast` placeholder to your project name everywhere it matters.
+6. **Apply the chosen ports and theme** across `.env.example`, config, pnpm scripts, Docker, and docs.
+7. **Update dependencies** to their latest compatible versions.
+8. **Record where this project came from** in `precast.lock.json`, then **delete Precast's git history** and re-initialize a **blank repo on the `develop` branch** with a single initial commit, hooks activated.
+9. **Create `.env` from `.env.example`** and print an explicit reminder naming the exact env var to fill in.
 
 Non-interactively, pass flags: `pnpm bootstrap my-project --llm-provider=anthropic --theme=arctic`. Ports are auto-picked unless you pin them (`--mastra-port=45000 --web-port=45001 --keycloak-port=45002`, any subset) or keep the current ones (`--ports=keep`).
 
@@ -119,6 +120,8 @@ In dev the output is pretty-printed and colorized; in production it's structured
 See [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) for both flows.
 
 Any **A2A client can also invoke the agents directly** (JSON-RPC 2.0) at `POST /api/a2a/:agentId` by sending `Authorization: Bearer <AGENT_API_TOKEN>` — the bearer must match the server's `AGENT_API_TOKEN` (routes are open when it's unset). The "route through AgentBase" rule above applies to the **web frontend**; external clients authenticate directly with the token.
+
+**Interactive cards (A2UI).** An agent with the `show_card` tool can attach one card to a reply: a title, text, label and value fields, up to five buttons and a dropdown, sent as an A2UI v0.9.1 surface in the `raya.blocks.v1` catalog that Raya and AgentBase also use. The web app draws it under the reply with `@a2ui/react` on Astryx, and a press goes back to the agent as text on the same conversation. The example agent ships with cards on; see [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) §7.12.
 
 **Which LLM an imported agent uses is also org-admin-configurable.** _Locally_ (and in Standalone/External mode) an agent auto-detects its model from whichever provider key is set in `.env` — see `resolveDefaultModel()` above; no single provider is hardcoded. _On AgentBase_ the model is instead set per agent from the org's onboarded models, via Studio's "LLM configuration" card — and an agent with no model set fails loudly rather than reading an env key. `apps/agents/src/mastra/lib/agentbase-model.ts`'s `resolveAgentModel()` implements this split. See [docs/INTEGRATION_AGENTBASE.md §7.9](docs/INTEGRATION_AGENTBASE.md#79-org-admin-llm-configuration-for-imported-agents).
 

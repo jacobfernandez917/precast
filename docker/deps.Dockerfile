@@ -39,9 +39,10 @@ WORKDIR /repo
 
 # ONLY the dependency-graph inputs. Adding source here would defeat the point.
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY apps/agents/package.json ./apps/agents/
-COPY apps/web/package.json ./apps/web/
-COPY packages/shared/package.json ./packages/shared/
+# Every workspace manifest by glob, so a package added later is picked up without editing this
+# file, and syncing this file into a project that lacks one of ours cannot fail the build.
+# `--parents` keeps each manifest at its own path.
+COPY --parents apps/*/package.json packages/*/package.json ./
 
 # `--ignore-scripts` matches the app images: no lifecycle scripts run at install
 # time, so nothing here depends on source that isn't present.

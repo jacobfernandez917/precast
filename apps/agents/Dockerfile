@@ -22,7 +22,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts --store-dir "${PNPM_STORE_DI
 # that matches nothing (e.g. after `pnpm rename`) exits 0 and builds nothing,
 # which only surfaces as an opaque COPY failure below. The `test -f` then makes
 # a would-be-empty build fail loudly, here, instead of at the runtime COPY.
-RUN pnpm --filter "./packages/shared" build \
+RUN pnpm --filter "./packages/shared" --filter "./packages/a2ui" build \
  && pnpm --filter "./apps/agents" build \
  && test -f apps/agents/.mastra/output/index.mjs
 

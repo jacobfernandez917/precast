@@ -1,0 +1,326 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "raya.blocks.v1",
+  "catalogId": "raya.blocks.v1",
+  "title": "Raya blocks v1",
+  "description": "Raya's block vocabulary (Agent Contract section 3) as an A2UI v0.9.1 catalog. Each component maps one to one onto a block or interactive element in apps/web/app/lib/blocks.ts, with the same limits. Raya adapts every surface into blocks and validates it there; anything this catalog does not name is dropped. Raya owns every pixel, so themes are ignored.",
+  "x-raya-limits": {
+    "componentsPerSurface": 40,
+    "interactivePerMessage": 10,
+    "controlsPerActions": 5,
+    "embedsPerMessage": 1,
+    "surfacesPerMessage": 1
+  },
+  "components": {
+    "Stack": {
+      "description": "The root: the blocks of the message, in order.",
+      "allOf": [
+        { "$ref": "#/$defs/ComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "Stack" },
+            "children": { "$ref": "#/$defs/ChildList", "minItems": 1, "maxItems": 40 }
+          },
+          "required": ["component", "children"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Header": {
+      "description": "Block `header`: one bold lead line.",
+      "allOf": [
+        { "$ref": "#/$defs/ComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "Header" },
+            "text": { "$ref": "#/$defs/LabelText" }
+          },
+          "required": ["component", "text"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Section": {
+      "description": "Block `section`: text and/or label and value pairs in two columns, with an optional control beside it. Needs text or fields.",
+      "allOf": [
+        { "$ref": "#/$defs/ComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "Section" },
+            "text": { "$ref": "#/$defs/BodyText" },
+            "fields": {
+              "type": "array",
+              "maxItems": 10,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": { "$ref": "#/$defs/LabelText" },
+                  "value": { "$ref": "#/$defs/LabelText" }
+                },
+                "required": ["label", "value"],
+                "additionalProperties": false
+              }
+            },
+            "accessory": { "$ref": "#/$defs/ComponentId", "description": "One control: Button, Select, DatePicker, Overflow or TextInput." }
+          },
+          "required": ["component"],
+          "anyOf": [{ "required": ["text"] }, { "required": ["fields"] }]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Context": {
+      "description": "Block `context`: a muted attribution line.",
+      "allOf": [
+        { "$ref": "#/$defs/ComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "Context" },
+            "text": { "$ref": "#/$defs/BodyText" }
+          },
+          "required": ["component", "text"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Divider": {
+      "description": "Block `divider`: a rule.",
+      "allOf": [
+        { "$ref": "#/$defs/ComponentCommon" },
+        { "type": "object", "properties": { "component": { "const": "Divider" } }, "required": ["component"] }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Image": {
+      "description": "Block `image`: shown through Raya's proxy. Alt text is required.",
+      "allOf": [
+        { "$ref": "#/$defs/ComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "Image" },
+            "url": { "type": "string", "format": "uri", "maxLength": 2000 },
+            "alt": { "$ref": "#/$defs/LabelText" }
+          },
+          "required": ["component", "url", "alt"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Actions": {
+      "description": "Block `actions`: a row of up to 5 controls.",
+      "allOf": [
+        { "$ref": "#/$defs/ComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "Actions" },
+            "children": { "$ref": "#/$defs/ChildList", "minItems": 1, "maxItems": 5 }
+          },
+          "required": ["component", "children"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Embed": {
+      "description": "Block `embed`: one framed page per message, at a ratio Raya chooses from three.",
+      "allOf": [
+        { "$ref": "#/$defs/ComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "Embed" },
+            "url": { "type": "string", "format": "uri", "maxLength": 2000 },
+            "title": { "$ref": "#/$defs/LabelText" },
+            "ratio": { "enum": ["16:9", "4:3", "1:1"] }
+          },
+          "required": ["component", "url"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Button": {
+      "description": "Element `button`: calls the agent with an action, or leaves to an https url (a link-out, which reports nothing back). Never both.",
+      "allOf": [
+        { "$ref": "#/$defs/ComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "Button" },
+            "label": { "$ref": "#/$defs/LabelText" },
+            "action": { "$ref": "#/$defs/Action" },
+            "url": { "type": "string", "format": "uri", "pattern": "^https://", "maxLength": 2000 },
+            "variant": { "enum": ["default", "primary", "danger"], "default": "default" },
+            "confirm": {
+              "type": "object",
+              "description": "Asked by Raya before the press is sent.",
+              "properties": {
+                "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+                "text": { "type": "string", "minLength": 1, "maxLength": 500 },
+                "confirm": { "type": "string", "minLength": 1, "maxLength": 120 },
+                "deny": { "type": "string", "minLength": 1, "maxLength": 120 }
+              },
+              "required": ["title", "text", "confirm", "deny"],
+              "additionalProperties": false
+            },
+            "once": { "type": "boolean", "description": "Retired for everyone after one answered press." }
+          },
+          "required": ["component", "label"],
+          "oneOf": [
+            { "required": ["action"], "not": { "required": ["url"] } },
+            { "required": ["url"], "not": { "anyOf": [{ "required": ["action"] }, { "required": ["confirm"] }, { "required": ["once"] }] } }
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Select": {
+      "description": "Element `select`: one choice from up to 20 options.",
+      "allOf": [
+        { "$ref": "#/$defs/ComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "Select" },
+            "action": { "$ref": "#/$defs/Action" },
+            "placeholder": { "type": "string", "minLength": 1, "maxLength": 120 },
+            "options": { "$ref": "#/$defs/Options", "maxItems": 20 }
+          },
+          "required": ["component", "action", "options"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "DatePicker": {
+      "description": "Element `date`: one ISO date, optionally pre-selected.",
+      "allOf": [
+        { "$ref": "#/$defs/ComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "DatePicker" },
+            "action": { "$ref": "#/$defs/Action" },
+            "initial": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+          },
+          "required": ["component", "action"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Overflow": {
+      "description": "Element `overflow`: a menu of up to 10 options.",
+      "allOf": [
+        { "$ref": "#/$defs/ComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "Overflow" },
+            "action": { "$ref": "#/$defs/Action" },
+            "options": { "$ref": "#/$defs/Options", "maxItems": 10 }
+          },
+          "required": ["component", "action", "options"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "TextInput": {
+      "description": "Element `text_input`: a short answer, 300 characters unless maxLength says otherwise (at most 500).",
+      "allOf": [
+        { "$ref": "#/$defs/ComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "TextInput" },
+            "action": { "$ref": "#/$defs/Action" },
+            "placeholder": { "type": "string", "minLength": 1, "maxLength": 120 },
+            "maxLength": { "type": "integer", "minimum": 1, "maximum": 500 },
+            "multiline": { "type": "boolean" }
+          },
+          "required": ["component", "action"]
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  },
+  "functions": {},
+  "$defs": {
+    "ComponentId": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "ChildList": { "type": "array", "items": { "$ref": "#/$defs/ComponentId" } },
+    "ComponentCommon": {
+      "type": "object",
+      "description": "Mirrors A2UI common_types.json ComponentCommon: every component has an id.",
+      "properties": { "id": { "$ref": "#/$defs/ComponentId" } },
+      "required": ["id"]
+    },
+    "LabelText": {
+      "description": "A short label, or a path into the surface's data model resolved to text when the reply is read (D-e).",
+      "oneOf": [
+        { "type": "string", "minLength": 1, "maxLength": 120 },
+        { "$ref": "#/$defs/DataPath" }
+      ]
+    },
+    "BodyText": {
+      "description": "Text up to 3000 characters, or a data model path resolved to text when the reply is read (D-e).",
+      "oneOf": [
+        { "type": "string", "minLength": 1, "maxLength": 3000 },
+        { "$ref": "#/$defs/DataPath" }
+      ]
+    },
+    "DataPath": {
+      "type": "object",
+      "properties": { "path": { "type": "string", "pattern": "^/", "maxLength": 200 } },
+      "required": ["path"],
+      "additionalProperties": false
+    },
+    "Action": {
+      "type": "object",
+      "description": "What a press sends back: name becomes Raya's action_id; value is opaque, returned untouched.",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-zA-Z0-9._:-]+$" },
+        "value": { "type": "string", "maxLength": 2000 }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+    "Options": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "value": { "type": "string", "maxLength": 2000 }
+        },
+        "required": ["label", "value"],
+        "additionalProperties": false
+      }
+    },
+    "anyComponent": {
+      "oneOf": [
+        { "$ref": "#/components/Stack" },
+        { "$ref": "#/components/Header" },
+        { "$ref": "#/components/Section" },
+        { "$ref": "#/components/Context" },
+        { "$ref": "#/components/Divider" },
+        { "$ref": "#/components/Image" },
+        { "$ref": "#/components/Actions" },
+        { "$ref": "#/components/Embed" },
+        { "$ref": "#/components/Button" },
+        { "$ref": "#/components/Select" },
+        { "$ref": "#/components/DatePicker" },
+        { "$ref": "#/components/Overflow" },
+        { "$ref": "#/components/TextInput" }
+      ],
+      "discriminator": { "propertyName": "component" }
+    },
+    "theme": {
+      "type": "object",
+      "description": "Accepted and ignored: Raya's interface owns every colour and font.",
+      "additionalProperties": true
+    }
+  }
+}

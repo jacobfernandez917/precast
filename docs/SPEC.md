@@ -214,10 +214,15 @@ On disagreement between docs:
 
 ### 5.2 Adding a New Shared Package
 
-1. Create `packages/<name>/` with its own `package.json` and `tsconfig.json`.
-2. Add the workspace path to `pnpm-workspace.yaml`.
-3. Add path alias in `tsconfig.base.json` if needed.
-4. Import in apps via the workspace dependency.
+1. Create `packages/<name>/` with its own `package.json` (an `exports` map pointing at `dist/`)
+   and `tsconfig.json`, compiled to ESM like `packages/shared`.
+2. Add the workspace path to `pnpm-workspace.yaml` (`packages/*` already covers it).
+3. Import in apps via the workspace dependency (`"@precast/<name>": "workspace:*"`), and add
+   `--filter @precast/<name>` to each consuming app's `dev` scripts and `Dockerfile` build line.
+   Apps resolve the package through its built `exports`, never a `tsconfig` path into `src`:
+   Next's webpack cannot follow the `./x.js` specifiers ESM sources use, so a `paths` alias
+   builds only until the first runtime import. Vitest aliases `src` in each app's
+   `vitest.config.ts` so unit tests need no build.
 
 ---
 

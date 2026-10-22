@@ -44,6 +44,7 @@
  * components. Enforced by `apps/web/test/a2a-only.spec.ts`.
  */
 
+import { A2UI_EXTENSION_URI, a2uiClientCapabilities, a2uiMessagesFromReply } from '@precast/a2ui';
 import { log } from './logger';
 import { getAgentBaseAccessToken } from './agentbase-auth';
 import { resolveAgentUrl } from './agentbase-discovery';
@@ -60,6 +61,12 @@ export interface AgentReply {
   ok: boolean;
   /** Best-effort extracted assistant text (null if none, or on error). */
   text: string | null;
+  /**
+   * A2UI server-to-client messages the agent attached (interactive cards), in order; empty when
+   * there are none. Untrusted agent output: the browser renderer validates every component
+   * against the catalog before drawing it.
+   */
+  a2ui: unknown[];
   /** Error message when the agent call failed. */
   error?: string;
   /** Which transport handled the call. */
@@ -131,10 +138,15 @@ function buildA2aMessageEnvelope(text: string, options?: CallOptions): unknown {
         // contextId → Mastra threadId. Without it Mastra passes neither thread
         // nor resource to the agent, and memory stays inert.
         ...(threadId ? { contextId: threadId } : {}),
-        // Read by Mastra's A2A handler as `message.metadata.resourceId`. It
-        // defaults to the AGENT ID when absent, which would put every user in
-        // one shared memory bucket — so this is load-bearing, not optional.
-        ...(resourceId ? { metadata: { resourceId } } : {}),
+        // `resourceId` is read by Mastra's A2A handler as
+        // `message.metadata.resourceId`. It defaults to the AGENT ID when absent,
+        // which would put every user in one shared memory bucket — so this is
+        // load-bearing, not optional. `a2uiClientCapabilities` tells the agent
+        // this app draws `raya.blocks.v1` cards (see AgentCards.tsx).
+        metadata: {
+          ...(resourceId ? { resourceId } : {}),
+          a2uiClientCapabilities: a2uiClientCapabilities(),
+        },
       },
     },
   };
@@ -152,13 +164,20 @@ async function callViaAgentBase(
   // URL, which would 404 while looking perfectly well-formed.
   const target = await resolveAgentUrl(agentId);
   if (!target.ok) {
-    return { ok: false, text: null, via: 'agentbase', raw: null, error: target.error };
+    return { ok: false, text: null, a2ui: [], via: 'agentbase', raw: null, error: target.error };
   }
   const url = target.url;
 
   const tokenResult = await getAgentBaseAccessToken();
   if (!tokenResult.ok) {
-    return { ok: false, text: null, via: 'agentbase', raw: null, error: tokenResult.error };
+    return {
+      ok: false,
+      text: null,
+      a2ui: [],
+      via: 'agentbase',
+      raw: null,
+      error: tokenResult.error,
+    };
   }
 
   // AgentBase's per-agent proxy takes the raw A2A envelope as the body (org +
@@ -196,7 +215,12 @@ async function postJsonRpc(
   bearer: string,
   signal?: AbortSignal,
 ): Promise<unknown> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  // The A2UI extension, requested on every call. AgentBase forwards a validated
+  // `X-A2A-Extensions` (A2UI-1); the metadata above carries the same intent.
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-A2A-Extensions': A2UI_EXTENSION_URI,
+  };
   if (bearer) headers['Authorization'] = `Bearer ${bearer}`;
 
   // Debug-level so the full A2A wire traffic shows under `dev:verbose` /
@@ -246,9 +270,9 @@ interface RpcResponse {
 function normalize(raw: unknown, via: A2aTransport): AgentReply {
   const r = (raw ?? null) as RpcResponse | null;
   if (r?.error) {
-    return { ok: false, text: null, error: r.error.message ?? 'Agent error', via, raw };
+    return { ok: false, text: null, a2ui: [], error: r.error.message ?? 'Agent error', via, raw };
   }
-  return { ok: true, text: extractText(r?.result), via, raw };
+  return { ok: true, text: extractText(r?.result), a2ui: a2uiMessagesFromReply(r), via, raw };
 }
 
 function partsToText(parts?: RpcPart[]): string {

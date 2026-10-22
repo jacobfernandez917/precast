@@ -1,8 +1,15 @@
-import { readFileSync, existsSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { lockHash, tagFor, DEPS_IMAGE_REPO, FALLBACK_BASE } from '../../../scripts/deps-image.mjs';
+import {
+  lockHash,
+  tagFor,
+  workspaceManifests,
+  DEPS_IMAGE_REPO,
+  FALLBACK_BASE,
+} from '../../../scripts/deps-image.mjs';
 import { replaceToken } from '../../../scripts/rename-project.mjs';
 
 /**
@@ -74,7 +81,11 @@ describe('deps.Dockerfile carries no application source', () => {
     );
     expect(copies.length).toBeGreaterThan(0);
     for (const line of copies) {
-      const sources = line.split(/\s+/).slice(0, -1);
+      // Flags such as `--parents` are not sources.
+      const sources = line
+        .split(/\s+/)
+        .slice(0, -1)
+        .filter((s) => !s.startsWith('--'));
       for (const src of sources) {
         expect(
           src,
@@ -85,6 +96,50 @@ describe('deps.Dockerfile carries no application source', () => {
       }
     }
   });
+
+  // APP-023: a workspace package missing from the image fails its frozen install; missing from the
+  // cache key, it keeps a stale deps image in use. Both are found by glob, never listed.
+  it('copies every workspace manifest by glob, keeping each at its own path', () => {
+    const copies = [...read('docker/deps.Dockerfile').matchAll(/^COPY\s+(.+)$/gm)].map((m) => m[1]);
+    const globbed = copies.find((c) => c.includes('--parents'));
+    expect(globbed, 'deps.Dockerfile must COPY --parents the workspace manifests').toBeDefined();
+    expect(globbed).toContain('apps/*/package.json');
+    expect(globbed).toContain('packages/*/package.json');
+  });
+
+  it('keys the cache on every workspace manifest, including one added later', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'deps-key-'));
+    const write = (rel: string, body: unknown) => {
+      mkdirSync(join(dir, rel, '..'), { recursive: true });
+      writeFileSync(join(dir, rel), typeof body === 'string' ? body : JSON.stringify(body));
+    };
+    try {
+      write('pnpm-lock.yaml', 'lockfileVersion: 9.0\n');
+      write('package.json', { name: 'root' });
+      write('apps/agents/package.json', { name: '@x/agents', dependencies: { a: '1' } });
+      const base = lockHash(dir);
+
+      write('packages/new-thing/package.json', { name: '@x/new', dependencies: { b: '1' } });
+      expect(workspaceManifests(dir)).toContain('packages/new-thing/package.json');
+      const withPackage = lockHash(dir);
+      expect(withPackage).not.toBe(base);
+
+      write('packages/new-thing/package.json', { name: '@x/new', dependencies: { b: '2' } });
+      expect(lockHash(dir)).not.toBe(withPackage);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('finds this repo’s packages', () => {
+    expect(workspaceManifests()).toEqual(
+      expect.arrayContaining([
+        'package.json',
+        'apps/agents/package.json',
+        'packages/a2ui/package.json',
+      ]),
+    );
+  });
 });
 
 describe('rename safety', () => {
@@ -93,6 +148,30 @@ describe('rename safety', () => {
     const out = replaceToken(src, 'vectorizer');
     expect(out).toContain(`${DEPS_IMAGE_REPO}:lock-deadbeef`);
     expect(out).toContain('echo vectorizer');
+  });
+
+  it('leaves PRECAST_* environment names untouched, since scripts and hooks read them', () => {
+    const src =
+      "process.env.PRECAST_DEPS_IMAGE || process.env.PRECAST_ENFORCE_DOC_FRESHNESS; const n = 'precast';";
+    expect(replaceToken(src, 'x-y')).toBe(
+      "process.env.PRECAST_DEPS_IMAGE || process.env.PRECAST_ENFORCE_DOC_FRESHNESS; const n = 'x-y';",
+    );
+  });
+
+  it("leaves the boilerplate's own file and script names untouched", () => {
+    const src = [
+      "import { stampLock } from '../../../scripts/precast-lock.mjs';",
+      "import { plan } from '../../../scripts/precast-update.mjs';",
+      "read('precast.lock.json'); read('precast.manifest.json'); run('pnpm precast:update');",
+      "const name = 'precast'; // still renamed",
+    ].join('\n');
+    const out = replaceToken(src, 'x-y');
+    expect(out).toContain("scripts/precast-lock.mjs'");
+    expect(out).toContain("scripts/precast-update.mjs'");
+    expect(out).toContain("'precast.lock.json'");
+    expect(out).toContain("'precast.manifest.json'");
+    expect(out).toContain('pnpm precast:update');
+    expect(out).toContain("const name = 'x-y';");
   });
 
   it('still renames every case form outside a registry reference', () => {

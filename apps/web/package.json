@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --filter @precast/shared build && dotenv -e ../../.env -- next dev -p 45001",
-    "dev:verbose": "pnpm --filter @precast/shared build && dotenv -v LOG_LEVEL=debug -e ../../.env -- next dev -p 45001",
+    "dev": "pnpm --filter @precast/shared --filter @precast/a2ui build && dotenv -e ../../.env -- next dev -p 45001",
+    "dev:verbose": "pnpm --filter @precast/shared --filter @precast/a2ui build && dotenv -v LOG_LEVEL=debug -e ../../.env -- next dev -p 45001",
     "build": "next build --webpack",
     "start": "dotenv -e ../../.env -- next start -p 45001",
     "test": "vitest run",
@@ -17,13 +17,17 @@
     "clean": "rm -rf .next dist playwright-report test-results"
   },
   "dependencies": {
+    "@a2ui/react": "0.14.0",
+    "@a2ui/web_core": "0.14.0",
     "@astryxdesign/core": "^0.1.5",
     "@astryxdesign/theme-neutral": "^0.1.5",
+    "@precast/a2ui": "workspace:*",
     "@precast/shared": "workspace:*",
     "next": "^16.3.1",
     "pino": "^9",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@astryxdesign/cli": "^0.1.5",

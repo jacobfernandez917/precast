@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState, type FormEvent } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
@@ -7,6 +8,12 @@ import { TextInput } from '@astryxdesign/core/TextInput';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
 import type { AgentReply } from './lib/a2a-client';
+import type { CardPress } from './a2ui/AgentCards';
+
+// Client-only: `@a2ui/react` extends HTMLElement at import, which has no server equivalent.
+const AgentCards = dynamic(() => import('./a2ui/AgentCards').then((m) => m.AgentCards), {
+  ssr: false,
+});
 
 /**
  * Agent chat demo — sends a message to a Mastra agent through the
@@ -22,12 +29,20 @@ import type { AgentReply } from './lib/a2a-client';
  * agent begins a fresh thread — though anything it recorded in working memory
  * follows the user across threads, which is the visible difference between the
  * two kinds of memory.
+ *
+ * CARDS: a reply may carry A2UI messages (`AgentReply.a2ui`), drawn under the
+ * text by `AgentCards`. A press on a card posts `{ action }` to the same route,
+ * which sends it to the agent as text on the same thread, so the agent answers
+ * the press like any other turn.
  */
 interface Turn {
   question: string;
   answer: string;
+  a2ui: unknown[];
   via: AgentReply['via'];
 }
+
+type RouteReply = (AgentReply & { conversationId: string }) | { error: string };
 
 export function AgentChat() {
   const [agentId, setAgentId] = useState('example-agent');
@@ -43,14 +58,11 @@ export function AgentChat() {
     setError(null);
   }
 
-  async function sendMessage(e: FormEvent) {
-    e.preventDefault();
-    const question = message.trim();
-    if (!question || isSending) return;
-
+  /** One turn: `body` is either `{ text }` or `{ action }`; `question` is what the log shows. */
+  async function sendTurn(body: Record<string, unknown>, question: string): Promise<boolean> {
+    if (isSending) return false;
     setIsSending(true);
     setError(null);
-
     try {
       const res = await fetch(`/api/a2a/${agentId}`, {
         method: 'POST',
@@ -58,35 +70,49 @@ export function AgentChat() {
         // Only the conversation id travels from the browser. Identity is the
         // server's business — sending a resourceId from here would be the bug
         // this whole seam exists to prevent.
-        body: JSON.stringify({ text: question, ...(conversationId ? { conversationId } : {}) }),
+        body: JSON.stringify({ ...body, ...(conversationId ? { conversationId } : {}) }),
       });
       // 200 → normalized AgentReply + conversationId; non-2xx → { error: string }.
-      const data = (await res.json()) as
-        (AgentReply & { conversationId: string }) | { error: string };
+      const data = (await res.json()) as RouteReply;
 
       if (!res.ok) {
         setError((data as { error?: string }).error ?? 'Request failed');
-        return;
+        return false;
       }
 
       const r = data as AgentReply & { conversationId: string };
       // Adopt the server's id even on a failed turn, so a retry stays in thread.
       setConversationId(r.conversationId);
 
-      if (r.ok) {
-        setTurns((prev) => [
-          ...prev,
-          { question, answer: r.text || '(no text content)', via: r.via },
-        ]);
-        setMessage('');
-      } else {
+      if (!r.ok) {
         setError(r.error ?? 'Agent error');
+        return false;
       }
+      setTurns((prev) => [
+        ...prev,
+        { question, answer: r.text || '(no text content)', a2ui: r.a2ui ?? [], via: r.via },
+      ]);
+      return true;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Request failed');
+      return false;
     } finally {
       setIsSending(false);
     }
+  }
+
+  async function sendMessage(e: FormEvent) {
+    e.preventDefault();
+    const question = message.trim();
+    if (!question) return;
+    if (await sendTurn({ text: question }, question)) setMessage('');
+  }
+
+  async function sendPress(press: CardPress): Promise<void> {
+    const label = typeof press.context.label === 'string' ? press.context.label : press.name;
+    const selection =
+      typeof press.context.selection === 'string' ? ` · ${press.context.selection}` : '';
+    await sendTurn({ action: press }, `Pressed ${label}${selection}`);
   }
 
   return (
@@ -119,17 +145,19 @@ export function AgentChat() {
                   <Text type="supporting">You</Text>
                   <Text as="p">{turn.question}</Text>
                 </div>
-                <div className="rounded-lg border border-border bg-surface p-3">
+                <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-3">
                   <Text type="supporting">
                     Agent · {turn.via === 'agentbase' ? 'via AgentBase proxy' : 'direct A2A'}
                   </Text>
                   <Text as="p">{turn.answer}</Text>
+                  {turn.a2ui.length > 0 && <AgentCards messages={turn.a2ui} onPress={sendPress} />}
                 </div>
               </div>
             ))}
             <Text type="supporting">
               This agent remembers the turns above. Tell it your name, start over, then ask for it —
-              the thread resets, but what it saved about you carries across.
+              the thread resets, but what it saved about you carries across. Ask for a card to see
+              buttons it can draw.
             </Text>
           </div>
         )}

@@ -150,3 +150,91 @@ describe('callAgent — direct mode (ENABLE_AGENTBASE=0)', () => {
     expect(reply).toMatchObject({ ok: true, via: 'direct', text: 'hello back' });
   });
 });
+
+/** WEB-015: the client asks for cards on every call and hands back what the agent attached. */
+describe('callAgent — A2UI (cards)', () => {
+  beforeEach(() => {
+    process.env.ENABLE_AGENTBASE = '0';
+    process.env.MASTRA_INTERNAL_URL = 'http://mastra.test';
+  });
+
+  const a2ui = [
+    { version: 'v0.9.1', createSurface: { surfaceId: 'card-1', catalogId: 'raya.blocks.v1' } },
+    {
+      version: 'v0.9.1',
+      updateComponents: {
+        surfaceId: 'card-1',
+        components: [{ id: 'root', component: 'Stack', children: [] }],
+      },
+    },
+  ];
+  const TASK_WITH_CARD = {
+    jsonrpc: '2.0',
+    id: 'x',
+    result: {
+      kind: 'task',
+      id: 't1',
+      status: { state: 'completed' },
+      artifacts: [
+        {
+          artifactId: 't1:response',
+          parts: [
+            { kind: 'text', text: 'Done.' },
+            { kind: 'data', metadata: { mimeType: 'application/a2ui+json' }, data: a2ui },
+          ],
+        },
+      ],
+    },
+  };
+
+  it('declares the catalog it renders and requests the extension, on every call', async () => {
+    const fetchSpy = vi.fn(
+      async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await callAgent('example-agent', 'hi', { threadId: 't', resourceId: 'r' });
+
+    const [, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['X-A2A-Extensions']).toBe(
+      'https://a2ui.org/a2a-extension/a2ui/v0.9.1',
+    );
+    const body = JSON.parse(String(init.body));
+    expect(body.params.message.metadata).toEqual({
+      resourceId: 'r',
+      a2uiClientCapabilities: { 'v0.9.1': { supportedCatalogIds: ['raya.blocks.v1'] } },
+    });
+  });
+
+  it('returns the A2UI messages beside the text, in order', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify(TASK_WITH_CARD), { status: 200 })),
+    );
+    const reply = await callAgent('example-agent', 'deploy status?');
+    expect(reply.ok).toBe(true);
+    expect(reply.text).toBe('Done.');
+    expect(reply.a2ui).toEqual(a2ui);
+  });
+
+  it('returns no cards for a text-only reply or an error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 })),
+    );
+    expect((await callAgent('example-agent', 'hi')).a2ui).toEqual([]);
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ jsonrpc: '2.0', id: 'x', error: { message: 'boom' } }), {
+            status: 200,
+          }),
+      ),
+    );
+    const failed = await callAgent('example-agent', 'hi');
+    expect(failed.ok).toBe(false);
+    expect(failed.a2ui).toEqual([]);
+  });
+});

@@ -1,5 +1,6 @@
 import { Agent } from '@mastra/core/agent';
 import { exampleTool } from '../tools/example-tool';
+import { cardTools, SHOW_CARD_INSTRUCTIONS } from '../tools/show-card';
 import { resolveAgentModel } from '../lib/agentbase-model';
 import { resolveDefaultModel } from '../lib/default-model';
 import { createAgentMemory } from '../lib/memory';
@@ -23,7 +24,9 @@ export const exampleAgent = new Agent({
     'You remember earlier turns in this conversation, and you keep durable ' +
     'facts about the user (their name, preferences, standing instructions) in ' +
     'working memory — update it when you learn one, rather than relying on ' +
-    'recalling it from the transcript later.',
+    'recalling it from the transcript later.\n\n' +
+    // Cards (A2UI): remove this and `...cardTools` below to answer in text only.
+    SHOW_CARD_INSTRUCTIONS,
   // Uses AgentBase's LLM gateway when imported + org-admin-configured
   // (see docs/INTEGRATION_AGENTBASE.md); otherwise resolveDefaultModel()
   // auto-detects from whichever provider key is set in this repo's own
@@ -40,7 +43,7 @@ export const exampleAgent = new Agent({
   // with a warning, because it clears only when a human clicks "Connect
   // account" and no redeploy can fix it. Off AgentBase this resolves to `{}` and
   // costs nothing (see lib/agentbase-mcp.ts).
-  tools: { exampleTool, ...(await resolveAgentMcpTools(AGENT_ID)) },
+  tools: { exampleTool, ...cardTools, ...(await resolveAgentMcpTools(AGENT_ID)) },
   // Durable, Postgres-backed conversation memory. Engages only when the caller
   // sends an A2A `contextId` (→ threadId) — see lib/memory.ts for why, and for
   // why the caller must also send a real `resourceId`.
