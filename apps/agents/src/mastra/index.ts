@@ -1,15 +1,20 @@
-// R2 — start OpenTelemetry FIRST, before @mastra/core (and the http it pulls in)
-// is imported, so trace context propagates across the crew's in-process hops and
-// onto egress back to AgentBase. See telemetry/otel.ts.
-import './telemetry/otel';
+import { startAgentTelemetry } from './telemetry/otel';
 import { Mastra } from '@mastra/core/mastra';
 import { PinoLogger } from '@mastra/loggers';
 import { parseApiEnv } from '@precast/shared';
 import { getMastraStore } from './lib/storage';
 import { agentAuthMiddleware, assertAgentApiAuthConfigured } from './middleware/auth';
 import { a2uiMiddleware } from './middleware/a2ui';
+import { telemetryMiddleware } from './middleware/telemetry';
 import { crew, crewAgents } from './crew';
 import { isAgentBaseLlmConfigured } from './lib/agentbase-model';
+
+// R2 — telemetry first. The production container has already started it from
+// the preload (`node --import ./telemetry.mjs`), which makes this a no-op there;
+// under `mastra dev` this is where it starts. A call, not a bare
+// `import './telemetry/otel'`: Mastra's bundler tree-shakes modules as side-effect
+// free and dropped that import. See telemetry/otel.ts.
+startAgentTelemetry();
 
 // Validate env at boot — fail fast on missing/invalid config. The single root
 // `.env` is loaded by the dev/start scripts (dotenv-cli); in production the real
@@ -81,9 +86,10 @@ export const mastra = new Mastra({
   server: {
     host: env.MASTRA_HOST,
     port: env.MASTRA_PORT,
-    // Static bearer token auth for agent API routes (off when AGENT_API_TOKEN is
-    // unset), then A2UI cards. Order matters: auth opens the per-request store
-    // that `show_card` writes to and the A2UI middleware reads.
-    middleware: [agentAuthMiddleware, a2uiMiddleware],
+    // One telemetry log record per A2A call (first, so a refused call is counted
+    // too), then static bearer token auth for agent API routes (off when
+    // AGENT_API_TOKEN is unset), then A2UI cards. Order matters: auth opens the
+    // per-request store that `show_card` writes to and the A2UI middleware reads.
+    middleware: [telemetryMiddleware, agentAuthMiddleware, a2uiMiddleware],
   },
 });

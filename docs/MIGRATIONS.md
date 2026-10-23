@@ -122,6 +122,67 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.10.2 — telemetry to AgentBase: traces, metrics and logs (2026-10-23)
+
+**What changed.** The agents container reports traces, metrics and logs to AgentBase's governed
+endpoint, `{AGENTBASE_API}/telemetry/otlp`, configured only by the standard `OTEL_*` variables.
+A project AgentBase hosts needs nothing: AgentBase injects the endpoint and a managed key at
+deploy. A project you host sets `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS`
+with a key issued in Studio. Exported span attributes pass an allowlist, so prompts,
+completions, tool arguments and credentials never leave the container (Mastra's bundled AI SDK
+records them on its spans when a caller turns its telemetry on). Health checks are not traced;
+SIGTERM flushes within 5 s; an export failure is one `[otel]` line, and a 401 says to issue a new key.
+
+Mastra's own usage analytics are now off. Mastra core and its CLI send anonymous usage data (OS,
+Node version, a hashed hostname, agent counts, storage type) to a third-party analytics service
+from every server and CLI run unless `MASTRA_TELEMETRY_DISABLED` is set; a governed AgentBase
+deployment should send nothing it does not govern. The runtime image and the agents scripts now
+set it. Details: `docs/INTEGRATION_AGENTBASE.md` §7.13.
+
+It also fixes a silent gap in every earlier release: `mastra/index.ts` started telemetry with a
+bare `import './telemetry/otel'`, and Mastra's production bundler (`treeshake: "smallest"`)
+drops side-effect imports, so a built container never started OpenTelemetry at all, not even
+trace propagation. The Dockerfile comment that said the image preloaded it was wrong.
+
+**Upside:** a hosted agent shows up on its Telemetry page with no setup, and trace continuity
+across crew hops now works in built containers. **Downside:** six more OpenTelemetry packages and
+esbuild in `apps/agents`, a second build step, and a preload in the container's start command.
+
+**Handled by `pnpm precast:update`.** None. Everything is under `apps/agents`.
+
+**Manual steps.**
+
+1. **`apps/agents/package.json`:** add `@opentelemetry/exporter-{trace,metrics,logs}-otlp-proto`,
+   `@opentelemetry/exporter-{metrics,logs}-otlp-http` and `@opentelemetry/api-logs` (all
+   `^0.221.0`) and `esbuild` (`^0.28.1`, dev); set `"build": "mastra build && pnpm run build:telemetry"`
+   and copy the `build:telemetry` script. Then `pnpm install`.
+2. **Copy** `apps/agents/src/mastra/telemetry/otel.ts` (replacing yours), `telemetry/preload.ts` and
+   `middleware/telemetry.ts`. If your `otel.ts` had changes of its own, port them onto the new one.
+3. **`apps/agents/src/mastra/index.ts`:** replace `import './telemetry/otel';` with
+   `import { startAgentTelemetry } from './telemetry/otel';` and call `startAgentTelemetry();` as the
+   first statement; import `telemetryMiddleware` and put it first in `server.middleware`.
+4. **`apps/agents/Dockerfile`:** add `&& test -f apps/agents/.mastra/output/telemetry.mjs` to the
+   build `RUN`, and make the CMD `["node", "--dns-result-order=ipv4first", "--import", "./telemetry.mjs", "index.mjs"]`.
+5. **Specs:** copy `apps/agents/src/mastra/telemetry/telemetry.spec.ts`, `telemetry-on.spec.ts` and
+   `telemetry-off.spec.ts` (AGT-017 to AGT-023, APP-026, APP-027).
+6. **Mastra usage analytics off:** in `apps/agents/Dockerfile` add `ENV MASTRA_TELEMETRY_DISABLED=1`
+   to the runtime stage, and in `apps/agents/package.json` put `-v MASTRA_TELEMETRY_DISABLED=1` on the
+   `dotenv` call of `dev`, `dev:verbose` and `start`, and prefix `build` with
+   `dotenv -v MASTRA_TELEMETRY_DISABLED=1 --` (APP-027).
+7. **A project you host yourself:** issue a key in Studio (the agent's page, Telemetry) and set
+   `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS` where the agents run.
+
+**Advisory files touched.** `.env.example` gains a commented Telemetry block with the two
+variables; copy it if you want them documented in your own.
+
+**Verify.**
+
+```bash
+pnpm --filter ./apps/agents build && test -f apps/agents/.mastra/output/telemetry.mjs
+pnpm test
+pnpm poc agents   # the agents log says "[otel] exporting …" when OTEL_* is set
+```
+
 ## v0.10.1 — the plain-language surface: `pnpm connect`, five phrases, one-line failures (2026-10-22)
 
 **What changed.** Phase 3 of the AgentBase SDK plan. Everything a person does with a project

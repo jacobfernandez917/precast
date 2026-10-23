@@ -15,6 +15,7 @@
 - The two systems speak the **same protocol family**: **A2A 0.3.x, JSON-RPC 2.0 over HTTP**. Mastra ships it natively (`@a2a-js/sdk@0.3.13`); AgentBase's registry is built around it.
 - AgentBase already carries a **Mastra-shaped compatibility shim** in its card validator — it explicitly names A2A 0.3.0 (Mastra's dialect) as the case it normalizes.
 - Both paths are Studio flows: **Import from Repo** for Path A and **Connect Agent** for Path B. Either way, **no Precast code changes**.
+- **Telemetry reaches AgentBase on both paths.** A hosted agent reports traces, metrics and logs to AgentBase's governed endpoint with nothing to set; an external one needs two variables and a key issued in Studio (§4C step 6, §7.13).
 
 ---
 
@@ -104,6 +105,8 @@ No deploy, no `POST /agents`, no reachable URL to stand up — AgentBase does it
 
 The repo needs no changes to be import-ready — Precast ships the manifest and a Dockerfile that already match the contract.
 
+Telemetry needs nothing either. At deploy AgentBase injects the `OTEL_*` settings (endpoint, a managed key valid for 90 days, `http/protobuf`, `OTEL_SERVICE_NAME=agent-<agentId>` and the `agentbase.*` resource attributes), and the agent's traces, metrics and logs appear on its **Telemetry** page in Studio (§7.13).
+
 ### 4B. Environment variables (Variables → namespaces → environments)
 
 Imported agents get their env from AgentBase **Variables** (Studio → **Variables**), organised as **namespace → environment → variable**:
@@ -147,6 +150,17 @@ Newly synchronized skills land as **`APPROVED`**. Review the imported surface an
 #### Step 5 — Invoke via the proxy
 
 Callers hit `POST /a2a` on AgentBase (with a slug + skill id). AgentBase injects the declared credential, strips the caller's inbound auth, and forwards a JSON-RPC request to the Mastra `POST /api/a2a/:id` endpoint.
+
+#### Step 6 — Report telemetry to AgentBase
+
+On the agent's page in Studio, open **Telemetry** and **issue a key** (valid 1 to 90 days). The key is write-only and bound to this organisation, this agent and one environment. Then set two variables wherever the agents run:
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=https://<agentbase-api>/telemetry/otlp
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer%20<key>
+```
+
+Restart the agents; the container's log says `[otel] exporting traces, metrics, logs to <host>`. Issue a new key before the old one expires: an expired or wrong key shows up once in the agents' log as `telemetry_credential_required` (HTTP 401), and the agents keep serving. Over plain HTTP the endpoint is refused outside AgentBase's local environment.
 
 ---
 
@@ -557,6 +571,30 @@ rendering choices differ from Raya: `Embed` is drawn as a link rather than an if
 is a plain `<img>` with `referrerPolicy="no-referrer"`, since the URL is agent-authored and on no
 allowlist.
 
+### 7.13 Telemetry: traces, metrics and logs to AgentBase
+
+**What is sent.** The agents container exports three OTLP signals to `POST {AGENTBASE_API}/telemetry/otlp/v1/{traces|metrics|logs}`:
+
+- **Traces.** The inbound A2A request (continuing the `traceparent` AgentBase's proxy sends), the crew's in-process hops, and every egress call (token mint, model gateway, MCP proxy), all in one trace.
+- **Metrics,** read every 30 s: `process.memory.usage`, `v8js.memory.heap.used`, `process.cpu.utilization` by `cpu.mode`, and the HTTP server and client request durations.
+- **Logs.** One `agent.request` record per A2A call (agent id, status, duration; INFO, WARN on 4xx, ERROR on 5xx) and one `agents.telemetry.started` at boot, each correlated to the active trace.
+
+Liveness probes (`GET /api/agents`, which the Compose health check calls every 10 s, and `/health`) are left out of traces and HTTP metrics.
+
+**Configuration** is the standard OpenTelemetry environment and nothing else. The exporters read their own per-signal endpoint, headers and protocol (`OTEL_EXPORTER_OTLP_{TRACES,METRICS,LOGS}_*` over the unsuffixed ones), so the values AgentBase injects are used as given. `http/protobuf` is the default and `http/json` is honoured; `grpc` is not supported and disables that signal with a warning. `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` flow onto every signal. `OTEL_<SIGNAL>_EXPORTER=none` turns one signal off and `OTEL_SDK_DISABLED=true` turns telemetry off entirely. With no endpoint nothing is exported and the trace context is still carried through.
+
+| Hosting                       | What to set                                                                                                                                                                                           |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Imported (AgentBase hosts it) | Nothing. AgentBase injects the endpoint, a managed key valid for 90 days, the protocol, `OTEL_SERVICE_NAME=agent-<agentId>` and `agentbase.org`, `agentbase.agent_id`, `deployment.environment.name`. |
+| External (you host it)        | `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS`, with a key issued in Studio (§4C step 6).                                                                                             |
+| Local development             | Nothing; context propagation only. Set the two variables to watch a local run on the Telemetry page.                                                                                                  |
+
+**What never leaves the container.** Exported span attributes pass an allowlist: HTTP method, status and route, URLs with the query string cut, network peer, model id, token counts, agent id. Everything else is dropped, along with status messages and exception messages; an exception keeps only its type. This matters because Mastra bundles the AI SDK, which records `ai.prompt`, `ai.response.text` and `ai.toolCall.args` on its spans whenever a caller turns its telemetry on. Log records carry a fixed event name and allowlisted attributes, never message text. AgentBase redacts again before storing and drops log bodies, but the agent does not rely on that. Mastra's own usage analytics, which it would otherwise send to a third-party service from every server and every CLI run, are switched off (`MASTRA_TELEMETRY_DISABLED=1` in the runtime image and in the agents' `dev`, `build` and `start` scripts), so what leaves the container goes to AgentBase.
+
+**Start order.** The production container runs `node --import ./telemetry.mjs index.mjs`: `telemetry.mjs` is built next to the Mastra bundle from `src/mastra/telemetry/preload.ts`, so the SDK, the W3C propagator and the http/fetch instrumentation are in place before the app graph loads. `mastra/index.ts` also calls `startAgentTelemetry()` (a no-op once started), which is what runs under `mastra dev`. It is a call, not a bare `import`, because Mastra's bundler tree-shakes with `treeshake: "smallest"` and dropped the side-effect import that Precast used before v0.10.2; built containers started no telemetry at all.
+
+**Failure and shutdown.** A telemetry failure never stops the agents from serving; export problems are printed once each as `[otel] …`, with the key cut out, and a 401 says to issue a new key. The exporters retry 429 and 503 after `Retry-After`. On SIGTERM everything buffered is flushed within 5 s before the process exits; Mastra's own shutdown waits for it.
+
 ---
 
 ## 8. Source references
@@ -566,7 +604,9 @@ allowlist.
 - `apps/agents/src/mastra/index.ts` — Mastra instance + server config (host/port)
 - `apps/agents/src/mastra/agents/example-agent.ts` — agent definition (`id`, tools)
 - `apps/agents/src/mastra/lib/agentbase-model.ts` — `resolveAgentModel()` (§7.9: org-admin LLM config per imported agent, else fallback)
-- `apps/agents/Dockerfile` — the image AgentBase builds on import (repo root as context)
+- `apps/agents/Dockerfile` — the image AgentBase builds on import (repo root as context); its CMD preloads `telemetry.mjs`
+- `apps/agents/src/mastra/telemetry/otel.ts` — telemetry: OTLP exporters from `OTEL_*`, the attribute allowlist, metrics, log records, shutdown (§7.13); `preload.ts` is the container's first module
+- `apps/agents/src/mastra/middleware/telemetry.ts` — one `agent.request` log record per A2A call
 - `agentbase.import.json` — the import contract manifest (repo root; see §5b)
 - A2A routes come from `@mastra/server` (`/api/a2a/:agentId`, `/api/.well-known/:agentId/agent-card.json`)
 

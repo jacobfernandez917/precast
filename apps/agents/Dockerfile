@@ -22,9 +22,11 @@ RUN pnpm install --frozen-lockfile --ignore-scripts --store-dir "${PNPM_STORE_DI
 # that matches nothing (e.g. after `pnpm rename`) exits 0 and builds nothing,
 # which only surfaces as an opaque COPY failure below. The `test -f` then makes
 # a would-be-empty build fail loudly, here, instead of at the runtime COPY.
+# The agents build also emits telemetry.mjs, the preload the CMD starts first.
 RUN pnpm --filter "./packages/shared" --filter "./packages/a2ui" build \
  && pnpm --filter "./apps/agents" build \
- && test -f apps/agents/.mastra/output/index.mjs
+ && test -f apps/agents/.mastra/output/index.mjs \
+ && test -f apps/agents/.mastra/output/telemetry.mjs
 
 # ---- runtime: the self-contained .mastra/output bundle (own node_modules) ----
 FROM node:24-alpine AS runtime
@@ -37,6 +39,11 @@ FROM node:24-alpine AS runtime
 ENV NODE_ENV=production \
     MASTRA_HOST=0.0.0.0 \
     MASTRA_PORT=45000
+# Mastra sends anonymous usage analytics to a third-party service from every
+# server unless this is set. A Precast agent runs on AgentBase, which governs
+# what leaves the container (telemetry goes to AgentBase's own endpoint), so
+# it is off. The agents scripts set the same for the CLI (mastra dev|build|start).
+ENV MASTRA_TELEMETRY_DISABLED=1
 WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/agents/.mastra/output ./
 # Drop root. `node:24-alpine` ships an unprivileged `node` user (uid 1000), and
@@ -58,4 +65,9 @@ EXPOSE 45000
 # Set on the CMD, NOT as ENV NODE_OPTIONS: a NODE_OPTIONS supplied through
 # compose or `.env` would REPLACE the image's value and silently drop this —
 # the same shadowing that once made the transport switch unsettable.
-CMD ["node", "--dns-result-order=ipv4first", "index.mjs"]
+#
+# --import ./telemetry.mjs starts OpenTelemetry before the app graph loads, so
+# the http/fetch instrumentation and trace-context propagation are in place for
+# the first request. AgentBase injects the OTEL_* settings into a container it
+# hosts; with none, this only propagates context (apps/agents/src/mastra/telemetry/otel.ts).
+CMD ["node", "--dns-result-order=ipv4first", "--import", "./telemetry.mjs", "index.mjs"]
