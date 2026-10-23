@@ -36,13 +36,15 @@ them fails a command rather than a review.
 
 ## Commands
 
-| | |
-| --- | --- |
-| `pnpm verify` | typecheck + lint + test — what CI runs, and what to run before pushing |
-| `pnpm verify:all` | the above plus build and end-to-end |
-| `pnpm poc` | build and start the Docker stack, wait for health, print the URLs |
-| `pnpm test:e2e` | Playwright |
-| `pnpm precast:update` | pull later Precast improvements (check-only by default) |
+|                       |                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| `pnpm verify`         | typecheck + lint + test — what CI runs, and what to run before pushing                        |
+| `pnpm verify:all`     | the above plus build and end-to-end                                                           |
+| `pnpm poc`            | build and start the Docker stack, wait for health, print the URLs                             |
+| `pnpm test:e2e`       | Playwright                                                                                    |
+| `pnpm connect`        | prove the AgentBase Application and model, then save them to `.env` (`--check` only verifies) |
+| `pnpm db:provision`   | create a Postgres database for this project and write `DATABASE_URL`                          |
+| `pnpm precast:update` | pull later Precast improvements (check-only by default)                                       |
 
 `pnpm poc` matters more than it looks: this project's workflow is proof-of-concept
 first — get something running in front of the user early, then harden (CLAUDE.md §4.0).
@@ -54,9 +56,18 @@ first — get something running in front of the user early, then harden (CLAUDE.
 automatic breadcrumbs, **not** the contract, because the pre-commit hook still demands
 the update. Write the PROGRESS.md entry yourself.
 
-The `precast-plugin` skills (`/precast:scaffold`, `/precast:upgrade`) are Claude Code
-plugins. The same work is available as plain commands: `pnpm bootstrap` and
-`pnpm precast:update`, with the per-release manual steps in
-[docs/MIGRATIONS.md](docs/MIGRATIONS.md).
+The `precast-plugin` skills are Claude Code plugins that answer to five phrases. Each one
+is plain commands underneath, so any harness can do the same work:
+
+| The person says        | Claude Code skill | Plain commands                                                                                               |
+| ---------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------ |
+| "start a project"      | `scaffold`        | `pnpm bootstrap` (with `--db=provision` or `pnpm db:provision`), then `pnpm poc`                             |
+| "show it to me"        | `show`            | `pnpm poc`, or `pnpm poc web` after a web-only change; re-show the printed URL                               |
+| "connect my AgentBase" | `connect`         | `pnpm connect` (run it in the person's terminal; the secret is typed hidden)                                 |
+| "put it on AgentBase"  | `deploy`          | push to GitHub, then the Studio import in [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) §4A |
+| "update it"            | `upgrade`         | `pnpm precast:update`, then the manual steps in [docs/MIGRATIONS.md](docs/MIGRATIONS.md)                     |
+
+When a script fails it prints one line after `❌` with what to do; quote that line, never a
+stack trace (`PRECAST_DEBUG=1` shows the full error when you need it yourself).
 
 Nothing else in this repository depends on a particular agent.

@@ -204,6 +204,14 @@ async function main() {
   if (failed.length) {
     console.error(`\n❌ Not healthy in time: ${failed.join(', ')}`);
     console.error('   See what happened:   pnpm docker:logs');
+    console.error('   The usual causes, most likely first:');
+    console.error(
+      '     • DATABASE_URL is still the placeholder, or wrong  → pnpm db:provision, or paste a Postgres URL into .env',
+    );
+    console.error('     • not connected to AgentBase, or no model chosen   → pnpm connect');
+    console.error(
+      '     • the build ran out of memory in Docker            → raise it in Docker Desktop, then pnpm poc again',
+    );
     console.error('   Then bring it down:  pnpm docker:down');
     process.exit(1);
   }
@@ -233,4 +241,12 @@ async function main() {
   );
 }
 
-await main();
+/** One line a person can act on; the full error only when asked for. */
+function exitWithReason(err) {
+  console.error(`\n❌ ${err?.message ?? err}`);
+  if (process.env.PRECAST_DEBUG) console.error(err?.stack ?? err);
+  else console.error('   (PRECAST_DEBUG=1 shows the full error.)');
+  process.exit(1);
+}
+
+await Promise.resolve().then(main).catch(exitWithReason);

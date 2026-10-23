@@ -185,6 +185,14 @@ async function main() {
 
 // Only run the CLI when invoked directly — the helpers above are imported by
 // scripts/docker-compose.mjs, scripts/poc.mjs, and scripts/bootstrap.mjs.
+/** One line a person can act on; the full error only when asked for. */
+function exitWithReason(err) {
+  console.error(`\n❌ ${err?.message ?? err}`);
+  if (process.env.PRECAST_DEBUG) console.error(err?.stack ?? err);
+  else console.error('   (PRECAST_DEBUG=1 shows the full error.)');
+  process.exit(1);
+}
+
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
-  await main();
+  await Promise.resolve().then(main).catch(exitWithReason);
 }

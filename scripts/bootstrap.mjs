@@ -819,4 +819,12 @@ function resetGit(name) {
   run('git', ['commit', '-m', `chore: initialize ${name} from Precast`]);
 }
 
-main();
+/** One line a person can act on; the full error only when asked for. */
+function exitWithReason(err) {
+  console.error(`\n❌ ${err?.message ?? err}`);
+  if (process.env.PRECAST_DEBUG) console.error(err?.stack ?? err);
+  else console.error('   (PRECAST_DEBUG=1 shows the full error.)');
+  process.exit(1);
+}
+
+Promise.resolve().then(main).catch(exitWithReason);

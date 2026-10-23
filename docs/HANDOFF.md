@@ -42,7 +42,7 @@ Precast otherwise remains a runnable baseline. To start a real project:
 
 1. `pnpm install && pnpm bootstrap` (or `pnpm bootstrap my-project`).
 2. **Write the feed-forward docs first:** copy the relevant `templates/*.md` into `docs/`, replace the example content with your product.
-3. Fill in `docs/PROGRESS.md` §1 (name + mission) and the README title; set `AGENTBASE_LLM_MODEL` and the Application credentials in `.env` (models come from the AgentBase LLM gateway; no vendor key), point `REDIS_URL` / `KEYCLOAK_TOKEN_ISSUER_URI` at your remote/managed services, and set `DATABASE_URL` to a **managed Postgres** URL — Postgres-only since [ADR-002](ADRS.md), and the stack will not boot without it (see [.env.example](../.env.example)).
+3. Fill in `docs/PROGRESS.md` §1 (name + mission) and the README title; run `pnpm connect` for the AgentBase Application and model (it proves them before writing `.env`; no vendor key anywhere), point `REDIS_URL` / `KEYCLOAK_TOKEN_ISSUER_URI` at your remote/managed services, and set `DATABASE_URL` to a **managed Postgres** URL — Postgres-only since [ADR-002](ADRS.md), and the stack will not boot without it (see [.env.example](../.env.example)).
 4. Build your agents/tools under `apps/agents/src/mastra/` and pages under `apps/web/app/`; extend the env schema in `packages/shared/src/env.ts`.
 
 ---

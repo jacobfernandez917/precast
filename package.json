@@ -24,6 +24,7 @@
     "verify:all": "turbo run typecheck lint test build && pnpm test:e2e",
     "smoke:chat": "dotenv -e .env -- node scripts/smoke-chat.mjs",
     "db:provision": "node scripts/provision-db.mjs",
+    "connect": "node scripts/connect-agentbase.mjs",
     "dev": "turbo run dev",
     "dev:verbose": "turbo run dev:verbose",
     "dev:agents": "pnpm -F @precast/agents dev",

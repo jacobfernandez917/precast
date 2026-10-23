@@ -122,6 +122,52 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.10.1 — the plain-language surface: `pnpm connect`, five phrases, one-line failures (2026-10-22)
+
+**What changed.** Phase 3 of the AgentBase SDK plan. Everything a person does with a project
+maps to five phrases, each a Claude Code skill in the Precast plugin backed by one script:
+"start a project", "show it to me", "connect my AgentBase", "put it on AgentBase", "update it".
+
+- **`pnpm connect`** (`scripts/connect-agentbase.mjs`) connects an existing project to an
+  AgentBase Application and proves it before writing anything: it mints a token with the id
+  and secret, lists the models published to the Application, checks the chosen one is among
+  them, then writes the five values to `.env`. `--check` verifies only. The secret is typed
+  hidden or passed as a flag and never printed. Every failure is a sentence naming where in
+  Studio to look (APP-025, 12 cases).
+- **One-line failures everywhere.** Every operator script now ends a failure with one line
+  after `❌` (or `✖`) and what to do; the stack trace appears only with `PRECAST_DEBUG=1`
+  (SMOKE-022). `pnpm poc` names the usual causes when a service is not healthy, the compose
+  wrapper's missing-`.env` message says what to run next, `pnpm smoke:chat` explains a 500.
+- **README** rewritten in the order a person meets the kit; **AGENTS.md** carries the same
+  five phrases with their plain commands for other harnesses.
+- **Plugin:** new `show`, `connect` and `deploy` skills; `scaffold` and `upgrade` answer to
+  the phrases. `deploy` is a Studio walkthrough until AgentBase exposes import and variables
+  as MCP tools.
+
+**Upside:** a person never types a command, and a failure is always an instruction. **Downside:**
+the phrases exist only inside Claude Code or a harness that reads `AGENTS.md`; without one there
+are the scripts and the README, which decision 3 of the plan accepts.
+
+**Handled by `pnpm precast:update`.** `scripts/*.mjs` (the new script and the entry catches).
+
+**Manual steps.**
+
+1. **`package.json`:** add `"connect": "node scripts/connect-agentbase.mjs"` next to
+   `db:provision`.
+2. **Specs:** copy `apps/web/test/connect-agentbase.spec.ts` (APP-025) and the SMOKE-022
+   block at the end of `apps/web/test/repo-hygiene.spec.ts`.
+3. **Your own scripts:** give each a top-level `.catch(exitWithReason)` in the same shape, or
+   SMOKE-022 fails on them.
+
+**Advisory files touched.** `package.json`, the specs above.
+
+**Verify.**
+
+```bash
+pnpm verify
+pnpm connect --check
+```
+
 ## v0.10.0 — AgentBase only: Standalone removed, vendor keys gone (2026-10-22)
 
 **What changed.** Phase 2 of the AgentBase SDK plan. A Precast project now runs on AgentBase or

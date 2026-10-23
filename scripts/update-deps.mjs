@@ -32,6 +32,7 @@ function run(cmd, cmdArgs, { allowFail = false } = {}) {
   const res = spawnSync(cmd, cmdArgs, { cwd: rootDir, stdio: 'inherit', shell: false });
   if (res.status !== 0 && !allowFail) {
     console.error(`\n❌ \`${cmd} ${cmdArgs.join(' ')}\` failed (exit ${res.status}).`);
+    console.error('   Its output above says why. Fix that, then run pnpm deps:update again.');
     process.exit(res.status ?? 1);
   }
   return res.status ?? 0;
@@ -71,4 +72,12 @@ function main() {
   );
 }
 
-main();
+/** One line a person can act on; the full error only when asked for. */
+function exitWithReason(err) {
+  console.error(`\n❌ ${err?.message ?? err}`);
+  if (process.env.PRECAST_DEBUG) console.error(err?.stack ?? err);
+  else console.error('   (PRECAST_DEBUG=1 shows the full error.)');
+  process.exit(1);
+}
+
+Promise.resolve().then(main).catch(exitWithReason);

@@ -623,3 +623,32 @@ describe('SMOKE-021 — a workflow job that caches pnpm installs pnpm first', ()
     }
   });
 });
+
+// ── SMOKE-022 ───────────────────────────────────────────────────────────────
+describe('SMOKE-022 — every operator script fails with a sentence, never a stack trace', () => {
+  /**
+   * The plain-language surface promises that whatever a script can say when it
+   * fails is one line a non-engineer can act on. A script whose entry point has
+   * no catch prints Node's stack trace for any unexpected error, which is the
+   * one answer the skills are told never to give. Source-analysed, because the
+   * entry forms differ (several scripts are also imported by others): each must
+   * route its entry through `exitWithReason`, which prints the message and
+   * keeps the stack behind PRECAST_DEBUG=1.
+   */
+  const scripts = readdirSync(join(REPO_ROOT, 'scripts')).filter((f) => f.endsWith('.mjs'));
+  const withMain = scripts.filter((f) =>
+    /^(async )?function main\(/m.test(read(join('scripts', f))),
+  );
+
+  it('finds the scripts that have an entry point', () => {
+    expect(withMain.length).toBeGreaterThan(8);
+  });
+
+  it.each(withMain)('%s catches its entry with exitWithReason', (f) => {
+    const src = read(join('scripts', f));
+    expect(src, `${f} defines main() but does not catch its failure`).toMatch(
+      /\.catch\(exitWithReason\)/,
+    );
+    expect(src, `${f} must keep the stack trace behind PRECAST_DEBUG`).toContain('PRECAST_DEBUG');
+  });
+});

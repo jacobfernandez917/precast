@@ -1,8 +1,22 @@
 # Precast
 
-**A precast foundation for new TypeScript projects.** Start from it — rename the placeholder to your project, and build — with the monorepo structure, guardrails, and agent-handoff documentation already in place.
+**The kit for building agents on AgentBase.** A Precast project is a TypeScript monorepo with a Mastra agents app, a Next.js web app on the APC Design System, a Postgres database provisioned for it, and a documentation contract that lets any coding agent pick the work up without losing context. It runs on AgentBase: the organisation's gateway supplies the model, the proxy carries every call, and AgentBase hosts the agents once they are imported.
 
-Precast is built to be driven by coding agents (Claude Code, OpenClaw, or any other) as much as by humans. Everything an agent needs to take over work without context loss lives in a small chain of documents, described below.
+Most people drive it from Claude Code with the Precast plugin and never type a command: the five phrases below each map to one skill. Engineers get the same five things as `pnpm` scripts. Either way, when something fails the answer is one line with the fix, not a stack trace.
+
+---
+
+## What you can say
+
+| Say                                    | What happens                                                                                                                                           | Skill      | Command               |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | --------------------- |
+| "start a project" (or hand over a PRD) | Eight questions in three waves, the scaffold, a Postgres database, and the first screen or agent running in front of you                               | `scaffold` | `pnpm bootstrap`      |
+| "show it to me"                        | The stack is built and started; you get the real `http://localhost:<port>` and what to click                                                           | `show`     | `pnpm poc`            |
+| "connect my AgentBase"                 | Where to find your Application's details in Studio; the secret typed in your own terminal; the connection proven before it is saved                    | `connect`  | `pnpm connect`        |
+| "put it on AgentBase"                  | Pushed to GitHub, imported so AgentBase builds and hosts the agents, your Application subscribed, the web app switched over, one chat turn to prove it | `deploy`   | a Studio walkthrough  |
+| "update it"                            | Later Precast improvements pulled into the project, manual steps included                                                                              | `upgrade`  | `pnpm precast:update` |
+
+The plugin lives at [precast-plugin](https://github.com/jacobfernandez917/precast-plugin): `/plugin marketplace add jacobfernandez917/precast-plugin`, then `/plugin install precast@917v`.
 
 ---
 
@@ -24,9 +38,24 @@ See [docs/TECH_STACK.md](docs/TECH_STACK.md) for the pinned versions of everythi
 
 ---
 
-## Getting started
+---
 
-### First: clone Precast
+## Getting started, in that order
+
+### 1. Connect my AgentBase
+
+You need Node 24 with pnpm (see `.nvmrc`), Docker Desktop or Docker Engine with the Compose plugin, and an AgentBase **Application**. The Application is how a project gets its model, reaches tools and is hosted; four values identify it, and they are all in AgentBase Studio: open **Applications**, create one named after the project (or open one you already use), and on its **Credentials** tab take the **Client ID**, **Copy secret** for the secret, and **Copy snippet** for the token URL (the first line of the snippet, ending in `/protocol/openid-connect/token`). The fourth is the **API base URL** of AgentBase itself, which your admin has.
+
+A new project asks for these at `pnpm bootstrap` (step 2). An existing project takes them with:
+
+```bash
+pnpm connect            # asks for whatever .env is missing; the secret is typed hidden
+pnpm connect --check    # prove what .env already holds; writes nothing
+```
+
+`connect` mints a token with the id and secret, lists the models published to the Application, checks the chosen one is among them, and only then writes `.env`. Leave the model off the first run and it prints the list to choose from. Models come from the organisation's AgentBase gateway; no vendor API key is held anywhere in a project.
+
+### 2. Start a project
 
 Precast is a launch pad for **new, independent projects**. Clone it, then run `pnpm bootstrap` — which wipes the inherited history and re-inits a blank repo, making the copy yours.
 
@@ -34,8 +63,6 @@ Precast is a launch pad for **new, independent projects**. Clone it, then run `p
 git clone <precast-url> my-project
 cd my-project
 ```
-
-### Fastest path: `pnpm bootstrap`
 
 One command turns Precast into your project:
 
@@ -47,18 +74,18 @@ pnpm bootstrap      # interactive, or: pnpm bootstrap my-project
 `bootstrap` (see [scripts/bootstrap.mjs](scripts/bootstrap.mjs)) will:
 
 1. **Ask for the project name**, then show an **auto-picked port block** for the stack — a random, verified-free, **consecutive** triple in `45000`–`49100` (agents / web / keycloak, e.g. `45000` / `45001` / `45002`). Press Enter to accept, or type a base port for the block. Random-and-free means two Precast projects on one machine never fight over `3000`/`4111`; staying under `49152` keeps the ports out of the OS ephemeral range, where an outbound socket could grab one first.
-2. **Ask which LLM provider** you'll use — Anthropic, OpenAI, or Google — so it can remind you exactly which key to set (never collects the actual key value).
+2. **Ask where the model comes from**: your AgentBase Application (API base URL, token URL, client id, and the secret typed hidden) plus the model slug, the same values `pnpm connect` takes later. No vendor key is ever asked for.
 3. **Ask which APC Design System theme** the web app should use — **Stockholm** (default), **Prague**, **Arctic**, **Nova**, or **Melbourne**. Preview them at **[apc-design-system.917v.dev](https://apc-design-system.917v.dev)**; change your mind later with `pnpm set-theme <name>`.
 4. **Ask where the Postgres database comes from** — create one now on your organisation's database server (`--db=provision`, with the admin URL in your shell as `PRECAST_RDS_SUPERUSER_URL`; writes `DATABASE_URL` for you and never stores the admin credential), paste a URL you already have (`--db=postgresql://…`), or decide later (`--db=later`, then `pnpm db:provision` any time).
 5. **Rename** the `precast` placeholder to your project name everywhere it matters.
 6. **Apply the chosen ports and theme** across `.env.example`, config, pnpm scripts, Docker, and docs.
 7. **Update dependencies** to their latest compatible versions.
 8. **Record where this project came from** in `precast.lock.json`, then **delete Precast's git history** and re-initialize a **blank repo on the `develop` branch** with a single initial commit, hooks activated.
-9. **Create `.env` from `.env.example`** and print an explicit reminder naming the exact env var to fill in.
+9. **Create `.env` from `.env.example`** with everything you answered, and say what is still missing.
 
 Non-interactively, pass flags: `pnpm bootstrap my-project --llm-provider=agentbase --agentbase-url=… --agentbase-token-url=… --agentbase-client-id=… --agentbase-client-secret=… --agentbase-model=<slug> --db=<postgresql://…> --theme=arctic`. Ports are auto-picked unless you pin them (`--mastra-port=45000 --web-port=45001 --keycloak-port=45002`, any subset) or keep the current ones (`--ports=keep`).
 
-### Prerequisite: a container runtime
+### 3. Show it to me
 
 Precast's fastest path to something you can look at is `pnpm poc`, which runs the whole stack in Docker Compose — so you need **Docker Desktop** (macOS/Windows) or **Docker Engine + the Compose plugin** (Linux) before that step.
 
@@ -69,21 +96,61 @@ pnpm docker:wait    # install/start Docker while this polls; exits as soon as th
 
 `pnpm docker:wait` is the first-run path: start the install, leave it polling, and the build continues by itself the moment the engine is up. Every `pnpm docker:*` and `pnpm poc` command runs this preflight first, so a missing runtime shows install instructions instead of a raw daemon-socket error.
 
-### See it run (proof of concept first)
-
 ```bash
 pnpm poc            # build + start the stack, wait for health, print the URLs
 ```
 
 `pnpm poc` is the "show me something" command: it checks the runtime, builds and starts the Compose stack, polls each service's health endpoint, and ends by printing the URLs that actually answer. After a change, `pnpm poc web` (or `agents`/`keycloak`) rebuilds and recreates **only** that container and re-prints the URLs — much faster, and unlike a bare `docker restart` it actually serves the new code, since code is baked into the image. Precast builds **proof of concept first** — the smallest slice that runs, put in front of a human for feedback, before the build is hardened (see [CLAUDE.md §4.0](CLAUDE.md) and the reduced PoC test bar in §4.2.1). `pnpm verify:poc` is the matching fast check (typecheck only); the full `pnpm test` / `pnpm test:e2e` bar applies once the design is settled.
 
-Then:
+Two checks once it is up: `pnpm verify:poc` (typecheck) and `pnpm smoke:chat`, one chat turn through the running agents to the organisation's gateway and back.
+
+### 4. Put it on AgentBase
+
+AgentBase clones the repository, builds `apps/agents`, hosts the container and lists each agent in the registry; nothing to operate. First the project has to be on GitHub:
 
 ```bash
-# .env already exists (bootstrap created it, with the model, Application credentials and DATABASE_URL you gave it)
-pnpm build && pnpm test # verify
-git remote add origin <url> && git push -u origin develop
+pnpm verify                                                        # what CI runs
+gh repo create <project-name> --private --source=. --remote=origin --push
 ```
+
+Then, in Studio: a **Variables** namespace for the project with `DATABASE_URL` set in the Production environment (the hosted container does not read your `.env`); **Agents → Import from Repo** with the GitHub App installed on the repository; once the build finishes, subscribe your Application to the new listing. Finally switch the local web app to the hosted agents in `.env`:
+
+```
+PRECAST_LOCAL_AGENTS=0
+COMPOSE_PROFILES=web,keycloak
+```
+
+and `pnpm poc` again; the chat label changes from "direct A2A" to "via AgentBase proxy". A new commit is not deployed on its own: push, then **Pull latest & redeploy** on the agent's page. Every step, including the "you host it" alternative, is in [docs/INTEGRATION_AGENTBASE.md](docs/INTEGRATION_AGENTBASE.md) §4.
+
+### 5. Update it
+
+Precast keeps improving after you scaffold from it. `precast.lock.json` records which release
+this project came from, and `pnpm precast:update` pulls later improvements in — without any
+shared git history, which `pnpm bootstrap` deliberately removes.
+
+```bash
+pnpm precast:version        # which Precast release this project derives from
+pnpm precast:update         # check only — print the plan, write nothing
+pnpm precast:update --apply # take the safe changes
+```
+
+It syncs the framework surface (`scripts/`, `.githooks/`, `docker/`, `templates/`, root
+configs, `CLAUDE.md`) and leaves anything you've customized alone. Changes under `apps/` and
+`packages/` are yours to port by hand — [docs/MIGRATIONS.md](docs/MIGRATIONS.md) says what
+each release changed and what the sync can't do for you.
+
+Scaffolded before this existed? Record a baseline once with
+`pnpm precast:update --adopt --ref=v0.2.0`.
+
+---
+
+## When something fails
+
+Every script ends a failure with one line after `❌` (or `✖`) that says what happened and what to do next: which command to run, or where in Studio to look. The full error is there when you ask for it with `PRECAST_DEBUG=1`. The plugin's skills quote that line and never answer with a stack trace.
+
+---
+
+## Working on the code
 
 ### Manual path
 
@@ -156,26 +223,6 @@ pnpm deps:update --dry      # preview outdated packages
 pnpm deps:update --latest   # bump to latest majors (review carefully)
 ```
 
-### Keeping up with Precast itself
-
-Precast keeps improving after you scaffold from it. `precast.lock.json` records which release
-this project came from, and `pnpm precast:update` pulls later improvements in — without any
-shared git history, which `pnpm bootstrap` deliberately removes.
-
-```bash
-pnpm precast:version        # which Precast release this project derives from
-pnpm precast:update         # check only — print the plan, write nothing
-pnpm precast:update --apply # take the safe changes
-```
-
-It syncs the framework surface (`scripts/`, `.githooks/`, `docker/`, `templates/`, root
-configs, `CLAUDE.md`) and leaves anything you've customized alone. Changes under `apps/` and
-`packages/` are yours to port by hand — [docs/MIGRATIONS.md](docs/MIGRATIONS.md) says what
-each release changed and what the sync can't do for you.
-
-Scaffolded before this existed? Record a baseline once with
-`pnpm precast:update --adopt --ref=v0.2.0`.
-
 ---
 
 ## For coding agents: how to start here
@@ -215,13 +262,14 @@ If you are an agent picking up this repo, read in this exact order **before touc
 
 ```
 ├── apps/               ← Deployable applications
-│   ├── api/            ← Mastra agent API (agents, tools, Studio)
+│   ├── agents/         ← Mastra agents and their tools (Studio)
 │   └── web/            ← Next.js web (App Router + Astryx)
 ├── packages/           ← Shared libraries
-│   └── shared/         ← Shared types, env parsing, utilities
+│   ├── shared/         ← Shared types, env parsing, utilities
+│   └── a2ui/           ← Interactive cards: protocol, show_card, A2A parts
 ├── docker/             ← Docker Compose infra services
 ├── docs/               ← Authoritative documentation
-├── scripts/            ← bootstrap, rename, deps:update, progress-stamp
+├── scripts/            ← bootstrap, connect, provision-db, poc, precast-update, …
 └── templates/          ← Boilerplate templates
 ```
 
@@ -229,18 +277,21 @@ If you are an agent picking up this repo, read in this exact order **before touc
 
 ## Common scripts
 
-| Command              | Description                                                         |
-| -------------------- | ------------------------------------------------------------------- |
-| `pnpm bootstrap`     | Rename + update deps + blank git repo on `develop` (new project)    |
-| `pnpm rename <name>` | Replace the `precast` placeholder with your project name            |
-| `pnpm deps:update`   | Update dependencies to latest compatible, then verify               |
-| `pnpm dev`           | Start all apps in dev mode                                          |
-| `pnpm build`         | Build all packages and apps                                         |
-| `pnpm test`          | Run all unit/integration tests                                      |
-| `pnpm test:e2e`      | Run autonomous Playwright UI tests                                  |
-| `pnpm lint`          | Lint all packages                                                   |
-| `pnpm format`        | Format all files                                                    |
-| `pnpm docker:up`     | Start agents + web + Keycloak; Postgres/Redis are remote via `.env` |
+| Command              | Description                                                                  |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `pnpm bootstrap`     | Rename + update deps + blank git repo on `develop` (new project)             |
+| `pnpm connect`       | Prove and save the AgentBase Application and model (`--check` only verifies) |
+| `pnpm db:provision`  | Create a Postgres database for this project and write `DATABASE_URL`         |
+| `pnpm poc`           | Build and start the Docker stack, wait for health, print the URLs            |
+| `pnpm rename <name>` | Replace the `precast` placeholder with your project name                     |
+| `pnpm deps:update`   | Update dependencies to latest compatible, then verify                        |
+| `pnpm dev`           | Start all apps in dev mode                                                   |
+| `pnpm build`         | Build all packages and apps                                                  |
+| `pnpm test`          | Run all unit/integration tests                                               |
+| `pnpm test:e2e`      | Run autonomous Playwright UI tests                                           |
+| `pnpm lint`          | Lint all packages                                                            |
+| `pnpm format`        | Format all files                                                             |
+| `pnpm docker:up`     | Start agents + web + Keycloak; Postgres/Redis are remote via `.env`          |
 
 Full list: [docs/SCRIPTS.md](docs/SCRIPTS.md).
 

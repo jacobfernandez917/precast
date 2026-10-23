@@ -90,9 +90,21 @@ if (res.status === 401) {
       '  AGENT_API_TOKEN is set on the server but not in this shell, or they disagree.',
   );
 }
-if (!res.ok) fail(`Agents API returned HTTP ${res.status} ${res.statusText}.`);
+if (!res.ok) {
+  fail(
+    `Agents API returned HTTP ${res.status} ${res.statusText}.\n` +
+      '  Read the last lines of pnpm docker:logs; a 500 usually means the model call failed (pnpm connect --check).',
+  );
+}
 
-const body = await res.json();
+let body;
+try {
+  body = await res.json();
+} catch {
+  fail(
+    'The agents API answered, but not with JSON. Is that URL the agents app? Check pnpm docker:ps.',
+  );
+}
 if (body.error) {
   fail(`The agent returned a JSON-RPC error: ${body.error.message ?? JSON.stringify(body.error)}`);
 }
