@@ -438,17 +438,31 @@ the per-agent service applications minted for hosted containers do not have, so 
 3. The response carries only `{org, slug, title, scopes, url}`. **Never `baseUrl`, never
    `authConfig`.** The proxy is what enforces subscription, rate limits, metering and audit,
    so discovery must not hand out anything that could be used to bypass it.
-4. `apps/agents/src/mastra/lib/agentbase-mcp.ts`'s `resolveAgentMcpTools(agentId)` builds an
-   `MCPClient` against those proxied endpoints and returns the namespaced toolset. It uses
-   `listToolsWithErrors()` and **throws** if any subscribed server fails to connect — a
-   partially-connected agent must not present as one that simply has fewer tools.
+4. `apps/agents/src/mastra/lib/agentbase-mcp.ts`'s `createAgentMcpToolset(agentId)` builds an
+   `MCPClient` against those proxied endpoints and returns the namespaced toolset, **per caller
+   identity**: the subject a turn acts for (§7.11), else the container's own identity. It uses
+   `listToolsWithErrors()` and **throws** if any subscribed server fails to connect, so a
+   partially-connected agent never presents as one that simply has fewer tools.
 
-**Unlike §7.9, this fails at BOOT, not at call time.** The toolset is part of the agent's
-identity and has to be settled before its A2A card is served, so it is resolved with a
-top-level `await`. On a hosted container a discovery failure therefore fails the deploy —
-loudly, in the build/runtime logs — instead of serving an agent that is quietly missing half
-its capabilities. Off AgentBase (`AGENTBASE_HOSTED` unset) the whole path is inert: `{}`, no
-network call, no throw.
+**A broken deploy still fails at BOOT.** `await toolset.preflight()` resolves the container's
+own toolset at module load; a discovery failure or a broken server fails the deploy, loudly, in
+the build/runtime logs. The agent's `tools` is then a function, so Mastra asks for the tools on
+every turn (and for the A2A card, which has no caller and gets the container's toolset).
+
+**"No account connected yet" clears without a restart.** A server answering
+`401 mcp_server_authorization_required` is skipped with a warning for that identity and checked
+again on a later turn (every 15 s while anything is pending); once someone clicks **Connect
+account**, its tools appear on the next turn. A complete toolset is re-read after 10 minutes,
+which also picks up new subscriptions. A failed re-check inside that window keeps the toolset it
+has and logs the failure; past it, the failure reaches the turn. Off AgentBase
+(`AGENTBASE_HOSTED` unset) the whole path is inert: `{}`, no network call, no throw.
+
+**Each identity has its own client.** One user's connected account never serves another user's
+turn: toolsets are keyed by subject, each client has its own id (so one identity's refresh never
+disconnects another's) and is bound to its subject, and a bound client refuses to send a call
+from a turn acting for someone else. At most 500 identities are kept; the least recently used
+client is retired. `resolveAgentMcpTools(agentId)` remains for code that wants one resolution
+now, with the original single-client behaviour.
 
 ---
 
@@ -470,7 +484,7 @@ The boilerplate now carries it end to end:
 |               |                                                                                                                    |
 | ------------- | ------------------------------------------------------------------------------------------------------------------ |
 | **Captured**  | `middleware/auth.ts` reads the header into an `AsyncLocalStorage` request context                                  |
-| **Forwarded** | `lib/agentbase-mcp.ts` attaches it to every discovered MCP tool call                                               |
+| **Forwarded** | `lib/agentbase-mcp.ts` resolves tools for that subject and sends it on every call from that subject's client       |
 | **Available** | `currentOnBehalfOf()` / `resolveOnBehalfOf()` from `lib/request-context.ts`, for a project's own MCP or HTTP calls |
 
 Three properties are deliberate, and each is pinned by a test:
@@ -495,9 +509,10 @@ const subject = resolveOnBehalfOf({
 });
 ```
 
-The header is decided **per request**, not at construction. The `MCPClient` is built once when
-the agent is created, so a static `requestInit` would have frozen whatever was true at boot —
-an empty subject for every real turn, and an access token that expires under it.
+The subject decides **which client** a turn uses, not just a header: `createAgentMcpToolset`
+keeps one client per subject, bound to it, because one shared client would carry one MCP session
+across every user. The access token is still minted per call, so it never expires under a
+long-lived client.
 
 #### Addressing a subscribed server without configuring it
 

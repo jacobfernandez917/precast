@@ -44,12 +44,30 @@
  * components. Enforced by `apps/web/test/a2a-only.spec.ts`.
  */
 
+import { z } from 'zod';
 import { A2UI_EXTENSION_URI, a2uiClientCapabilities, a2uiMessagesFromReply } from '@precast/a2ui';
 import { log } from './logger';
 import { getAgentBaseAccessToken } from './agentbase-auth';
 import { resolveAgentUrl } from './agentbase-discovery';
 
 export type A2aTransport = 'agentbase' | 'direct';
+
+/**
+ * A2A Task states (0.3 spelling; 1.0's `TASK_STATE_*` is folded onto these). Only
+ * `failed`, `canceled`, `rejected` and `unknown` are failures. `submitted` and
+ * `working` mean the agent has not finished, and `input-required` /
+ * `auth-required` mean it is waiting on the person; all four are answers.
+ */
+export type A2aTaskState =
+  | 'submitted'
+  | 'working'
+  | 'input-required'
+  | 'auth-required'
+  | 'completed'
+  | 'canceled'
+  | 'failed'
+  | 'rejected'
+  | 'unknown';
 
 /**
  * Normalized reply so callers and the UI don't depend on each transport's wire
@@ -67,13 +85,45 @@ export interface AgentReply {
    * against the catalog before drawing it.
    */
   a2ui: unknown[];
-  /** Error message when the agent call failed. */
+  /**
+   * Error message when the agent call failed. Written here, never copied from the
+   * upstream body: an upstream message or payload can carry internals, and this
+   * string reaches the browser. The upstream detail goes to the server log.
+   */
   error?: string;
+  /**
+   * The HTTP status the route should answer with: 200 when `ok`; the upstream
+   * status when AgentBase or the agent answered with an HTTP error (preserved, so
+   * a 404 or 429 stays one); 502 when the answer could not be used; 504 when the
+   * request timed out.
+   */
+  status: number;
+  /** The Task state, when the agent answered with a Task. */
+  taskState?: A2aTaskState;
   /** Which transport handled the call. */
   via: A2aTransport;
-  /** The full underlying JSON-RPC response, for debugging. */
+  /**
+   * The full underlying JSON-RPC response, for server-side logs only. Never send it
+   * to the browser: Mastra echoes the A2A `contextId`, which is
+   * `<resourceId>::<conversation>`, and the resourceId is the httpOnly cookie value.
+   */
   raw: unknown;
 }
+
+/**
+ * What the route sends the browser. No `raw` (see above); the conversation id to
+ * send on the next turn travels with failures too, so a retry stays in thread.
+ */
+export type AgentRouteBody =
+  | {
+      ok: true;
+      text: string | null;
+      a2ui: unknown[];
+      via: A2aTransport;
+      taskState?: A2aTaskState;
+      conversationId: string;
+    }
+  | { ok: false; error: string; status: number; via?: A2aTransport; conversationId?: string };
 
 interface CallOptions {
   /**
@@ -123,9 +173,20 @@ export async function callAgent(
   text: string,
   options?: CallOptions,
 ): Promise<AgentReply> {
-  return isAgentBaseEnabled()
-    ? callViaAgentBase(agentId, text, options)
-    : callDirect(agentId, text, options);
+  const via: A2aTransport = isAgentBaseEnabled() ? 'agentbase' : 'direct';
+  try {
+    return via === 'agentbase'
+      ? await callViaAgentBase(agentId, text, options)
+      : await callDirect(agentId, text, options);
+  } catch (err) {
+    // Every expected failure is already a reply; this is the unexpected one.
+    log.error({ agentId, via, err: (err as Error)?.message }, 'A2A × call failed unexpectedly');
+    return failure(via, 502, 'The agent call failed.', null);
+  }
+}
+
+function failure(via: A2aTransport, status: number, error: string, raw: unknown): AgentReply {
+  return { ok: false, text: null, a2ui: [], error, status, via, raw };
 }
 
 // ── A2A envelope (shared by both transports — AgentBase relays it unchanged) ─
@@ -170,29 +231,18 @@ async function callViaAgentBase(
   // and offline dev keep working. Failure returns an error — never a guessed
   // URL, which would 404 while looking perfectly well-formed.
   const target = await resolveAgentUrl(agentId);
-  if (!target.ok) {
-    return { ok: false, text: null, a2ui: [], via: 'agentbase', raw: null, error: target.error };
-  }
+  if (!target.ok) return failure('agentbase', 502, target.error, null);
   const url = target.url;
 
   const tokenResult = await getAgentBaseAccessToken();
-  if (!tokenResult.ok) {
-    return {
-      ok: false,
-      text: null,
-      a2ui: [],
-      via: 'agentbase',
-      raw: null,
-      error: tokenResult.error,
-    };
-  }
+  if (!tokenResult.ok) return failure('agentbase', 502, tokenResult.error, null);
 
   // AgentBase's per-agent proxy takes the raw A2A envelope as the body (org +
   // agent are already in the URL) — the same one direct mode sends to Mastra.
   const body = buildA2aMessageEnvelope(text, options);
 
-  const raw = await postJsonRpc(url, body, tokenResult.accessToken, options?.signal);
-  return normalize(raw, 'agentbase');
+  const outcome = await postJsonRpc(url, body, tokenResult.accessToken, options?.signal);
+  return normalize(outcome, 'agentbase', url);
 }
 
 async function callDirect(
@@ -207,21 +257,23 @@ async function callDirect(
   // agent is in the URL path; the bearer must match the server's AGENT_API_TOKEN.
   const body = buildA2aMessageEnvelope(text, options);
 
-  const raw = await postJsonRpc(
-    `${base}/api/a2a/${encodeURIComponent(agentId)}`,
-    body,
-    token,
-    options?.signal,
-  );
-  return normalize(raw, 'direct');
+  const endpoint = `${base}/api/a2a/${encodeURIComponent(agentId)}`;
+  const outcome = await postJsonRpc(endpoint, body, token, options?.signal);
+  return normalize(outcome, 'direct', endpoint);
 }
+
+/** What came back over the wire, before any interpretation. */
+type RpcOutcome =
+  | { kind: 'json'; status: number; body: unknown }
+  | { kind: 'not-json'; status: number; snippet: string }
+  | { kind: 'network'; timedOut: boolean; message: string };
 
 async function postJsonRpc(
   endpoint: string,
   body: unknown,
   bearer: string,
   signal?: AbortSignal,
-): Promise<unknown> {
+): Promise<RpcOutcome> {
   // The A2UI extension, requested on every call. AgentBase forwards a validated
   // `X-A2A-Extensions` (A2UI-1); the metadata above carries the same intent.
   const headers: Record<string, string> = {
@@ -235,19 +287,33 @@ async function postJsonRpc(
   // header is intentionally not logged.
   log.debug({ endpoint, authenticated: Boolean(bearer) }, 'A2A → outbound request');
   const startedAt = performance.now();
+  let res: Response;
   try {
-    const res = await fetch(endpoint, {
+    res = await fetch(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
       signal,
     });
-    const ms = Math.round(performance.now() - startedAt);
-    log.debug({ endpoint, status: res.status, ms }, 'A2A ← response');
-    return res.json();
   } catch (err) {
-    log.error({ endpoint, err: (err as Error).message }, 'A2A × request threw');
-    throw err;
+    const e = err as Error;
+    log.error({ endpoint, err: e?.message }, 'A2A × request threw');
+    return {
+      kind: 'network',
+      timedOut: e?.name === 'TimeoutError' || e?.name === 'AbortError',
+      message: e?.message ?? String(err),
+    };
+  }
+  const ms = Math.round(performance.now() - startedAt);
+  log.debug({ endpoint, status: res.status, ms }, 'A2A ← response');
+
+  // Read the body once as text: a gateway's HTML error page or an empty body must
+  // become an answer, not a SyntaxError thrown out of the route.
+  const textBody = await res.text().catch(() => '');
+  try {
+    return { kind: 'json', status: res.status, body: JSON.parse(textBody) };
+  } catch {
+    return { kind: 'not-json', status: res.status, snippet: textBody.slice(0, 200) };
   }
 }
 
@@ -262,24 +328,158 @@ interface RpcPart {
 interface RpcResult {
   kind?: string;
   parts?: RpcPart[];
-  status?: { message?: { parts?: RpcPart[] } };
+  status?: { state?: string; message?: { parts?: RpcPart[] } };
   artifacts?: Array<{ parts?: RpcPart[] }>;
   history?: Array<{ role?: string; parts?: RpcPart[] }>;
   // Legacy AgentBase shape (pre-SRCIMP `tasks/send` proxy): result.result.message.content[].text
   result?: { message?: { content?: RpcPart[] } };
 }
 
-interface RpcResponse {
-  error?: { message?: string };
-  result?: RpcResult;
+/**
+ * A JSON-RPC 2.0 response: exactly one of `result` or `error`. The result is
+ * checked further below (a Message, a Task, or the legacy AgentBase shape).
+ */
+const RpcEnvelope = z
+  .object({
+    jsonrpc: z.literal('2.0').optional(),
+    id: z.union([z.string(), z.number(), z.null()]).optional(),
+    result: z.record(z.unknown()).optional(),
+    error: z
+      .object({ code: z.number().optional(), message: z.string().optional() })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough()
+  .refine((e) => (e.result === undefined) !== (e.error === undefined), {
+    message: 'exactly one of result or error',
+  });
+
+const TASK_STATES = new Set<A2aTaskState>([
+  'submitted',
+  'working',
+  'input-required',
+  'auth-required',
+  'completed',
+  'canceled',
+  'failed',
+  'rejected',
+  'unknown',
+]);
+const FAILED_STATES: Partial<Record<A2aTaskState, string>> = {
+  failed: 'The agent could not complete the request.',
+  canceled: 'The agent canceled the request.',
+  rejected: 'The agent declined the request.',
+  unknown: 'The agent could not report what happened to the request.',
+};
+
+/** `input-required`, or A2A 1.0's `TASK_STATE_INPUT_REQUIRED`, as one state. */
+function taskStateOf(raw: unknown): A2aTaskState | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const s = raw
+    .trim()
+    .toLowerCase()
+    .replace(/^task_state_/, '')
+    .replace(/_/g, '-')
+    .replace(/^cancelled$/, 'canceled');
+  return TASK_STATES.has(s as A2aTaskState) ? (s as A2aTaskState) : undefined;
 }
 
-function normalize(raw: unknown, via: A2aTransport): AgentReply {
-  const r = (raw ?? null) as RpcResponse | null;
-  if (r?.error) {
-    return { ok: false, text: null, a2ui: [], error: r.error.message ?? 'Agent error', via, raw };
+const HTTP_HINT: Record<number, string> = {
+  401: 'the agent endpoint refused the credentials',
+  403: 'the agent endpoint refused access (is the Application subscribed to this agent?)',
+  404: 'no agent answers at that address',
+  408: 'the agent endpoint timed out',
+  429: 'too many requests; try again shortly',
+};
+
+function normalize(outcome: RpcOutcome, via: A2aTransport, endpoint: string): AgentReply {
+  if (outcome.kind === 'network') {
+    return outcome.timedOut
+      ? failure(via, 504, 'The agent did not answer in time.', null)
+      : failure(via, 502, 'Could not reach the agent.', null);
   }
-  return { ok: true, text: extractText(r?.result), a2ui: a2uiMessagesFromReply(r), via, raw };
+
+  if (outcome.status < 200 || outcome.status > 299) {
+    const rpc = outcome.kind === 'json' ? RpcEnvelope.safeParse(outcome.body) : null;
+    log.warn(
+      {
+        endpoint,
+        status: outcome.status,
+        rpcCode: rpc?.success ? rpc.data.error?.code : undefined,
+        upstream: outcome.kind === 'not-json' ? outcome.snippet : undefined,
+      },
+      'A2A ← HTTP error',
+    );
+    const hint =
+      HTTP_HINT[outcome.status] ?? (outcome.status >= 500 ? 'the agent service failed' : '');
+    return failure(
+      via,
+      outcome.status,
+      `The agent call failed (HTTP ${outcome.status}${hint ? `: ${hint}` : ''}).`,
+      outcome.kind === 'json' ? outcome.body : null,
+    );
+  }
+
+  if (outcome.kind === 'not-json') {
+    log.warn({ endpoint, status: outcome.status, upstream: outcome.snippet }, 'A2A ← not JSON');
+    return failure(
+      via,
+      502,
+      'The agent answered with something that is not a JSON-RPC response.',
+      null,
+    );
+  }
+
+  const envelope = RpcEnvelope.safeParse(outcome.body);
+  if (!envelope.success) {
+    log.warn({ endpoint, issues: envelope.error.issues.length }, 'A2A ← invalid JSON-RPC envelope');
+    return failure(via, 502, 'The agent answered with an invalid JSON-RPC response.', outcome.body);
+  }
+
+  const raw = outcome.body;
+  const rpcError = envelope.data.error;
+  if (rpcError) {
+    log.warn(
+      { endpoint, rpcCode: rpcError.code, upstream: rpcError.message?.slice(0, 200) },
+      'A2A ← JSON-RPC error',
+    );
+    const code = typeof rpcError.code === 'number' ? ` (JSON-RPC ${rpcError.code})` : '';
+    return failure(via, 502, `The agent returned an error${code}.`, raw);
+  }
+
+  const result = envelope.data.result as RpcResult;
+  const isLegacy = Boolean(result.result?.message);
+  if (result.kind !== 'message' && result.kind !== 'task' && !isLegacy) {
+    log.warn({ endpoint, kind: result.kind }, 'A2A ← result is neither a Message nor a Task');
+    return failure(via, 502, 'The agent answered with a result this app does not understand.', raw);
+  }
+
+  let taskState: A2aTaskState | undefined;
+  if (result.kind === 'task') {
+    taskState = taskStateOf(result.status?.state);
+    if (!taskState) {
+      log.warn({ endpoint, state: result.status?.state }, 'A2A ← Task without a known state');
+      return failure(via, 502, 'The agent answered with a Task in no known state.', raw);
+    }
+    const failedAs = FAILED_STATES[taskState];
+    if (failedAs) {
+      log.warn(
+        { endpoint, taskState, upstream: partsToText(result.status?.message?.parts).slice(0, 200) },
+        'A2A ← Task ended without completing',
+      );
+      return { ...failure(via, 502, failedAs, raw), taskState };
+    }
+  }
+
+  return {
+    ok: true,
+    text: extractText(result),
+    a2ui: a2uiMessagesFromReply(raw),
+    status: 200,
+    ...(taskState ? { taskState } : {}),
+    via,
+    raw,
+  };
 }
 
 function partsToText(parts?: RpcPart[]): string {

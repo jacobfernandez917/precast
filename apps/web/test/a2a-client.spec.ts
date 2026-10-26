@@ -269,3 +269,164 @@ describe('callAgent — the retired ENABLE_AGENTBASE spelling', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * WEB-018: every way the call can go wrong comes back as a reply with the right
+ * status and a message written here, never an exception and never upstream text.
+ * Legitimate waiting states are answers, not errors.
+ */
+describe('callAgent — errors, statuses and Task states', () => {
+  const SECRET = 'hunter2-upstream-secret';
+
+  beforeEach(() => {
+    process.env.PRECAST_LOCAL_AGENTS = '1';
+    process.env.MASTRA_INTERNAL_URL = 'http://mastra.test';
+    process.env.AGENT_API_TOKEN = 'bearer-never-shown';
+  });
+
+  const answer = (body: unknown, status = 200, contentType = 'application/json') =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(typeof body === 'string' ? body : JSON.stringify(body), {
+            status,
+            headers: { 'content-type': contentType },
+          }),
+      ),
+    );
+  const task = (state: string, statusText?: string) => ({
+    jsonrpc: '2.0',
+    id: 'x',
+    result: {
+      kind: 'task',
+      id: 't1',
+      status: {
+        state,
+        ...(statusText
+          ? {
+              message: {
+                kind: 'message',
+                role: 'agent',
+                parts: [{ kind: 'text', text: statusText }],
+              },
+            }
+          : {}),
+      },
+    },
+  });
+  const leaks = (reply: { error?: string }) => {
+    expect(reply.error ?? '').not.toContain(SECRET);
+    expect(reply.error ?? '').not.toContain('bearer-never-shown');
+  };
+
+  it.each([401, 403, 404, 429, 500, 503])(
+    'an HTTP %i from the agent endpoint keeps its status',
+    async (status) => {
+      answer({ jsonrpc: '2.0', id: 'x', error: { code: -32000, message: SECRET } }, status);
+      const reply = await callAgent('example-agent', 'hi');
+      expect(reply).toMatchObject({ ok: false, status, text: null, a2ui: [] });
+      expect(reply.error).toMatch(new RegExp(`HTTP ${status}`));
+      leaks(reply);
+    },
+  );
+
+  it("a gateway's HTML error page keeps its status and is not parsed as JSON", async () => {
+    answer(`<html><body>Bad gateway ${SECRET}</body></html>`, 502, 'text/html');
+    const reply = await callAgent('example-agent', 'hi');
+    expect(reply).toMatchObject({ ok: false, status: 502 });
+    leaks(reply);
+  });
+
+  it('a 200 that is not JSON, or not a JSON-RPC response, is a 502', async () => {
+    answer('<html>ok</html>', 200, 'text/html');
+    expect(await callAgent('example-agent', 'hi')).toMatchObject({ ok: false, status: 502 });
+
+    for (const body of [
+      { hello: 'world' },
+      [1, 2],
+      { jsonrpc: '2.0', id: 'x', result: { kind: 'message', parts: [] }, error: { code: 1 } },
+      { jsonrpc: '2.0', id: 'x', result: { kind: 'something-else' } },
+      { jsonrpc: '2.0', id: 'x', result: { kind: 'task', id: 't1', status: {} } },
+    ]) {
+      answer(body);
+      const reply = await callAgent('example-agent', 'hi');
+      expect(reply, JSON.stringify(body)).toMatchObject({ ok: false, status: 502 });
+    }
+  });
+
+  it('a network failure is a 502 and a timeout a 504, neither thrown', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('fetch failed');
+      }),
+    );
+    expect(await callAgent('example-agent', 'hi')).toMatchObject({
+      ok: false,
+      status: 502,
+      error: 'Could not reach the agent.',
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new DOMException('The operation timed out.', 'TimeoutError');
+      }),
+    );
+    expect(await callAgent('example-agent', 'hi')).toMatchObject({ ok: false, status: 504 });
+  });
+
+  it('a JSON-RPC error names its code, not its message', async () => {
+    answer({ jsonrpc: '2.0', id: 'x', error: { code: -32603, message: `db password=${SECRET}` } });
+    const reply = await callAgent('example-agent', 'hi');
+    expect(reply).toMatchObject({ ok: false, status: 502 });
+    expect(reply.error).toBe('The agent returned an error (JSON-RPC -32603).');
+    leaks(reply);
+  });
+
+  it.each([
+    ['failed', 'failed'],
+    ['canceled', 'canceled'],
+    ['cancelled', 'canceled'],
+    ['rejected', 'rejected'],
+    ['TASK_STATE_FAILED', 'failed'],
+    ['unknown', 'unknown'],
+  ])('a Task in state %s is a failure (%s), without its upstream text', async (state, as) => {
+    answer(task(state, `stack trace with ${SECRET}`));
+    const reply = await callAgent('example-agent', 'hi');
+    expect(reply).toMatchObject({ ok: false, status: 502, taskState: as, text: null });
+    leaks(reply);
+  });
+
+  it.each([
+    ['input-required', 'Which environment?'],
+    ['auth-required', 'Connect your calendar first.'],
+    ['working', undefined],
+    ['submitted', undefined],
+    ['TASK_STATE_INPUT_REQUIRED', 'Which environment?'],
+  ])('a Task in state %s is an answer, not an error', async (state, text) => {
+    answer(task(state, text));
+    const reply = await callAgent('example-agent', 'hi');
+    expect(reply.ok).toBe(true);
+    expect(reply.status).toBe(200);
+    expect(reply.taskState).toBe(state.startsWith('TASK_STATE_') ? 'input-required' : state);
+    expect(reply.text).toBe(text ?? null);
+  });
+
+  it('a completed Task and a Message still answer with their text', async () => {
+    answer(task('completed', 'All done.'));
+    expect(await callAgent('example-agent', 'hi')).toMatchObject({
+      ok: true,
+      status: 200,
+      taskState: 'completed',
+      text: 'All done.',
+    });
+    answer(A2A_MESSAGE_RESPONSE);
+    expect(await callAgent('example-agent', 'hi')).toMatchObject({
+      ok: true,
+      status: 200,
+      text: 'hello back',
+    });
+  });
+});

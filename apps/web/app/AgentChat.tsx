@@ -1,13 +1,14 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
-import type { AgentReply } from './lib/a2a-client';
+import type { A2aTransport } from './lib/a2a-client';
+import { createConversationGate, interpretRouteReply } from './lib/chat-turns';
 import type { CardPress } from './a2ui/AgentCards';
 
 // Client-only: `@a2ui/react` extends HTMLElement at import, which has no server equivalent.
@@ -34,15 +35,18 @@ const AgentCards = dynamic(() => import('./a2ui/AgentCards').then((m) => m.Agent
  * text by `AgentCards`. A press on a card posts `{ action }` to the same route,
  * which sends it to the agent as text on the same thread, so the agent answers
  * the press like any other turn.
+ *
+ * START OVER while a turn is in flight: the agent keeps working (the browser
+ * cannot stop it), and its answer belongs to the cleared conversation. A turn
+ * that finishes after a reset changes nothing here, typed message or card press
+ * alike (see `lib/chat-turns.ts`).
  */
 interface Turn {
   question: string;
   answer: string;
   a2ui: unknown[];
-  via: AgentReply['via'];
+  via: A2aTransport;
 }
-
-type RouteReply = (AgentReply & { conversationId: string }) | { error: string };
 
 export function AgentChat() {
   const [agentId, setAgentId] = useState('example-agent');
@@ -51,16 +55,22 @@ export function AgentChat() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const gate = useRef(createConversationGate());
 
   function startNewConversation() {
+    gate.current.reset();
     setConversationId(null);
     setTurns([]);
     setError(null);
+    // The new conversation is not waiting on anything; the old turn's answer, if
+    // it ever arrives, is dropped by the gate.
+    setIsSending(false);
   }
 
   /** One turn: `body` is either `{ text }` or `{ action }`; `question` is what the log shows. */
   async function sendTurn(body: Record<string, unknown>, question: string): Promise<boolean> {
     if (isSending) return false;
+    const token = gate.current.begin();
     setIsSending(true);
     setError(null);
     try {
@@ -72,32 +82,25 @@ export function AgentChat() {
         // this whole seam exists to prevent.
         body: JSON.stringify({ ...body, ...(conversationId ? { conversationId } : {}) }),
       });
-      // 200 → normalized AgentReply + conversationId; non-2xx → { error: string }.
-      const data = (await res.json()) as RouteReply;
+      const outcome = interpretRouteReply(res.status, await res.text());
+      if (!gate.current.isCurrent(token)) return false;
 
-      if (!res.ok) {
-        setError((data as { error?: string }).error ?? 'Request failed');
-        return false;
-      }
-
-      const r = data as AgentReply & { conversationId: string };
       // Adopt the server's id even on a failed turn, so a retry stays in thread.
-      setConversationId(r.conversationId);
-
-      if (!r.ok) {
-        setError(r.error ?? 'Agent error');
+      if (outcome.conversationId) setConversationId(outcome.conversationId);
+      if (outcome.kind === 'error') {
+        setError(outcome.error);
         return false;
       }
       setTurns((prev) => [
         ...prev,
-        { question, answer: r.text || '(no text content)', a2ui: r.a2ui ?? [], via: r.via },
+        { question, answer: outcome.answer, a2ui: outcome.a2ui, via: outcome.via },
       ]);
       return true;
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Request failed');
+    } catch {
+      if (gate.current.isCurrent(token)) setError('Could not reach the server. Try again.');
       return false;
     } finally {
-      setIsSending(false);
+      if (gate.current.isCurrent(token)) setIsSending(false);
     }
   }
 

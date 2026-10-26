@@ -35,7 +35,14 @@ beforeEach(() => {
     conversationId: 'c1',
     isNewResource: false,
   });
-  mockedCall.mockResolvedValue({ ok: true, text: 'Retrying.', a2ui: [], via: 'direct', raw: {} });
+  mockedCall.mockResolvedValue({
+    ok: true,
+    text: 'Retrying.',
+    a2ui: [],
+    status: 200,
+    via: 'direct',
+    raw: {},
+  });
 });
 
 describe('POST /api/a2a/:agentId — card presses', () => {
@@ -98,5 +105,94 @@ describe('POST /api/a2a/:agentId — card presses', () => {
     const res = await post({});
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({ error: 'Missing or invalid text field' });
+  });
+});
+
+/**
+ * WEB-019: what the browser gets. The reply's status is the route's status, a
+ * failure carries the conversation id so a retry stays in thread, and the raw
+ * upstream reply never leaves the server (Mastra echoes the A2A contextId, which
+ * is `<resourceId>::<conversation>`, and the resourceId is the httpOnly cookie).
+ */
+describe('POST /api/a2a/:agentId — statuses and what reaches the browser', () => {
+  const upstreamRaw = {
+    result: { kind: 'task', contextId: 'r1:c1', history: [{ metadata: { resourceId: 'r1' } }] },
+  };
+
+  it('a success answers 200 without the raw upstream reply, passing the Task state through', async () => {
+    mockedCall.mockResolvedValue({
+      ok: true,
+      text: 'Which environment?',
+      a2ui: [],
+      status: 200,
+      taskState: 'input-required',
+      via: 'direct',
+      raw: upstreamRaw,
+    });
+    const res = await post({ text: 'deploy it' });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({
+      ok: true,
+      text: 'Which environment?',
+      a2ui: [],
+      via: 'direct',
+      taskState: 'input-required',
+      conversationId: 'c1',
+    });
+    expect(JSON.stringify(body)).not.toContain('r1');
+  });
+
+  it.each([401, 404, 429, 502, 503, 504])(
+    'a failure with status %i answers with that status, the error and the conversation id',
+    async (status) => {
+      mockedCall.mockResolvedValue({
+        ok: false,
+        text: null,
+        a2ui: [],
+        status,
+        error: `The agent call failed (HTTP ${status}).`,
+        via: 'agentbase',
+        raw: upstreamRaw,
+      });
+      const res = await post({ text: 'hello' });
+      expect(res.status).toBe(status);
+      const body = await res.json();
+      expect(body).toEqual({
+        ok: false,
+        error: `The agent call failed (HTTP ${status}).`,
+        status,
+        via: 'agentbase',
+        conversationId: 'c1',
+      });
+      expect(JSON.stringify(body)).not.toContain('r1');
+    },
+  );
+
+  it('a failed Task answers 502 with its state kept out of the body text', async () => {
+    mockedCall.mockResolvedValue({
+      ok: false,
+      text: null,
+      a2ui: [],
+      status: 502,
+      taskState: 'failed',
+      error: 'The agent could not complete the request.',
+      via: 'direct',
+      raw: upstreamRaw,
+    });
+    const res = await post({ text: 'hello' });
+    expect(res.status).toBe(502);
+    expect((await res.json()).error).toBe('The agent could not complete the request.');
+  });
+
+  it('an unexpected exception is a JSON 500 with no stack and no detail', async () => {
+    mockedContext.mockRejectedValue(
+      new Error('cookie store exploded at /srv/app/agent-context.ts:42'),
+    );
+    const res = await post({ text: 'hello' });
+    expect(res.status).toBe(500);
+    const text = await res.text();
+    expect(JSON.parse(text)).toEqual({ ok: false, error: 'The agent call failed.', status: 500 });
+    expect(text).not.toMatch(/agent-context\.ts|exploded/);
   });
 });

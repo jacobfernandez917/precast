@@ -1,6 +1,7 @@
+import { createHash } from 'node:crypto';
 import { MCPClient } from '@mastra/mcp';
 import { getAgentBaseToken } from './agentbase-model';
-import { attachOnBehalfOf } from './request-context';
+import { attachOnBehalfOf, currentOnBehalfOf } from './request-context';
 
 /**
  * MCPDISC-1 — discover this agent's MCP tools from AgentBase at runtime,
@@ -51,6 +52,15 @@ import { attachOnBehalfOf } from './request-context';
  * could never boot at all. Those servers are therefore SKIPPED with a loud
  * warning; every other connect failure still fails the boot, because silent tool
  * loss remains the failure mode this path exists to prevent.
+ *
+ * SKIPPED IS NOT FOREVER, AND NOT FOR EVERYONE. Tools are resolved per caller
+ * identity by `createAgentMcpToolset()`: the end-user subject a turn acts for
+ * (`X-AgentBase-On-Behalf-Of`), or the container's own identity when there is
+ * none. Each identity gets its own MCP client, bound to that subject, so one
+ * person's connected account never serves another person's turn. An identity
+ * with servers still awaiting an account is checked again every 15 s, so
+ * connecting the account brings the tools in on the next turn, with no restart.
+ * `resolveAgentMcpTools()` remains for code that wants one resolution now.
  */
 
 const AUTH_ERROR_MARKERS = [
@@ -139,15 +149,53 @@ export async function discoverMcpServers(agentId: string): Promise<SubscribedMcp
  * containers rather than only when something is configured.
  */
 export async function resolveAgentMcpTools(agentId: string): Promise<Record<string, unknown>> {
-  const servers = await discoverMcpServers(agentId);
-  if (servers.length === 0) return {};
-
-  const base = mcpBaseUrl();
-
-  const client = new MCPClient({
+  const { tools, pending } = await resolveToolset(agentId, {
     // `id` keeps repeated construction (hot reload, re-resolve) from tripping
     // MCPClient's duplicate-instance guard.
-    id: `agentbase-${agentId}`,
+    clientId: `agentbase-${agentId}`,
+  });
+  for (const server of pending) warnPending(agentId, server, 'this container');
+  return tools;
+}
+
+/** The parts of an MCP client this module uses. */
+interface McpClientLike {
+  listToolsWithErrors(): Promise<{
+    tools: Record<string, unknown>;
+    errors: Record<string, unknown>;
+  }>;
+  disconnect?(): Promise<void>;
+}
+
+interface ResolvedToolset {
+  tools: Record<string, unknown>;
+  /** Servers whose tools are missing only because no account is connected yet. */
+  pending: string[];
+  client?: McpClientLike;
+}
+
+/**
+ * One resolution: discover, build a client, list tools, partition failures.
+ * Throws on a discovery failure or on any connect failure that is not
+ * "authorization required".
+ *
+ * With `bound`, the client belongs to one identity: it sends that subject and
+ * refuses to send anything from a request acting for someone else. Without it,
+ * the subject is read from the current request at call time (the original
+ * single-client behaviour of `resolveAgentMcpTools`).
+ */
+async function resolveToolset(
+  agentId: string,
+  opts: { clientId: string; bound?: { subject: string | undefined } },
+): Promise<ResolvedToolset> {
+  const servers = await discoverMcpServers(agentId);
+  if (servers.length === 0) return { tools: {}, pending: [] };
+
+  const base = mcpBaseUrl();
+  const bound = opts.bound;
+
+  const client: McpClientLike = new MCPClient({
+    id: opts.clientId,
     servers: Object.fromEntries(
       servers.map((s) => [
         `${s.org}__${s.slug}`.replace(/[^A-Za-z0-9_]/g, '_'),
@@ -164,10 +212,19 @@ export async function resolveAgentMcpTools(agentId: string): Promise<Record<stri
           //     stale on a long-running container and start failing.
           fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
             const url = typeof input === 'string' ? input : input.toString();
+            // A bound client acts for one identity only. Reaching it from a turn
+            // that acts for someone else would send their call with this
+            // person's account, so it fails closed instead.
+            if (bound && currentOnBehalfOf() !== bound.subject) {
+              throw new Error(
+                `AgentBase MCP: a client bound to one caller was used in another caller's turn ` +
+                  `for "${agentId}"; the call was not sent.`,
+              );
+            }
             const headers = new Headers(init?.headers);
             headers.set('authorization', `Bearer ${await getAgentBaseToken(agentId)}`);
             // Host-guarded inside: the subject goes to AgentBase and nowhere else.
-            attachOnBehalfOf(headers, url, base);
+            attachOnBehalfOf(headers, url, base, bound ? bound.subject : currentOnBehalfOf());
             return fetch(input, { ...init, headers });
           },
         },
@@ -192,21 +249,180 @@ export async function resolveAgentMcpTools(agentId: string): Promise<Record<stri
 
   if (broken.length > 0) {
     const detail = broken.map(([server, err]) => `${server}: ${err}`).join('; ');
+    await client.disconnect?.().catch(() => undefined);
     throw new Error(
       `AgentBase MCP: ${broken.length} subscribed server(s) failed to connect for "${agentId}" — ` +
         `${detail}. Refusing to run with an incomplete toolset.`,
     );
   }
 
-  for (const [server] of authPending) {
-    console.warn(
-      `⚠️  AgentBase MCP: subscribed server "${server}" has no connected account for agent ` +
-        `"${agentId}" (authorization required). Its tools are OMITTED until an account is ` +
-        `connected in the AgentBase registry — the agent boots and serves without them.`,
+  return { tools, pending: authPending.map(([server]) => server), client };
+}
+
+function warnPending(agentId: string, server: string, who: string): void {
+  console.warn(
+    `⚠️  AgentBase MCP: subscribed server "${server}" has no connected account for agent ` +
+      `"${agentId}" (${who}; authorization required). Its tools are OMITTED until an account ` +
+      `is connected in the AgentBase registry; they appear on a later turn, with no restart.`,
+  );
+}
+
+/** A label for logs and client ids that does not reveal the subject itself. */
+function identityLabel(subject: string | undefined): string {
+  return subject === undefined
+    ? 'service'
+    : `user-${createHash('sha256').update(subject).digest('hex').slice(0, 12)}`;
+}
+
+export interface AgentMcpToolset {
+  /**
+   * Resolve the container identity's tools once, at boot. Throws on a discovery
+   * failure or a broken server, which is what makes a bad deploy fail its boot.
+   */
+  preflight(): Promise<void>;
+  /** The MCP tools for the identity the current turn acts for. */
+  current(): Promise<Record<string, unknown>>;
+}
+
+export interface AgentMcpToolsetOptions {
+  /** How soon an identity with servers awaiting an account is checked again. */
+  pendingRecheckMs?: number;
+  /** How long a complete toolset is reused before subscriptions are read again. */
+  ttlMs?: number;
+  /** Identities kept at once; the least recently used is dropped beyond this. */
+  maxIdentities?: number;
+  /** How long a replaced client stays connected for turns already using its tools. */
+  retireAfterMs?: number;
+  now?: () => number;
+}
+
+interface Entry extends ResolvedToolset {
+  subject: string | undefined;
+  resolvedAt: number;
+  checkedAt: number;
+}
+
+/**
+ * MCP tools resolved per caller identity, for `new Agent({ tools: async () => … })`.
+ *
+ * - Keyed by the subject the turn acts for, else the container identity; each
+ *   key has its own client (unique id, so one identity's refresh never
+ *   disconnects another's), bound to that subject.
+ * - A toolset with servers awaiting an account is re-resolved after
+ *   `pendingRecheckMs` (15 s); a complete one after `ttlMs` (10 min), which also
+ *   picks up new subscriptions.
+ * - A failed re-check inside the TTL keeps serving the toolset it has and logs
+ *   the failure; past the TTL the failure reaches the turn. Discovery errors and
+ *   broken servers are never turned into "fewer tools".
+ * - Concurrent turns for one identity share one resolution.
+ */
+export function createAgentMcpToolset(
+  agentId: string,
+  options: AgentMcpToolsetOptions = {},
+): AgentMcpToolset {
+  const pendingRecheckMs = options.pendingRecheckMs ?? 15_000;
+  const ttlMs = options.ttlMs ?? 10 * 60_000;
+  const maxIdentities = options.maxIdentities ?? 500;
+  const retireAfterMs = options.retireAfterMs ?? 10 * 60_000;
+  const now = options.now ?? Date.now;
+
+  const entries = new Map<string, Entry>();
+  const inflight = new Map<string, Promise<Entry>>();
+  let generation = 0;
+
+  const keyOf = (subject: string | undefined) =>
+    subject === undefined ? 'service' : `obo:${subject}`;
+
+  function retire(client: McpClientLike | undefined): void {
+    if (!client?.disconnect) return;
+    const timer = setTimeout(
+      () => void client.disconnect?.().catch(() => undefined),
+      retireAfterMs,
     );
+    timer.unref?.();
   }
 
-  return tools as Record<string, unknown>;
+  function remember(key: string, entry: Entry): void {
+    entries.delete(key);
+    entries.set(key, entry);
+    while (entries.size > maxIdentities) {
+      const [oldestKey, oldest] = entries.entries().next().value as [string, Entry];
+      entries.delete(oldestKey);
+      retire(oldest.client);
+    }
+  }
+
+  async function load(subject: string | undefined, key: string, previous?: Entry): Promise<Entry> {
+    generation += 1;
+    const who = identityLabel(subject);
+    const resolved = await resolveToolset(agentId, {
+      clientId: `agentbase-${agentId}-${who}-${generation}`,
+      bound: { subject },
+    });
+    const at = now();
+    const entry: Entry = { ...resolved, subject, resolvedAt: at, checkedAt: at };
+
+    const before = new Set(previous?.pending ?? []);
+    for (const server of entry.pending) {
+      if (!before.has(server)) warnPending(agentId, server, who);
+    }
+    for (const server of before) {
+      if (!entry.pending.includes(server)) {
+        console.info(
+          `AgentBase MCP: "${server}" now has a connected account for agent "${agentId}" (${who}); ` +
+            'its tools are available.',
+        );
+      }
+    }
+
+    if (previous?.client && previous.client !== entry.client) retire(previous.client);
+    remember(key, entry);
+    return entry;
+  }
+
+  async function current(): Promise<Record<string, unknown>> {
+    const subject = currentOnBehalfOf();
+    const key = keyOf(subject);
+    const existing = entries.get(key);
+    const at = now();
+
+    if (existing) {
+      const withinTtl = at - existing.resolvedAt < ttlMs;
+      const recheckDue = existing.pending.length > 0 && at - existing.checkedAt >= pendingRecheckMs;
+      if (withinTtl && !recheckDue) {
+        remember(key, existing);
+        return existing.tools;
+      }
+    }
+
+    let running = inflight.get(key);
+    if (!running) {
+      running = load(subject, key, existing).finally(() => inflight.delete(key));
+      inflight.set(key, running);
+    }
+
+    try {
+      return (await running).tools;
+    } catch (err) {
+      if (existing && at - existing.resolvedAt < ttlMs) {
+        existing.checkedAt = at;
+        console.error(
+          `AgentBase MCP: re-checking tools for agent "${agentId}" (${identityLabel(subject)}) ` +
+            `failed; keeping the toolset resolved ${Math.round((at - existing.resolvedAt) / 1000)} s ago. ` +
+            `${(err as Error)?.message ?? String(err)}`,
+        );
+        return existing.tools;
+      }
+      throw err;
+    }
+  }
+
+  return {
+    preflight: async () => {
+      await current();
+    },
+    current,
+  };
 }
 
 /**

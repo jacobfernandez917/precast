@@ -109,7 +109,12 @@ export function resolveOnBehalfOf(options?: {
  * The host check is the whole point — see property 2 above. `base` is the
  * AgentBase origin this container talks to; anything else is a third party.
  */
-export function attachOnBehalfOf(headers: Headers, url: string, base: string | undefined): void {
+export function attachOnBehalfOf(
+  headers: Headers,
+  url: string,
+  base: string | undefined,
+  subject: string | undefined = currentOnBehalfOf(),
+): void {
   if (!base) return;
   try {
     // ORIGIN comparison, not a string prefix: `startsWith(base)` would accept
@@ -120,6 +125,5 @@ export function attachOnBehalfOf(headers: Headers, url: string, base: string | u
     return; // unparseable → treat as foreign, and send nothing
   }
 
-  const subject = currentOnBehalfOf();
   if (subject) headers.set(ON_BEHALF_OF_HEADER, subject);
 }

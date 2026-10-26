@@ -122,6 +122,53 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.10.3 — MCP tools per caller, A2A error handling, chat reset race (unreleased)
+
+**What changed.** Three fixes found in review.
+
+- **MCP tools after "Connect account".** Tools were resolved once at boot, as the container's
+  own identity, so a server skipped for "no connected account" stayed missing until a restart,
+  and an on-behalf-of user whose account was connected never got its tools at all.
+  `createAgentMcpToolset()` resolves per caller identity with one bound client per identity,
+  re-checks pending servers every 15 s and keeps the boot preflight that fails a broken deploy.
+  The example agent's `tools` is now a function. Details: INTEGRATION_AGENTBASE §7.10.
+- **A2A errors.** A non-2xx or non-JSON answer threw out of the route or came back as an empty
+  "success"; failed, canceled and rejected Tasks were shown as answers; the route always said
+  200 and sent upstream error text and the raw reply to the browser. Now every failure is a
+  reply with a preserved or fitting status (upstream status, 502, 504), the envelope is
+  validated, waiting Task states are answers, errors are written here, and the raw reply (which
+  echoes the httpOnly resourceId inside the A2A `contextId`) stays on the server.
+- **"Start over" race.** A turn in flight when the conversation was cleared could put its old
+  conversation id back, add its answer or error to the new conversation, or leave it loading.
+  Turns now take a token that a reset invalidates.
+
+**Handled by `pnpm precast:update`.** None. Everything is under `apps/`.
+
+**Manual steps.**
+
+1. **Agents:** copy `apps/agents/src/mastra/lib/agentbase-mcp.ts` and
+   `lib/request-context.ts` (`attachOnBehalfOf` takes an optional subject). In each agent that
+   used `...(await resolveAgentMcpTools(ID))`: create `const mcpTools = createAgentMcpToolset(ID);`
+   and `await mcpTools.preflight();` at module level, and make `tools` a function:
+   `tools: async () => ({ ...yourTools, ...(await mcpTools.current()) })`.
+2. **Web:** copy `apps/web/app/lib/a2a-client.ts`, `app/api/a2a/[agentId]/route.ts`,
+   `app/lib/chat-turns.ts` and `app/AgentChat.tsx` (or port the gate and
+   `interpretRouteReply` into your own chat). Code that read `raw` from the route's response must
+   read it server-side instead; `AgentReply` has a required `status`.
+3. **Specs:** copy `apps/agents/src/mastra/lib/agentbase-mcp.spec.ts`,
+   `src/mastra/mcp-per-caller.integration.spec.ts`, `apps/web/test/a2a-client.spec.ts`,
+   `test/a2a-route.spec.ts`, `test/chat-turns.spec.ts` and `e2e/chat-reset.spec.ts`
+   (AGT-024, AGT-025, WEB-018 to WEB-021, E2E-007).
+
+**Advisory files touched.** None.
+
+**Verify.**
+
+```bash
+pnpm verify
+pnpm test:e2e
+```
+
 ## v0.10.2 — telemetry to AgentBase: traces, metrics and logs (2026-10-23)
 
 **What changed.** The agents container reports traces, metrics and logs to AgentBase's governed

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { pressText, readPressAction } from '@precast/a2ui';
-import { callAgent, type AgentReply } from '../../../lib/a2a-client';
+import { callAgent, type AgentRouteBody } from '../../../lib/a2a-client';
 import { resolveAgentContext } from '../../../lib/agent-context';
 import { log } from '../../../lib/logger';
 
@@ -24,14 +24,18 @@ import { log } from '../../../lib/logger';
  * sanitized and namespaced under the caller's own resource before use, so it
  * cannot address another user's thread. See `app/lib/agent-context.ts`.
  *
- * Returns the normalized `{ ok, text, error?, via, raw }` reply plus the
- * `conversationId` the browser should send on the next turn to stay in the same
- * thread.
+ * Returns `{ ok: true, text, a2ui, via, taskState?, conversationId }` with 200, or
+ * `{ ok: false, error, status, via?, conversationId? }` with the failure's status: the
+ * upstream HTTP status when AgentBase or the agent answered with one, 502 when the
+ * answer could not be used, 504 on a timeout. `conversationId` is what the browser
+ * sends on the next turn to stay in the same thread, failures included. The raw
+ * upstream reply is never forwarded: Mastra echoes the A2A `contextId`, which
+ * contains the resourceId this route keeps out of the browser.
  */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ agentId: string }> },
-): Promise<NextResponse<(AgentReply & { conversationId: string }) | { error: string }>> {
+): Promise<NextResponse<AgentRouteBody | { error: string }>> {
   const { agentId } = await params;
   log.info({ agentId }, 'POST /api/a2a — incoming agent call');
 
@@ -61,19 +65,55 @@ export async function POST(
 
   const requestedConversation =
     typeof body?.conversationId === 'string' ? body.conversationId : undefined;
-  const { resourceId, threadId, conversationId, isNewResource } =
-    await resolveAgentContext(requestedConversation);
 
-  const reply = await callAgent(agentId, text, { threadId, resourceId });
+  try {
+    const { resourceId, threadId, conversationId, isNewResource } =
+      await resolveAgentContext(requestedConversation);
 
-  if (reply.ok) {
-    log.info(
-      { agentId, via: reply.via, isNewResource, press: Boolean(press), cards: reply.a2ui.length },
-      'POST /api/a2a — agent replied',
+    const reply = await callAgent(agentId, text, { threadId, resourceId });
+
+    if (reply.ok) {
+      log.info(
+        {
+          agentId,
+          via: reply.via,
+          isNewResource,
+          press: Boolean(press),
+          cards: reply.a2ui.length,
+          taskState: reply.taskState,
+        },
+        'POST /api/a2a — agent replied',
+      );
+      return NextResponse.json({
+        ok: true,
+        text: reply.text,
+        a2ui: reply.a2ui,
+        via: reply.via,
+        ...(reply.taskState ? { taskState: reply.taskState } : {}),
+        conversationId,
+      });
+    }
+
+    const status = reply.status >= 400 && reply.status <= 599 ? reply.status : 502;
+    log.error(
+      { agentId, via: reply.via, status, taskState: reply.taskState, error: reply.error },
+      'POST /api/a2a — agent call failed',
     );
-  } else {
-    log.error({ agentId, via: reply.via, error: reply.error }, 'POST /api/a2a — agent call failed');
+    return NextResponse.json(
+      {
+        ok: false,
+        error: reply.error ?? 'The agent call failed.',
+        status,
+        via: reply.via,
+        conversationId,
+      },
+      { status },
+    );
+  } catch (err) {
+    log.error({ agentId, err: (err as Error)?.message }, 'POST /api/a2a — unexpected failure');
+    return NextResponse.json(
+      { ok: false, error: 'The agent call failed.', status: 500 },
+      { status: 500 },
+    );
   }
-
-  return NextResponse.json({ ...reply, conversationId });
 }
