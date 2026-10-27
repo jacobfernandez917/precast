@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { signedIn } from './session';
 
 /**
  * E2E-007: "Start over" while a turn is in flight. The route is stubbed and the
@@ -89,6 +90,10 @@ async function startOverWhileWaiting(page: Page, posts: unknown[]) {
 }
 
 test.describe('Start over while a turn is in flight', () => {
+  test.beforeEach(async ({ page }) => {
+    await signedIn(page);
+  });
+
   test('a typed message answered after the reset changes nothing', async ({ page }) => {
     const { posts, release } = await stub(
       page,

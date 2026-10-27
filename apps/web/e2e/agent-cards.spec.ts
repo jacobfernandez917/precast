@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { signedIn } from './session';
 
 /**
  * E2E-005: A2UI cards in a real browser. The route handler is stubbed at the network layer, so
@@ -82,6 +83,10 @@ async function ask(page: Page, text: string) {
 }
 
 test.describe('agent cards (A2UI)', () => {
+  test.beforeEach(async ({ page }) => {
+    await signedIn(page);
+  });
+
   test('draws the card the agent attached, on Astryx', async ({ page }) => {
     await stubAgent(page, card);
     await ask(page, '#card deploy status?');

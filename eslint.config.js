@@ -18,7 +18,7 @@ export default tseslint.config(
     // decorative: an unlisted global is a `no-undef` ERROR, and because
     // lint-staged runs eslint on staged files, a missing entry blocks any commit
     // that touches these scripts. `fetch`/`AbortSignal`/`setTimeout` arrived with
-    // the v0.4.0+ scripts (poc.mjs, check-docker.mjs) and were exactly that.
+    // the v0.4.0+ scripts (poc.mjs and others) and were exactly that.
     files: ['scripts/**/*.mjs', '*.config.{js,ts,mjs}', '**/*.config.{js,ts,mjs}'],
     languageOptions: {
       globals: {
@@ -42,7 +42,10 @@ export default tseslint.config(
       // `const [, , _stale] = …` — destructuring past a value you don't want is
       // the normal way to read the third element, so the underscore convention
       // has to be honoured or the script cannot be written cleanly.
-      '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^_', argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { varsIgnorePattern: '^_', argsIgnorePattern: '^_' },
+      ],
       // rename-project.mjs masks protected spans with NUL sentinels, which is
       // deliberate: they cannot occur in source, so they cannot collide with it.
       'no-control-regex': 'off',

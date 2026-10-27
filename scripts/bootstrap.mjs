@@ -8,9 +8,9 @@
  *
  * Steps, in order:
  *   1. Ask for (or read) the project name.
- *   2. Pick the stack's ports. By DEFAULT this auto-selects a random, free,
- *      CONSECUTIVE triple in the 45000–49100 range (agents / web / keycloak,
- *      e.g. 45000/45001/45002) — see scripts/set-ports.mjs for why that range.
+ *   2. Pick the two apps' ports. By DEFAULT this auto-selects a random, free,
+ *      CONSECUTIVE pair in the 45000–49100 range (agents / web, e.g.
+ *      45000/45001) — see scripts/set-ports.mjs for why that range.
  *      Consecutive keeps the stack one memorable block; random+free means two
  *      Precast projects on one machine don't fight over 3000/4111 the way they
  *      always did. Any port can still be pinned explicitly.
@@ -22,7 +22,7 @@
  *      architecture, so this is a token swap rather than a rewrite; asking here
  *      is what keeps Precast-derived products looking like one family.
  *   5. Rename the `precast` placeholder everywhere (scripts/rename-project.mjs).
- *   6. Apply the chosen ports across env, configs, pnpm scripts, Docker, docs
+ *   6. Apply the chosen ports across env, configs, pnpm scripts, Dockerfiles, docs
  *      (scripts/set-ports.mjs), and the chosen theme (scripts/set-theme.mjs).
  *   7. Install + update dependencies to latest compatible (scripts/update-deps.mjs).
  *   8. Record provenance in precast.lock.json, then remove Precast's own git
@@ -35,7 +35,7 @@
  *
  * Non-interactive port selection uses equals-form flags (anything not pinned is
  * still auto-picked from the same free consecutive block):
- *   pnpm bootstrap my-project --mastra-port=45000 --web-port=45001 --keycloak-port=45002
+ *   pnpm bootstrap my-project --mastra-port=45000 --web-port=45001
  *   pnpm bootstrap my-project --ports=keep        # keep the committed defaults
  * Non-interactive LLM provider selection (see LLM_PROVIDERS below for the full
  * set, or `skip` to decide later):
@@ -47,8 +47,9 @@
  * as an argument, since there is nobody at the prompt to answer):
  *   pnpm bootstrap my-project --theme=arctic
  *
- *   # Postgres: have Precast create one on your organisation's database server, paste a URL, or decide later.
- *   PRECAST_RDS_SUPERUSER_URL=postgresql://… pnpm bootstrap my-project --db=provision
+ *   # Postgres: ask the database agent on AgentBase for one (needs the AgentBase answers above),
+ *   # paste a URL, or decide later.
+ *   pnpm bootstrap my-project --llm-provider=agentbase … --db=provision
  *   pnpm bootstrap my-project --db=postgresql://user:pass@host:5432/db
  *   pnpm bootstrap my-project --db=later
  *
@@ -57,7 +58,6 @@
  * leaves your git history intact.
  */
 
-import { randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { existsSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
@@ -65,8 +65,9 @@ import { stdin, stdout } from 'node:process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pickConsecutivePorts, PORT_RANGE } from './set-ports.mjs';
-import { dockerStatus } from './check-docker.mjs';
 import { stampLock, readManifest } from './precast-lock.mjs';
+import { ensureLocalSecrets, restrictEnvFile } from './local-secrets.mjs';
+import { createPrompt } from './connect-agentbase.mjs';
 import { APC_THEMES, DEFAULT_THEME } from './build-apc-theme.mjs';
 import { THEME_IDS, setTheme } from './set-theme.mjs';
 
@@ -158,9 +159,14 @@ function validatePort(v) {
   return { port: n };
 }
 
-function run(cmd, args, { allowFail = false } = {}) {
+function run(cmd, args, { allowFail = false, env } = {}) {
   console.log(`\n$ ${cmd} ${args.join(' ')}`);
-  const res = spawnSync(cmd, args, { cwd: rootDir, stdio: 'inherit', shell: false });
+  const res = spawnSync(cmd, args, {
+    cwd: rootDir,
+    stdio: 'inherit',
+    shell: false,
+    ...(env ? { env: { ...process.env, ...env } } : {}),
+  });
   if (res.status !== 0 && !allowFail) {
     console.error(
       `\n❌ \`${cmd} ${args.join(' ')}\` failed (exit ${res.status}). Bootstrap aborted.`,
@@ -202,14 +208,14 @@ async function resolveName() {
 }
 
 /**
- * Decide the stack's three ports.
+ * Decide the two apps' ports.
  *
- * Default: a random FREE CONSECUTIVE triple in PORT_RANGE (agents / web /
- * keycloak). Two Precast projects on one machine used to collide on 3000/4111
+ * Default: a random FREE CONSECUTIVE pair in PORT_RANGE (agents / web). Two
+ * Precast projects on one machine used to collide on 3000/4111
  * every time; a per-project block in the high private range just works, and
  * being consecutive keeps it memorable.
  *
- * Overrides: `--mastra-port` / `--web-port` / `--keycloak-port` pin individual
+ * Overrides: `--mastra-port` / `--web-port` pin individual
  * ports (anything unpinned still comes from the auto block); `--ports=keep`
  * keeps whatever the repo currently ships with. Interactive runs are shown the
  * auto-picked block and can accept it with Enter.
@@ -219,7 +225,6 @@ async function resolvePorts() {
   for (const [flag, label, key] of [
     ['mastra-port', 'Mastra', 'mastra'],
     ['web-port', 'Web', 'web'],
-    ['keycloak-port', 'Keycloak', 'keycloak'],
   ]) {
     const fv = flagVal(flag);
     if (fv === undefined) continue;
@@ -233,8 +238,8 @@ async function resolvePorts() {
 
   if (flagVal('ports') === 'keep') return { keep: true, ...pinned };
 
-  const [mastra, web, keycloak] = await pickConsecutivePorts();
-  const auto = { mastra, web, keycloak, ...pinned };
+  const [mastra, web] = await pickConsecutivePorts();
+  const auto = { mastra, web, ...pinned };
 
   // Non-interactive (name given as an arg): take the block as-is.
   if (nameArg) return auto;
@@ -245,7 +250,7 @@ async function resolvePorts() {
       console.log(
         `\nPorts — auto-picked a free consecutive block in ${PORT_RANGE.min}–${PORT_RANGE.max}:`,
       );
-      console.log(`  agents ${auto.mastra} · web ${auto.web} · keycloak ${auto.keycloak}`);
+      console.log(`  agents ${auto.mastra} · web ${auto.web}`);
       const answer = (
         await rl.question('Enter to accept, or type a base port for the block: ')
       ).trim();
@@ -255,7 +260,7 @@ async function resolvePorts() {
         console.error(`  ${r.err}`);
         continue;
       }
-      return { mastra: r.port, web: r.port + 1, keycloak: r.port + 2, ...pinned };
+      return { mastra: r.port, web: r.port + 1, ...pinned };
     }
   } finally {
     rl.close();
@@ -291,22 +296,29 @@ async function resolvePorts() {
  * from the Docker build context. `.env.example`, which IS committed, keeps the
  * empty placeholders.
  */
-async function resolveAgentBaseLlm(rl) {
+async function resolveAgentBaseLlm(prompt) {
   const values = {};
 
-  // Flags first, so CI / non-interactive runs work without a TTY.
+  // Flags first, so CI / non-interactive runs work without a TTY. The secret may also come
+  // from the environment, which is how the skill passes one pasted into the chat: a flag
+  // would put it on the command line that pnpm prints.
   for (const field of AGENTBASE_LLM_FIELDS) {
     const fromFlag = flagVal(field.flag);
-    if (fromFlag) values[field.env] = fromFlag;
+    const fromEnv = field.secret ? process.env[field.env]?.trim() : '';
+    if (fromFlag || fromEnv) values[field.env] = fromFlag || fromEnv;
   }
 
   const missing = AGENTBASE_LLM_FIELDS.filter((f) => !f.optional && !values[f.env]);
   if (missing.length === 0) return values;
 
-  if (!rl) {
+  if (!prompt) {
+    const onlySecret = missing.length === 1 && missing[0].secret;
     console.error(
-      `\n❌ --llm-provider=agentbase needs ${missing.map((f) => `--${f.flag}=`).join(' ')}` +
-        ' when running non-interactively.',
+      onlySecret
+        ? '\n❌ The AgentBase client secret is typed at a prompt, and this run has no terminal to ' +
+            'show one. Run the same command in your own terminal and type it there.'
+        : `\n❌ --llm-provider=agentbase needs ${missing.map((f) => `--${f.flag}=`).join(' ')}` +
+            ' when running without a terminal.',
     );
     process.exit(1);
   }
@@ -315,7 +327,9 @@ async function resolveAgentBaseLlm(rl) {
   console.log('model listing, then paste its details here. Stored in .env (git-ignored).');
   for (const field of missing) {
     for (;;) {
-      const answer = (await rl.question(`  ${field.prompt}: `)).trim();
+      const answer = field.secret
+        ? await prompt.askHidden(`  ${field.prompt} (typed hidden): `)
+        : await prompt.ask(`  ${field.prompt}: `);
       if (answer) {
         values[field.env] = answer;
         break;
@@ -323,9 +337,10 @@ async function resolveAgentBaseLlm(rl) {
       console.error('    Required — all five are needed for the gateway to answer.');
     }
   }
+  // Optional, so a named run (the skill's) never stops to ask it.
   const override = AGENTBASE_LLM_FIELDS.find((f) => f.optional);
-  if (override && !values[override.env]) {
-    const answer = (await rl.question(`  ${override.prompt}: `)).trim();
+  if (override && !values[override.env] && !nameArg) {
+    const answer = await prompt.ask(`  ${override.prompt}: `);
     if (answer) values[override.env] = answer;
   }
   return values;
@@ -336,19 +351,20 @@ async function resolveAgentBaseLlm(rl) {
  * placeholder DATABASE_URL passes validation and then fails the first `pnpm poc` healthcheck,
  * so the question is asked here, not discovered later.
  *
- *   --db=provision   Precast creates one on your organisation's database server
- *                    (scripts/provision-db.mjs; needs PRECAST_RDS_SUPERUSER_URL in the shell)
+ *   --db=provision   the database agent on AgentBase creates one (scripts/provision-db.mjs,
+ *                    through the Application given above); with PRECAST_RDS_SUPERUSER_URL in
+ *                    the shell, Precast creates it on the server directly instead
  *   --db=<url>       a postgresql:// URL you already have
  *   --db=later       leave the placeholder; `pnpm db:provision` any time
  *
- * Returns { mode, url?, superuserUrl? }. The admin credential is passed to the provisioning
- * script through its environment, never written into .env.
+ * Returns { mode, url? }. An admin credential, when the shell has one, reaches the provisioning
+ * script through the inherited environment and is never written into .env.
  */
-async function resolveDatabase(rl) {
+async function resolveDatabase(rl, { connected }) {
   let choice = flagVal('db');
   if (!choice && rl) {
     console.log('\nPostgres for this project:');
-    console.log("  1. Create one now on your organisation's database server (needs the admin URL)");
+    console.log('  1. Create one now (the database agent on AgentBase makes it)');
     console.log('  2. Paste a postgresql:// URL you already have');
     console.log('  3. Later (pnpm db:provision, or edit DATABASE_URL in .env)');
     for (;;) {
@@ -384,37 +400,19 @@ async function resolveDatabase(rl) {
     process.exit(1);
   }
 
-  const fromFlag = flagVal('superuser-url');
-  const fromEnv = process.env.PRECAST_RDS_SUPERUSER_URL || process.env.RDS_SUPERUSER_URL;
-  let superuserUrl = fromFlag || fromEnv;
-  if (!superuserUrl && !rl) {
+  const hasAdminUrl = Boolean(
+    process.env.PRECAST_RDS_SUPERUSER_URL || process.env.RDS_SUPERUSER_URL,
+  );
+  if (!connected && !hasAdminUrl) {
+    // The database agent is reached through the AgentBase Application, and there is none yet.
     console.error(
-      '\n❌ --db=provision needs the provisioning credential: set PRECAST_RDS_SUPERUSER_URL in ' +
-        "your shell (or pass --superuser-url=). It is your organisation's database-server admin " +
-        'URL and is never written into the project.',
+      '\n❌ Creating the database needs this project connected to AgentBase: choose AgentBase ' +
+        'for the model (it asks for the Application), or pick "later" and run `pnpm connect`, ' +
+        'then `pnpm db:provision`.',
     );
     process.exit(1);
   }
-  if (!superuserUrl) {
-    console.log(
-      '\nTo create the database I need the provisioning credential: the admin URL of your',
-    );
-    console.log(
-      "organisation's database server (whoever runs AgentBase has it). It is used once, from",
-    );
-    console.log(
-      'this shell, and never written into the project; the project gets its own DATABASE_URL.',
-    );
-    for (;;) {
-      const answer = (await rl.question('  Admin URL (postgresql://…): ')).trim();
-      if (/^postgres(ql)?:\/\//.test(answer)) {
-        superuserUrl = answer;
-        break;
-      }
-      console.error('    That is not a postgres:// URL.');
-    }
-  }
-  return { mode: 'provision', superuserUrl };
+  return { mode: 'provision' };
 }
 
 async function resolveApcTheme() {
@@ -509,22 +507,21 @@ async function main() {
 
   const name = await resolveName();
   const ports = await resolvePorts();
-  if (!ports.keep && new Set([ports.mastra, ports.web, ports.keycloak]).size !== 3) {
-    console.error(
-      `❌ Mastra, web, and Keycloak ports must all differ ` +
-        `(got ${ports.mastra}, ${ports.web}, ${ports.keycloak}).`,
-    );
+  if (!ports.keep && ports.mastra === ports.web) {
+    console.error(`❌ The agents and web ports must differ (got ${ports.mastra} for both).`);
     process.exit(1);
   }
   const llmProvider = await resolveLlmProvider();
   // Only the AgentBase option needs values rather than a name.
   let agentBaseLlm = null;
   if (llmProvider?.key === 'agentbase') {
-    const rl = nameArg ? null : createInterface({ input: stdin, output: stdout });
+    // A passed name means "no questions", except the secret: it is never a flag the skill
+    // types for you, so whenever there is a terminal, ask for it there.
+    const prompt = nameArg && !stdin.isTTY ? null : createPrompt();
     try {
-      agentBaseLlm = await resolveAgentBaseLlm(rl);
+      agentBaseLlm = await resolveAgentBaseLlm(prompt);
     } finally {
-      rl?.close();
+      prompt?.close();
     }
   }
   const apcTheme = await resolveApcTheme();
@@ -532,7 +529,7 @@ async function main() {
   {
     const rl = nameArg ? null : createInterface({ input: stdin, output: stdout });
     try {
-      database = await resolveDatabase(rl);
+      database = await resolveDatabase(rl, { connected: Boolean(agentBaseLlm) });
     } finally {
       rl?.close();
     }
@@ -544,7 +541,7 @@ async function main() {
   console.log(
     ports.keep
       ? '  2. Keep the current ports'
-      : `  2. Set ports — agents ${ports.mastra}, web ${ports.web}, keycloak ${ports.keycloak}`,
+      : `  2. Set ports — agents ${ports.mastra}, web ${ports.web}`,
   );
   console.log(
     `  3. Install${skipDeps ? '' : ' + update'} dependencies${skipDeps ? '' : ' to latest compatible'}`,
@@ -562,7 +559,7 @@ async function main() {
 
   console.log(
     database.mode === 'provision'
-      ? "  8. Create a Postgres database on your organisation's database server and write DATABASE_URL"
+      ? '  8. Ask the database agent on AgentBase for a Postgres database and write DATABASE_URL'
       : database.mode === 'url'
         ? '  8. Write your Postgres URL into .env as DATABASE_URL'
         : '  8. Leave DATABASE_URL for later (pnpm db:provision)',
@@ -576,14 +573,9 @@ async function main() {
   // 1. Rename placeholder.
   run('node', ['scripts/rename-project.mjs', name]);
 
-  // 2. Wire chosen ports through env, configs, pnpm scripts, Docker, docs.
+  // 2. Wire chosen ports through env, configs, pnpm scripts, Dockerfiles, docs.
   if (!ports.keep) {
-    run('node', [
-      'scripts/set-ports.mjs',
-      `--mastra=${ports.mastra}`,
-      `--web=${ports.web}`,
-      `--keycloak=${ports.keycloak}`,
-    ]);
+    run('node', ['scripts/set-ports.mjs', `--mastra=${ports.mastra}`, `--web=${ports.web}`]);
   }
 
   // 3. Dependencies.
@@ -610,20 +602,21 @@ async function main() {
   // an instruction to copy one — this is the gap that let an unconfigured LLM
   // provider go unnoticed until a chat actually failed.
   const envCreated = copyEnvFile();
-  if (envCreated) writeEnvValues(generateLocalSecrets());
+  if (envCreated) {
+    const minted = ensureLocalSecrets(join(rootDir, '.env'));
+    if (minted.length) console.log(`\nWrote into .env: ${minted.join(', ')}.`);
+  }
   if (agentBaseLlm) writeEnvValues(agentBaseLlm);
   if (database.mode === 'url') writeEnvValues({ DATABASE_URL: database.url });
   if (database.mode === 'provision') {
-    // 8. Provisioning talks to the database server and can fail for reasons this
-    // script cannot fix (network, a refused credential). The project exists either
-    // way, so a failure here is reported and left to `pnpm db:provision`. The
-    // admin URL travels in the child's environment, not on its command line.
+    // 8. Provisioning talks to AgentBase (or the database server) and can fail for
+    // reasons this script cannot fix (network, the agent restarting). The project
+    // exists either way, so a failure here is reported and left to `pnpm db:provision`.
     const label = flagVal('db-label') || `the ${name} project`;
     console.log('\n$ node scripts/provision-db.mjs --label …');
     const res = spawnSync('node', ['scripts/provision-db.mjs', '--label', label], {
       cwd: rootDir,
       stdio: 'inherit',
-      env: { ...process.env, PRECAST_RDS_SUPERUSER_URL: database.superuserUrl },
     });
     if (res.status !== 0) {
       console.error(
@@ -649,15 +642,13 @@ async function main() {
   // PoC first: the fastest route to something the user can look at and react to
   // (CLAUDE.md §4.9). Full `pnpm test` belongs to the hardening pass, after the
   // PoC has been reviewed — a green test run on the wrong product is wasted time.
-  console.log('  • See it run:          pnpm poc            (builds + starts the Docker stack)');
+  console.log('  • See it run:          pnpm poc            (builds both apps and starts them)');
   console.log('  • Fast check:          pnpm verify:poc     (typecheck only — PoC bar)');
   console.log('  • Full verify later:   pnpm build && pnpm test && pnpm test:e2e');
   console.log(
     '  • Add your remote:     git remote add origin <url> && git push -u origin ' + DEFAULT_BRANCH,
   );
   console.log('  • Later, pull Precast improvements in:  pnpm precast:update');
-
-  printDockerPrerequisite();
 
   console.log('');
   if (llmProvider?.key === 'agentbase') {
@@ -673,27 +664,6 @@ async function main() {
   }
 
   printFeedForwardGuidance();
-}
-
-/**
- * `pnpm poc` runs the stack in Docker Compose, so a first-time user needs a
- * container runtime before anything is visible. Say so HERE — at the end of
- * bootstrap, while they're still at the keyboard — rather than letting it
- * surface later as a daemon-socket error.
- */
-function printDockerPrerequisite() {
-  const state = dockerStatus();
-  if (state === 'running') return;
-  console.log('');
-  if (state === 'missing') {
-    console.log('🐳 PREREQUISITE — Docker is not installed, and `pnpm poc` needs it.');
-    console.log('   Install Docker Desktop:  https://www.docker.com/products/docker-desktop/');
-  } else {
-    console.log('🐳 PREREQUISITE — Docker is installed but the engine is not running.');
-    console.log('   Start Docker Desktop, then continue.');
-  }
-  console.log('   Then run:  pnpm docker:wait   (waits for the engine, exits as soon as it is up)');
-  console.log('   Details:   pnpm docker:check');
 }
 
 /**
@@ -734,9 +704,6 @@ function copyEnvFile() {
  * 32 bytes of CSPRNG, hex-encoded: no shell-quoting or dotenv-parsing hazards,
  * and long enough that the value is not the weak link.
  */
-function generateLocalSecrets() {
-  return { AGENT_API_TOKEN: randomBytes(32).toString('hex') };
-}
 
 /**
  * Set keys in the real `.env`, replacing the empty placeholders `.env.example`
@@ -744,8 +711,8 @@ function generateLocalSecrets() {
  * landing there would reach every clone.
  *
  * Values are written raw and alone on the line: an inline comment after the
- * value would become PART of it under Docker Compose's env_file parser, which
- * is exactly how a placeholder once shipped as a live "API key" (APP-019).
+ * value would become PART of it under some dotenv parsers (Docker Compose's did),
+ * which is exactly how a placeholder once shipped as a live "API key" (APP-019).
  */
 function writeEnvValues(values) {
   const envPath = join(rootDir, '.env');
@@ -759,6 +726,7 @@ function writeEnvValues(values) {
   }
 
   writeFileSync(envPath, text, 'utf-8');
+  restrictEnvFile(envPath);
   console.log(`\nWrote into .env: ${Object.keys(values).join(', ')}.`);
 }
 
@@ -816,7 +784,12 @@ function resetGit(name) {
   run('git', ['add', '-A']);
   // `git add -A` stages the required docs, so the doc-contract pre-commit hook
   // is satisfied on this first commit.
-  run('git', ['commit', '-m', `chore: initialize ${name} from Precast`]);
+  // The first commit records the tree exactly as stamped in precast.lock.json.
+  // lint-staged would reformat files after the stamp (so "update it" later calls
+  // them customized) and a single lint error would abort the person's scaffold.
+  run('git', ['commit', '-m', `chore: initialize ${name} from Precast`], {
+    env: { SKIP_LINT_STAGED: '1' },
+  });
 }
 
 /** One line a person can act on; the full error only when asked for. */

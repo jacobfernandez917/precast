@@ -26,4 +26,9 @@ export interface HealthStatus {
   uptime: number;
   timestamp: string;
   services: Record<string, 'up' | 'down'>;
+  /**
+   * Whether people can sign in (the web app requires it before chat). A reason
+   * code only: the detail stays in the server log.
+   */
+  signIn?: 'ready' | 'missing-secret' | 'missing-database' | 'database-error' | 'starting';
 }

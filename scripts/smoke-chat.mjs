@@ -93,7 +93,7 @@ if (res.status === 401) {
 if (!res.ok) {
   fail(
     `Agents API returned HTTP ${res.status} ${res.statusText}.\n` +
-      '  Read the last lines of pnpm docker:logs; a 500 usually means the model call failed (pnpm connect --check).',
+      '  Read the last lines of pnpm logs agents; a 500 usually means the model call failed (pnpm connect --check).',
   );
 }
 
@@ -102,7 +102,7 @@ try {
   body = await res.json();
 } catch {
   fail(
-    'The agents API answered, but not with JSON. Is that URL the agents app? Check pnpm docker:ps.',
+    'The agents API answered, but not with JSON. Is that URL the agents app? Check that pnpm poc is running.',
   );
 }
 if (body.error) {

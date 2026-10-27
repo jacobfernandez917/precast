@@ -1,14 +1,18 @@
+import { timingSafeEqual } from 'node:crypto';
 import type { AgentCard, SecurityScheme } from '@a2a-js/sdk';
 import { ON_BEHALF_OF_HEADER, runWithRequestContext } from '../lib/request-context';
 
 /**
  * Mastra Hono middleware with two jobs:
  *
- *  1. **Enforce** a static bearer token (`AGENT_API_TOKEN`) on the agent API
- *     routes (`/api/a2a/*`, `/api/agents/*`). When the token is unset, auth is
- *     off — the API is open (local dev). Studio (`/`) and agent-card discovery
- *     stay readable without auth. **In production that open default is refused
- *     at boot** — see `assertAgentApiAuthConfigured()` below.
+ *  1. **Enforce** a static bearer token (`AGENT_API_TOKEN`) on EVERY Mastra API
+ *     route under `/api`. Mastra serves far more than A2A there: tool execution
+ *     (`/api/tools/:id/execute`), memory threads and messages, workflows, traces.
+ *     Guarding only `/api/a2a` and `/api/agents` once left tools runnable by
+ *     anyone who could reach the port. The A2A agent card is the one exception,
+ *     because callers read it to learn how to authenticate. When the token is
+ *     unset, auth is off (local dev); **in production that open default is
+ *     refused at boot**, see `assertAgentApiAuthConfigured()` below.
  *
  *  2. **Capture** the end-user subject (`X-AgentBase-On-Behalf-Of`) into the
  *     request context, so anything calling back to AgentBase during the turn can
@@ -27,16 +31,22 @@ import { ON_BEHALF_OF_HEADER, runWithRequestContext } from '../lib/request-conte
  * (see docs/INTEGRATION_AGENTBASE.md §7).
  */
 
-/** Paths that require the bearer token when `AGENT_API_TOKEN` is set. */
-const PROTECTED_PATHS = ['/api/a2a', '/api/agents'];
-
-function isProtectedPath(path: string): boolean {
-  return PROTECTED_PATHS.some((prefix) => path.startsWith(prefix));
-}
-
 /** A2A agent-card discovery path: `/api/.well-known/:agentId/agent-card.json`. */
 function isAgentCardPath(path: string): boolean {
   return path.startsWith('/api/.well-known/') && path.endsWith('/agent-card.json');
+}
+
+/** Every route under `/api` needs the bearer when `AGENT_API_TOKEN` is set, except the card. */
+export function isProtectedPath(path: string): boolean {
+  return (path === '/api' || path.startsWith('/api/')) && !isAgentCardPath(path);
+}
+
+/** Constant-time comparison, so response timing says nothing about the token. */
+function bearerMatches(header: string | undefined, token: string): boolean {
+  if (!header) return false;
+  const given = Buffer.from(header);
+  const wanted = Buffer.from(`Bearer ${token}`);
+  return given.length === wanted.length && timingSafeEqual(given, wanted);
 }
 
 /** The static-bearer scheme this server enforces (A2A / OpenAPI `http`+`bearer`). */
@@ -84,8 +94,7 @@ export function createAuthMiddleware() {
 
     // 1. Enforce the bearer on protected routes (only when a token is configured).
     if (token && isProtectedPath(c.req.path)) {
-      const authHeader = c.req.header('Authorization');
-      if (!authHeader || authHeader !== `Bearer ${token}`) {
+      if (!bearerMatches(c.req.header('Authorization'), token)) {
         return c.json(
           {
             success: false,

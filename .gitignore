@@ -20,8 +20,9 @@ test-results
 .DS_Store
 .pnpm-store/
 
-# Docker (per-developer local overrides — see docker-compose.override.yml header)
-docker/docker-compose.override.yml
+
+# What `pnpm poc` runs: process ids and logs of the two apps
+.precast/
 
 # Backups left by `pnpm precast:update --force` (review, then delete)
 *.precast-bak

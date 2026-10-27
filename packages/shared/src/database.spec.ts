@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { assertPostgresUrl, isPostgresUrl, resolvePostgresSsl } from './database.js';
+import {
+  PROJECT_NAME,
+  assertPostgresUrl,
+  isPostgresUrl,
+  projectSchema,
+  resolvePostgresSsl,
+} from './database.js';
 
 const POSTGRES_URLS = [
   'postgres://user:pass@host:5432/db',
@@ -87,5 +93,31 @@ describe('resolvePostgresSsl — libpq semantics, not node-postgres defaults', (
 
   it('never throws on an unparseable URL', () => {
     expect(resolvePostgresSsl('not a url')).toBeUndefined();
+  });
+});
+
+/**
+ * The schemas are named after the project. Written without the boilerplate's own name in any
+ * expected value, so the spec still passes after `pnpm rename` rewrites the literal.
+ */
+describe('projectSchema', () => {
+  it('derives a schema per purpose from the project name', () => {
+    expect(projectSchema('agents', 'meeting-rooms')).toBe('meeting_rooms_agents');
+    expect(projectSchema('auth', 'meeting-rooms')).toBe('meeting_rooms_auth');
+  });
+
+  it('defaults to this project, and is never a generic name', () => {
+    expect(projectSchema('agents')).toBe(projectSchema('agents', PROJECT_NAME));
+    expect(projectSchema('agents')).not.toBe('mastra');
+    expect(projectSchema('auth')).not.toBe('auth');
+  });
+
+  it('is always a legal unquoted identifier within 63 bytes', () => {
+    for (const name of ['a', '9lives', 'x--y', 'q'.repeat(80), 'Weird Name!']) {
+      const schema = projectSchema('agents', name);
+      expect(schema, name).toMatch(/^[a-z][a-z0-9_]*_agents$/);
+      expect(schema.length, name).toBeLessThanOrEqual(63);
+    }
+    expect(projectSchema('agents', '9lives')).toBe('p_9lives_agents');
   });
 });

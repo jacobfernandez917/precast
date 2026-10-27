@@ -98,7 +98,6 @@ function readPorts(dir) {
   return {
     mastra: Number((txt.match(/^MASTRA_PORT=(\d+)/m) || [])[1] || 4111),
     web: Number((txt.match(/^WEB_PORT=(\d+)/m) || [])[1] || 3000),
-    keycloak: Number((txt.match(/^KEYCLOAK_HOST_PORT=(\d+)/m) || [])[1] || 8080),
   };
 }
 
@@ -159,12 +158,7 @@ function transformUpstream(tmp, projectName, ports) {
   }
   const setPorts = run(
     'node',
-    [
-      'scripts/set-ports.mjs',
-      `--mastra=${ports.mastra}`,
-      `--web=${ports.web}`,
-      `--keycloak=${ports.keycloak}`,
-    ],
+    ['scripts/set-ports.mjs', `--mastra=${ports.mastra}`, `--web=${ports.web}`],
     tmp,
   );
   if (setPorts.status !== 0) {

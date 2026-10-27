@@ -178,7 +178,10 @@ describe('resolveAgentUrl — failure never degrades to a guess', () => {
     configured();
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     mockAgentBase({
-      items: [AGENT_ROW, { ...AGENT_ROW, targetSlug: 'other-advisor-aaaa', providerTenantSlug: 'globex' }],
+      items: [
+        AGENT_ROW,
+        { ...AGENT_ROW, targetSlug: 'other-advisor-aaaa', providerTenantSlug: 'globex' },
+      ],
       cards: {
         'founder-advisor-479c1de1': 'advisor-agent',
         'other-advisor-aaaa': 'advisor-agent',
@@ -227,7 +230,6 @@ describe('discoverAgentRoutes — caching', () => {
     expect(mcpCalls, 'three concurrent callers must trigger one discovery').toBe(1);
   });
 });
-
 
 /**
  * The shipped placeholder must not read as configuration.

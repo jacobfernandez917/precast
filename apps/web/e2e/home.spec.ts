@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { signedIn } from './session';
 
 test.describe('home page', () => {
   test('renders the app heading', async ({ page }) => {
@@ -6,22 +7,50 @@ test.describe('home page', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Precast');
   });
 
-  test('shows server health fetched from the route handler', async ({ page }) => {
+  // E2E-009: chat is for signed-in people only. Signed out, the page offers
+  // sign-in and no message box; the route refuses anonymous turns as well.
+  test('signed out, it asks you to sign in and shows no chat', async ({ page }) => {
     await page.goto('/');
-    const card = page.getByText('Server health');
-    await expect(card).toBeVisible();
-    // The server component fetches /api/health and renders the JSON payload.
-    await expect(page.locator('pre')).toContainText('"status": "ok"');
+    await expect(
+      page.getByRole('heading', { name: 'Sign in to chat with your agent' }),
+    ).toBeVisible();
+    await expect(page.getByPlaceholder('Type a message for the agent...')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page).toHaveURL(/\/sign-in$/);
   });
 
-  test('exposes the health API route directly', async ({ request }) => {
+  test('signed in, it shows who you are and the chat', async ({ page }) => {
+    await signedIn(page, 'jamie@example.com');
+    await page.goto('/');
+    await expect(page.getByText('Signed in as jamie@example.com')).toBeVisible();
+    await expect(page.getByPlaceholder('Type a message for the agent...')).toBeVisible();
+  });
+
+  // The page used to fetch its own /api/health through the request's Host
+  // header, which let a forged Host make the server request any address.
+  test('no longer shows a server health card', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByText('Server health')).toHaveCount(0);
+  });
+
+  test('exposes the health API route directly, with sign-in readiness', async ({ request }) => {
     const res = await request.get('/api/health');
     expect(res.ok()).toBeTruthy();
     const body = await res.json();
-    expect(body.status).toBe('ok');
+    expect(['ok', 'degraded']).toContain(body.status);
+    expect(typeof body.signIn).toBe('string');
+  });
+
+  // E2E-010: what every response carries.
+  test('sends the security headers and no framework banner', async ({ request }) => {
+    const res = await request.get('/');
+    const headers = res.headers();
+    expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
+    expect(headers['x-frame-options']).toBe('DENY');
+    expect(headers['x-content-type-options']).toBe('nosniff');
+    expect(headers['x-powered-by']).toBeUndefined();
   });
 });
-
 
 /**
  * Error boundaries. Without these files Next serves its own default pages —

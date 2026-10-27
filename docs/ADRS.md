@@ -115,7 +115,9 @@ Mastra's own store moves from `@mastra/libsql` to `@mastra/pg`.
 `MASTRA_DB_URL` becomes an **optional** Postgres URL that falls back to
 `DATABASE_URL` (`resolveMastraDbUrl()`), so a project still needs exactly one
 provisioned Postgres to boot; Mastra's tables are namespaced into their own
-schema (`MASTRA_DB_SCHEMA`, default `mastra`) so they can safely share it.
+schema (`MASTRA_DB_SCHEMA`) so they can safely share it. The default was `mastra`
+until 2026-10-27; it is now named after the project (`<project>_agents`), so two
+projects on one database cannot share memory either.
 
 Unchanged from ADR-001: Postgres is still **never run in Docker Compose**
 (CLAUDE.md §4.5). "Always Postgres" is a statement about the engine, not about

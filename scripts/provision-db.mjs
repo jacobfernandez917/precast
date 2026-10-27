@@ -2,22 +2,33 @@
 /**
  * pnpm db:provision — create a Postgres database for this project and write it into `.env`.
  *
- * Every Precast project needs a Postgres it does not run itself (ADR-002). This script carves
- * one out of the organisation's shared database server: a fresh database with its own scoped
- * role and password, isolated from every other database on the instance, then proves the new
- * credentials connect before writing `DATABASE_URL`. Ported from Hannibal's provisioner, so the
- * guarantees are the same: no drop path exists here, nothing on the instance is enumerated, and
- * the admin credential is never part of anything returned or written.
+ * Every Precast project needs a Postgres it does not run itself (ADR-002). A fresh database
+ * with its own scoped role and password, isolated from every other database on the
+ * organisation's server, comes from one of two places:
+ *
+ *   Hannibal, the database agent on AgentBase (the default). The project asks it through the
+ *   AgentBase Application it is already connected with (`pnpm connect`), so the person running
+ *   this needs nothing else: the server's admin credential stays with Hannibal.
+ *
+ *   The server directly, when the admin credential is in the SHELL of this machine:
+ *   PRECAST_RDS_SUPERUSER_URL (or RDS_SUPERUSER_URL, Hannibal's name for it), or
+ *   --superuser-url=. Hannibal's provisioner, ported, for whoever runs that server. The
+ *   project's `.env` is not read for it and never receives it.
  *
  *   pnpm db:provision                                   # label from package.json
  *   pnpm db:provision --label "a meeting-room booking assistant"
  *
- * The admin credential comes from the SHELL of the machine running the scaffold, never from
- * the project: PRECAST_RDS_SUPERUSER_URL (or RDS_SUPERUSER_URL, Hannibal's name for it), or
- * --superuser-url=. The project's `.env` is not read for it and never receives it; the project
- * gets only its own DATABASE_URL.
+ * Either way the new credentials must connect before `DATABASE_URL` is written, no drop path
+ * exists, and nothing on the server is enumerated. Each step is named so a failure says which.
  *
- * The flow, each step named so a failure says which one:
+ * Through Hannibal:
+ *   1. read the AgentBase connection  (the Application in .env)
+ *   2. find the database agent        (registry search, then its card must offer provisioning)
+ *   3. ask for a database             (A2A message/send through the AgentBase proxy)
+ *   4. verify                         (connect as the new role and run SELECT 1)
+ *   5. write .env                     (DATABASE_URL, replaced in place)
+ *
+ * Directly:
  *   1. read the credential   (shell env or flag; the .env.example placeholder is refused)
  *   2. create                 (CREATE ROLE, CREATE DATABASE … OWNER, REVOKE ALL … FROM PUBLIC)
  *   3. verify                 (connect as the new role and run SELECT 1)
@@ -31,10 +42,12 @@
  * that mentions it shows the host, port and database name with the password redacted.
  */
 
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { isPlaceholder, mintToken } from './connect-agentbase.mjs';
+import { restrictEnvFile } from './local-secrets.mjs';
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -161,7 +174,11 @@ export function resolveSuperuserUrl({ flags = {}, env = {} } = {}) {
       return { url: null, error: `${source} is the placeholder, not a real credential` };
     return { url: v, source };
   }
-  return { url: null, error: `none of --superuser-url, ${SUPERUSER_ENV.join(', ')} is set` };
+  return {
+    url: null,
+    unset: true,
+    error: `none of --superuser-url, ${SUPERUSER_ENV.join(', ')} is set`,
+  };
 }
 
 /** TLS for the admin and verification connections. */
@@ -268,6 +285,25 @@ export async function provisionOnRds({
   }
 
   const connectionString = buildConnectionString({ host, port, database, user, password });
+  await verifyConnects({ connectionString, connect, tls });
+
+  return {
+    database,
+    user,
+    host,
+    port,
+    connectionString,
+    createdAt: new Date().toISOString(),
+    statements,
+  };
+}
+
+/** Connect as the new role and run SELECT 1; a credential that does not connect is never written. */
+export async function verifyConnects({
+  connectionString,
+  connect = defaultConnect,
+  tls = tlsConfig(),
+}) {
   const verify = new URL(connectionString);
   verify.searchParams.delete('sslmode');
   let scoped;
@@ -284,15 +320,288 @@ export async function provisionOnRds({
   } finally {
     await scoped?.end?.();
   }
+}
 
+// ── Through Hannibal on AgentBase ───────────────────────────────────────────
+
+/** The skill a database agent's card must declare, so a near match in the registry is never asked. */
+export const PROVISION_SKILL = 'provisionDatabaseTool';
+const REGISTRY_QUERY = 'provision a postgres database';
+const CANDIDATES = 3;
+const ASK_TIMEOUT_MS = 120_000;
+const NOT_CONNECTED_HINT =
+  'Say “connect my AgentBase” in Claude Code (or run `pnpm connect`), then run `pnpm db:provision` again.';
+
+/** The Application this project is connected with, from its `.env`; null when it is not connected. */
+export function readApplication(envText) {
+  const env = parseEnvFile(envText);
+  const app = {
+    apiUrl: env.AGENTBASE_URL?.replace(/\/+$/, ''),
+    tokenUrl: env.AGENTBASE_TOKEN_URL,
+    clientId: env.AGENTBASE_CLIENT_ID,
+    clientSecret: env.AGENTBASE_CLIENT_SECRET,
+  };
+  return Object.values(app).every((v) => !isPlaceholder(v)) ? app : null;
+}
+
+/** One AgentBase MCP tool call; its JSON payload, or a StepError naming `step`. */
+async function agentbaseTool({ apiUrl, token, name, args, step, fetch }) {
+  let res;
+  try {
+    res = await fetch(`${apiUrl}/mcp`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name, arguments: args },
+      }),
+    });
+  } catch (err) {
+    throw new StepError(
+      step,
+      `could not reach AgentBase at ${apiUrl} (${err?.cause?.code ?? err?.message ?? err})`,
+      'Check that you are online, then run `pnpm db:provision` again.',
+    );
+  }
+  if (!res.ok) {
+    throw new StepError(
+      step,
+      `AgentBase answered HTTP ${res.status} to ${name}`,
+      NOT_CONNECTED_HINT,
+    );
+  }
+  const body = await res.json().catch(() => ({}));
+  const text = body?.result?.content?.[0]?.text ?? '';
+  if (body?.error || body?.result?.isError) {
+    const detail = String(body?.error?.message ?? text).slice(0, 200);
+    throw Object.assign(new StepError(step, `AgentBase could not run ${name}: ${detail}`), {
+      detail,
+    });
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new StepError(step, `AgentBase answered ${name} in a form this script does not read`);
+  }
+}
+
+async function fetchCard(cardUrl, token, fetch) {
+  try {
+    const res = await fetch(cardUrl, { headers: { authorization: `Bearer ${token}` } });
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Find the database agent: search the registry, then trust only a card that declares
+ * {@link PROVISION_SKILL}. The address asked is the card's own, on AgentBase's origin; a card
+ * pointing anywhere else would be sent this Application's token, so it is not followed.
+ */
+export async function findProvisioner({ apiUrl, token, fetch = globalThis.fetch }) {
+  const step = 'find the database agent';
+  const found = await agentbaseTool({
+    apiUrl,
+    token,
+    fetch,
+    step,
+    name: 'agentbase.search_registry',
+    args: { query: REGISTRY_QUERY, kind: 'a2a_agent' },
+  });
+  const slugs = (found?.items ?? [])
+    .map((i) => i?.agentSlug)
+    .filter(Boolean)
+    .slice(0, CANDIDATES);
+  for (const slug of slugs) {
+    const agent = await agentbaseTool({
+      apiUrl,
+      token,
+      fetch,
+      step,
+      name: 'agentbase.get_agent',
+      args: { slug },
+    });
+    if (!agent?.agentCardUrl || !agent?.listingId) continue;
+    const card = await fetchCard(agent.agentCardUrl, token, fetch);
+    if (!card?.skills?.some((s) => s?.id === PROVISION_SKILL)) continue;
+    const derived = agent.agentCardUrl.replace(/\/\.well-known\/[^/]+\.json$/, '');
+    const sameOrigin = (u) => {
+      try {
+        return new URL(u).origin === new URL(agent.agentCardUrl).origin;
+      } catch {
+        return false;
+      }
+    };
+    return {
+      slug,
+      listingId: agent.listingId,
+      url: card.url && sameOrigin(card.url) ? card.url : derived,
+    };
+  }
+  throw new StepError(
+    step,
+    'no agent on this AgentBase offers to create databases',
+    'Ask your AgentBase admin whether the database agent (Hannibal) is published to your organisation, or paste a postgresql:// URL of your own into DATABASE_URL in .env.',
+  );
+}
+
+/** The reply's text, wherever the A2A answer put it (same order as apps/web/app/lib/a2a-client.ts). */
+export function replyText(result = {}) {
+  const textOf = (parts) =>
+    (parts ?? [])
+      .filter((p) => p?.kind === 'text' && typeof p.text === 'string')
+      .map((p) => p.text)
+      .join('')
+      .trim();
+  const lastAgentTurn = [...(result.history ?? [])].reverse().find((m) => m?.role === 'agent');
+  return (
+    textOf(result.parts) ||
+    textOf(result.message?.parts) ||
+    textOf(result.status?.message?.parts) ||
+    textOf((result.artifacts ?? []).flatMap((a) => a?.parts ?? [])) ||
+    textOf(lastAgentTurn?.parts)
+  );
+}
+
+/**
+ * The connection string in Hannibal's answer. Its agent puts it in a ```text block, copied from
+ * the tool's output; that block is preferred, then any postgres:// URL. Only a URL with a user,
+ * a password, a host and a database counts. Never rebuilt from parts.
+ */
+export function extractConnectionString(text) {
+  const body = String(text ?? '');
+  const fenced = [...body.matchAll(/```text[^\S\n]*\n([\s\S]*?)```/g)].map((m) => m[1].trim());
+  const loose = body.match(/postgres(?:ql)?:\/\/[^\s`'"<>]+/g) ?? [];
+  for (const candidate of [...fenced, ...loose]) {
+    if (!/^postgres(ql)?:\/\/\S+$/.test(candidate)) continue;
+    try {
+      const u = new URL(candidate);
+      if (u.username && u.password && u.hostname && u.pathname.length > 1) return candidate;
+    } catch {
+      // not a URL; try the next one
+    }
+  }
+  return null;
+}
+
+export async function askForDatabase({
+  url,
+  token,
+  label,
+  fetch = globalThis.fetch,
+  timeoutMs = ASK_TIMEOUT_MS,
+}) {
+  const step = 'ask for a database';
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: randomUUID(),
+        method: 'message/send',
+        params: {
+          message: {
+            kind: 'message',
+            role: 'user',
+            messageId: randomUUID(),
+            // A sentence, not a payload: the agent names the database from how the project
+            // is described.
+            parts: [{ kind: 'text', text: `I need a Postgres database for ${label}.` }],
+          },
+        },
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (err) {
+    throw new StepError(
+      step,
+      `the database agent did not answer (${err?.name === 'TimeoutError' ? `nothing after ${timeoutMs / 1000} s` : (err?.cause?.code ?? err?.message ?? err)})`,
+      'AgentBase or the agent may be busy or restarting. Run `pnpm db:provision` again in a minute.',
+    );
+  }
+  if (!res.ok) {
+    throw new StepError(
+      step,
+      `the database agent answered HTTP ${res.status}`,
+      res.status === 401 || res.status === 403
+        ? 'This Application may not use the database agent. Ask your AgentBase admin to allow it.'
+        : 'It may be restarting. Run `pnpm db:provision` again in a minute.',
+    );
+  }
+  const body = await res.json().catch(() => null);
+  if (!body || body.error) {
+    throw new StepError(
+      step,
+      `the database agent could not answer${body?.error?.message ? `: ${String(body.error.message).slice(0, 200)}` : ''}`,
+      'Run `pnpm db:provision` again in a minute.',
+    );
+  }
+  return replyText(body.result);
+}
+
+export async function provisionThroughHannibal({
+  app,
+  label,
+  log = console,
+  fetch = globalThis.fetch,
+  connect,
+  tls,
+}) {
+  log.log('2/5  Finding the database agent on AgentBase…');
+  let token;
+  try {
+    token = await mintToken({ ...app, fetch });
+  } catch (err) {
+    throw new StepError('find the database agent', err.message, err.hint ?? NOT_CONNECTED_HINT);
+  }
+  const agent = await findProvisioner({ apiUrl: app.apiUrl, token, fetch });
+  try {
+    await agentbaseTool({
+      apiUrl: app.apiUrl,
+      token,
+      fetch,
+      step: 'find the database agent',
+      name: 'agentbase.subscribe',
+      args: { listingId: agent.listingId },
+    });
+  } catch (err) {
+    // Asking twice is fine; anything else is a refusal worth stopping on.
+    if (!/already/i.test(err?.detail ?? '')) throw err;
+  }
+
+  log.log(`3/5  Asking it for a database for ${label}…`);
+  const reply = await askForDatabase({ url: agent.url, token, label, fetch });
+  const connectionString = extractConnectionString(reply);
+  if (!connectionString) {
+    throw new StepError(
+      'ask for a database',
+      /\bmock\b/i.test(reply)
+        ? 'the database agent is running in test mode, so it created no database'
+        : 'the database agent answered without a connection string',
+      'Run `pnpm db:provision` again. If it keeps happening, tell your AgentBase admin the database agent is not returning connection strings.',
+    );
+  }
+
+  log.log('4/5  Checking the new database connects…');
+  await verifyConnects({ connectionString, connect, ...(tls ? { tls } : {}) });
+  const u = new URL(connectionString);
   return {
-    database,
-    user,
-    host,
-    port,
+    database: u.pathname.slice(1),
+    user: decodeURIComponent(u.username),
+    host: u.hostname,
+    port: Number(u.port || 5432),
     connectionString,
     createdAt: new Date().toISOString(),
-    statements,
+    via: 'agentbase',
   };
 }
 
@@ -320,24 +629,60 @@ function defaultLabel() {
   }
 }
 
-export async function provision({ flags = {}, label, envPath, log = console, connect } = {}) {
-  log.log('1/4  Reading the provisioning credential…');
-  const cred = resolveSuperuserUrl({ flags, env: process.env });
-  if (!cred.url) {
+/**
+ * @param {{
+ *   flags?: Record<string, string>,
+ *   label: string,
+ *   envPath: string,
+ *   log?: { log: (...line: unknown[]) => void },
+ *   connect?: (config: Record<string, unknown>) => Promise<any>,
+ *   fetch?: typeof globalThis.fetch,
+ *   env?: Record<string, string | undefined>,
+ * }} options
+ */
+export async function provision({
+  flags = {},
+  label,
+  envPath,
+  log = console,
+  connect,
+  fetch = globalThis.fetch,
+  env = process.env,
+} = {}) {
+  const before = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : '';
+  const cred = resolveSuperuserUrl({ flags, env });
+  let result;
+  let last;
+  if (cred.url) {
+    log.log('1/4  Reading the provisioning credential…');
+    log.log(`2/4  Creating the database on ${adminEndpoint(cred.url).host}…`);
+    log.log('3/4  Verifying the new credentials connect…');
+    result = await provisionOnRds({ superuserUrl: cred.url, label, connect });
+    last = '4/4';
+  } else if (!cred.unset) {
+    // An admin URL was given but is unusable: say so rather than going somewhere else.
     throw new StepError(
       'read the credential',
       cred.error,
-      "Set PRECAST_RDS_SUPERUSER_URL in your shell to your organisation's database-server admin URL (ask whoever runs AgentBase for it). It is never written into the project.",
+      "PRECAST_RDS_SUPERUSER_URL must be your organisation's database-server admin URL. Unset it to ask the database agent on AgentBase instead.",
     );
+  } else {
+    log.log("1/5  Reading this project's AgentBase connection…");
+    const app = readApplication(before);
+    if (!app) {
+      throw new StepError(
+        'read the AgentBase connection',
+        'this project is not connected to AgentBase yet, so there is nobody to ask for a database',
+        NOT_CONNECTED_HINT,
+      );
+    }
+    result = await provisionThroughHannibal({ app, label, log, fetch, connect });
+    last = '5/5';
   }
 
-  log.log(`2/4  Creating the database on ${adminEndpoint(cred.url).host}…`);
-  log.log('3/4  Verifying the new credentials connect…');
-  const result = await provisionOnRds({ superuserUrl: cred.url, label, connect });
-
-  log.log('4/4  Writing DATABASE_URL into .env…');
-  const before = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : '';
+  log.log(`${last}  Writing DATABASE_URL into .env…`);
   writeFileSync(envPath, setEnvValue(before, 'DATABASE_URL', result.connectionString), 'utf-8');
+  restrictEnvFile(envPath);
   return result;
 }
 
@@ -346,8 +691,9 @@ async function main() {
   const envPath = flags.env ? join(process.cwd(), flags.env) : join(rootDir, '.env');
   const label = flags.label || defaultLabel();
   try {
-    const { connectionString, database } = await provision({ flags, label, envPath });
-    console.log(`\n✔ Database ${database} created and written to .env as DATABASE_URL:`);
+    const { connectionString, database, via } = await provision({ flags, label, envPath });
+    const from = via === 'agentbase' ? ' by the database agent on AgentBase' : '';
+    console.log(`\n✔ Database ${database} created${from} and written to .env as DATABASE_URL:`);
     console.log(`  ${redactUrl(connectionString)}`);
     console.log(
       '  The password is in .env and nowhere else. Lose it and the fix is to provision again.',

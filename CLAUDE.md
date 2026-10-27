@@ -12,7 +12,7 @@ This is a **monorepo boilerplate** — a curated, opinionated starting point for
 - **Documentation contracts** (CLAUDE.md → HANDOFF.md → PROGRESS.md → authoritative docs)
 - **Progress tracking automation** (hooks, stamp script)
 - **Guardrails** (git hooks, lint-staged, editorconfig, env validation)
-- **Boilerplate templates** for APIs, web apps, shared packages, Docker Compose infra
+- **Boilerplate templates** for APIs, web apps, shared packages, and the Dockerfiles AgentBase builds
 - **Architectural Decision Records** (ADR) for documenting design rationale
 
 **Stack at a glance:**
@@ -26,9 +26,9 @@ This is a **monorepo boilerplate** — a curated, opinionated starting point for
 | Design system         | **Astryx** (`@astryxdesign/core`, web UI)                                     |
 | Shared                | **TypeScript** packages with zod validation                                   |
 | Database              | **Postgres** (remote/managed) — one `DATABASE_URL`, always Postgres (ADR-002) |
-| Identity              | **Keycloak** / OIDC — **Docker Compose (dev)** or remote                      |
+| Identity              | **Better Auth** inside the web app; any OIDC issuer optional                  |
 | Cache                 | **Redis** — **remote/managed**                                                |
-| Containers            | **Docker Compose** (apps + Keycloak; Postgres/Redis never run here)           |
+| Local run             | **Native Node** (`pnpm poc`); Dockerfiles only for AgentBase and CI           |
 | Testing               | **Vitest** + **Playwright**                                                   |
 | Linting               | **ESLint** + **Prettier**                                                     |
 
@@ -145,15 +145,15 @@ HANDOFF.md is a snapshot; PROGRESS.md is the long-form ledger. On disagreement a
 **The loop for any new build (a project, a feature, a surface):**
 
 1. **Slice.** Pick the thinnest **vertical** slice that a human can see and react to — one screen, or one agent answering one real prompt end to end. Vertical, not horizontal: a working thin path beats three complete layers that don't connect.
-2. **Run it.** `pnpm poc` builds and starts the Docker Compose stack, waits for each service's health endpoint, and prints the URLs. The PoC is not done when the code compiles; it is done when there is a **URL that answers**.
+2. **Run it.** `pnpm poc` builds both apps and starts them as Node processes on this computer, waits for each health endpoint and for sign-in, and prints the URLs. The PoC is not done when the code compiles; it is done when there is a **URL that answers**.
 3. **Show it and stop.** Give the user the URL(s), what to click, what is real, and what is still stubbed or mocked. Then **stop and ask for feedback.** Do not continue into hardening on your own initiative.
 4. **Fold in the feedback**, then harden: full tests (§4.2), the complete doc contract (§4.6), and the remaining scope. Each substantial change along the way refreshes the preview and re-shows the URL (see the rules below) — the user should never have to ask "is it up, and where?".
 
 **Rules:**
 
 - **Keep the preview current, and always re-show the URL.** After **every** substantial change that can be previewed, refresh the running stack and hand the user the URL again — in the same reply as the change. A change the user cannot see has not been delivered.
-  - Whole stack: `pnpm poc`. Just what changed: `pnpm poc web` / `pnpm poc agents` (rebuilds that image and recreates only that container — much faster).
-  - **Never a bare `docker restart`.** Code is baked into the image, so restarting re-serves the _old_ build. `pnpm poc <service>` rebuilds, which is why it exists.
+  - Both apps: `pnpm poc`. Just what changed: `pnpm poc web` / `pnpm poc agents` (rebuilds that app and replaces only its process — much faster).
+  - **Never just restart a process.** A running app keeps serving the build it started with. `pnpm poc <app>` rebuilds, which is why it exists. `pnpm stop` stops both; `pnpm logs` shows what they wrote.
   - Always print the actual `http://localhost:<port>` — never "the usual port" or "localhost:3000" from memory. Ports are auto-assigned per project (§4.5); `pnpm poc` ends by printing the real ones.
   - Say what to click and what changed since last time, not just that it's up.
 - **If the request involves a UI and gave no design direction, ask before building.** Do not silently invent a look and reveal it later — that's the same wasted-hour failure this section exists to prevent. In your first reply, ask for **pegs, references, or inspirations**: existing products or screens they like, a brand/style guide, screenshots, a Figma file, or even "make it look like X". If they genuinely have none, say plainly that **you will propose a direction and that it is explicitly subject to their critique**, then build the smallest version of it and put it in front of them at the PoC gate. Record the chosen direction in `docs/DESIGN_SYSTEM.md`. Build from the Astryx design system either way (§4.1).
@@ -235,19 +235,16 @@ HANDOFF.md is a snapshot; PROGRESS.md is the long-form ledger. On disagreement a
 - Validate env at boot. Missing required vars → fail fast.
 - All secrets in environment variables, never in code.
 - `.env.example` is the source of truth for env var schema.
-- **Single root `.env`.** The repo uses ONE `.env` at the root — **never** create per-app `.env` files in `apps/agents` or `apps/web`. Local dev/start scripts load the root `.env` via `dotenv-cli` (`dotenv -e ../../.env -- …`); Docker Compose loads it via `env_file: ../.env`; production supplies vars from the real environment. `.gitignore` ignores `.env` at any depth so a stray per-app file can't be committed.
+- **Single root `.env`.** The repo uses ONE `.env` at the root — **never** create per-app `.env` files in `apps/agents` or `apps/web`. Local dev/start scripts load the root `.env` via `dotenv-cli` (`dotenv -e ../../.env -- …`); `pnpm poc` reads it and passes it to both apps; production supplies vars from the real environment. `.gitignore` ignores `.env` at any depth so a stray per-app file can't be committed.
 
-### 4.5 Ports & Compose
+### 4.5 Ports & local runs
 
 - Document assigned ports in [docs/TECH_STACK.md](docs/TECH_STACK.md).
-- Use Docker DNS names for inter-**app** URLs, not `localhost` (e.g. `http://agents:45000`).
-- **Redis is remote/managed, not in Compose** — the apps reach it via the root `.env` (`REDIS_URL`). Do not add a local Redis service to Compose.
-- **`DATABASE_URL` is always Postgres, and Postgres is never run in Compose.** Only `postgres://` / `postgresql://` are accepted — SQLite, libsql, and `file:` URLs are rejected by the env schema at boot (`isPostgresUrl()` in `packages/shared/src/database.ts`). A provisioned managed Postgres (Neon, Supabase, RDS, Railway, …) is a bootstrap precondition, not a later upgrade. "Always Postgres" is about the engine, not where it runs — do **not** add a Postgres service to Compose. See [ADR-002](docs/ADRS.md), which supersedes ADR-001.
-- **Agent memory lives in that same Postgres.** `MASTRA_DB_URL` is optional and falls back to `DATABASE_URL`, so one instance is enough; Mastra's tables are namespaced by `MASTRA_DB_SCHEMA` (default `mastra`). Never hardcode a DB URL under a Compose service's `environment:` — those keys **override** `env_file` and will silently shadow the real connection string.
-- **Keycloak runs in Compose for local dev** (`start-dev`), published on `KEYCLOAK_HOST_PORT` (default 8080). In production, point `KEYCLOAK_TOKEN_ISSUER_URI` at a managed Keycloak instead of the container.
-- **Published host ports** are configurable via `AGENTS_HOST_PORT` / `WEB_HOST_PORT` / `KEYCLOAK_HOST_PORT` in `.env` (container ports unchanged).
-- **Service selection is configurable via `COMPOSE_PROFILES`** in `.env` (Compose's own mechanism) — a comma-separated subset of `agents,web,keycloak` (default: all three). Each service declares `profiles: ['<own name>']`; `web`'s `depends_on.agents` is `required: false` so excluding `agents` doesn't break Compose. Use this once services are deployed to different places (e.g. agents hosted by an AgentBase import; only `web`+`keycloak` need to run in this stack).
-- **Always invoke Compose through `scripts/docker-compose.mjs`** (all `pnpm docker:*` scripts already do) — never call `docker compose -f docker/docker-compose.yml …` directly. Compose does not read the repo-root `.env` by default for that invocation shape; the wrapper passes `--env-file .env` and fails fast if `.env` is missing.
+- **Redis is remote/managed**, never run on this computer: the apps reach it via the root `.env` (`REDIS_URL`).
+- **`DATABASE_URL` is always Postgres, and Postgres is never run on this computer.** Only `postgres://` / `postgresql://` are accepted — SQLite, libsql, and `file:` URLs are rejected by the env schema at boot (`isPostgresUrl()` in `packages/shared/src/database.ts`). A provisioned managed Postgres (Neon, Supabase, RDS, Railway, …) is a bootstrap precondition, not a later upgrade. "Always Postgres" is about the engine, not where it runs — do **not** add a local Postgres. See [ADR-002](docs/ADRS.md), which supersedes ADR-001.
+- **Agent memory lives in that same Postgres.** `MASTRA_DB_URL` is optional and falls back to `DATABASE_URL`, so one instance is enough; Mastra's tables go in a schema named after the project (`<project>_agents`, from `projectSchema()` in `packages/shared/src/database.ts`; `MASTRA_DB_SCHEMA` overrides it) and sign-in's in `<project>_auth`. Never a generic `mastra` or `auth`: two projects on one database would share memory and accounts.
+- **No container runtime on the developer's computer.** `pnpm poc` builds the same production bundles the Dockerfiles build and runs them as two Node processes bound to `127.0.0.1`; process ids and logs live in `.precast/run/` (git-ignored). The Dockerfiles stay: AgentBase builds the agents image from one, and CI builds both on every push. Do not reintroduce Docker Compose or a local service that needs one.
+- **Which apps run** follows `PRECAST_LOCAL_AGENTS`: `1` (before import) runs both, `0` (AgentBase hosts the agents) runs only the web app; `pnpm poc agents` starts the local agents either way, for Studio.
 
 ### 4.6 Documentation Contract — **MANDATORY**
 
@@ -277,7 +274,7 @@ Update TECH_STACK.md whenever you:
 - Add, remove, upgrade, or downgrade a runtime, framework, library, or Docker image.
 - Change a pinned version.
 - Change a container base image, host port mapping, or internal DNS name.
-- Add or remove a service in `docker-compose.yml`.
+- Add or remove an app that `pnpm poc` runs.
 - Add a new protocol, schema, or wire format.
 - Adopt or replace a testing tool, lint/format tool, build tool, or CI step.
 
@@ -291,7 +288,7 @@ This project was scaffolded from the **Precast** boilerplate, which keeps improv
 
 - **Easiest path: the `upgrade` skill.** If the Precast plugin is installed, say "upgrade precast" (or `/precast:upgrade`) — it runs the check, summarizes the releases in between, applies the safe set, and works the per-release manual steps against this codebase. The rules below are what it follows.
 - **Check before you apply.** `pnpm precast:update` is check-only and writes nothing. It classifies every managed file as `Update` (untouched here — safe), `Yours` (customized here — left alone), or `CONFLICT` (both sides moved). `--apply` takes the safe set; `--force` also takes conflicts, keeping a `.precast-bak`.
-- **The sync only covers the framework surface** — `scripts/`, `.githooks/`, `docker/`, `templates/`, the root configs, and this file. Changes under `apps/` and `packages/` are yours; port those by hand from the release entry in [docs/MIGRATIONS.md](docs/MIGRATIONS.md).
+- **The sync only covers the framework surface** — `scripts/`, `.githooks/`, `templates/`, the root configs, and this file. Changes under `apps/` and `packages/` are yours; port those by hand from the release entry in [docs/MIGRATIONS.md](docs/MIGRATIONS.md).
 - **Advisory files are never written automatically** (`package.json`, `.env.example`, the fitness-guard specs, `packages/shared/src/{env,database}.ts`). The plan reports them; you port them.
 - **After any upgrade:** run `pnpm verify:poc`, then `pnpm test`, and record the version you moved to in PROGRESS.md.
 - **Never hand-edit `precast.lock.json`** — the script maintains it, and a wrong baseline turns the next upgrade into false conflicts (or worse, silence).

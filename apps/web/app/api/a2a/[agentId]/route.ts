@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { pressText, readPressAction } from '@precast/a2ui';
 import { callAgent, type AgentRouteBody } from '../../../lib/a2a-client';
 import { resolveAgentContext } from '../../../lib/agent-context';
+import { getSignedInUser } from '../../../lib/auth';
+import { chatTurnLimiter } from '../../../lib/rate-limit';
 import { log } from '../../../lib/logger';
 
 /**
@@ -18,9 +20,14 @@ import { log } from '../../../lib/logger';
  * conversationId?: string }`. A press is sent to the agent as text (`pressText`), never as a
  * data part: Mastra fails a turn on data parts, and text survives every transport.
  *
+ * SIGN-IN REQUIRED: a request without a session gets 401 before anything else
+ * is read. Each person's turns are rate limited (app/lib/rate-limit.ts), and the
+ * agent is told who the turn acts for (`X-AgentBase-On-Behalf-Of`), so tools
+ * use that person's connected accounts.
+ *
  * IDENTITY: the memory scope (`resourceId`) and the thread id are derived
- * SERVER-SIDE by `resolveAgentContext()` and are deliberately not accepted from
- * the body. `conversationId` is the only client-influenced input; it is
+ * SERVER-SIDE by `resolveAgentContext()` from the signed-in user and are
+ * deliberately not accepted from the body. `conversationId` is the only client-influenced input; it is
  * sanitized and namespaced under the caller's own resource before use, so it
  * cannot address another user's thread. See `app/lib/agent-context.ts`.
  *
@@ -38,6 +45,14 @@ export async function POST(
 ): Promise<NextResponse<AgentRouteBody | { error: string }>> {
   const { agentId } = await params;
   log.info({ agentId }, 'POST /api/a2a — incoming agent call');
+
+  const user = await getSignedInUser(request.headers);
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, error: 'Sign in to chat with the agent.', status: 401 },
+      { status: 401 },
+    );
+  }
 
   if (!agentId) {
     log.warn('POST /api/a2a rejected — missing agentId');
@@ -66,18 +81,32 @@ export async function POST(
   const requestedConversation =
     typeof body?.conversationId === 'string' ? body.conversationId : undefined;
 
-  try {
-    const { resourceId, threadId, conversationId, isNewResource } =
-      await resolveAgentContext(requestedConversation);
+  const allowed = chatTurnLimiter.take(user.id);
+  if (!allowed.ok) {
+    log.warn({ agentId, retryAfter: allowed.retryAfterSeconds }, 'POST /api/a2a — rate limited');
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'You are sending messages faster than this app allows. Wait a moment and try again.',
+        status: 429,
+      },
+      { status: 429, headers: { 'Retry-After': String(allowed.retryAfterSeconds) } },
+    );
+  }
 
-    const reply = await callAgent(agentId, text, { threadId, resourceId });
+  try {
+    const { resourceId, threadId, conversationId } = resolveAgentContext(
+      user,
+      requestedConversation,
+    );
+
+    const reply = await callAgent(agentId, text, { threadId, resourceId, onBehalfOf: user.id });
 
     if (reply.ok) {
       log.info(
         {
           agentId,
           via: reply.via,
-          isNewResource,
           press: Boolean(press),
           cards: reply.a2ui.length,
           taskState: reply.taskState,

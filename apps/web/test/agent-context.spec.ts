@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { buildThreadId, sanitizeConversationId } from '../app/lib/agent-context';
+import {
+  buildThreadId,
+  sanitizeConversationId,
+  resolveAgentContext,
+} from '../app/lib/agent-context';
 
 /**
  * Multi-tenancy guard for agent memory.
@@ -82,5 +86,19 @@ describe('A2A route handler: memory scope is never client-supplied', () => {
 
   it('no longer accepts the legacy body.sessionId as a memory key', () => {
     expect(routeSrc).not.toMatch(/body\.sessionId/);
+  });
+});
+
+describe('resolveAgentContext — the memory scope is the signed-in account', () => {
+  it('scopes memory to account-<user id> and namespaces the conversation under it', () => {
+    expect(resolveAgentContext({ id: '7d0c' }, 'conv_1')).toEqual({
+      resourceId: 'account-7d0c',
+      threadId: 'account-7d0c::conv_1',
+      conversationId: 'conv_1',
+    });
+  });
+
+  it('starts a fresh conversation when none is given, still under the account', () => {
+    expect(resolveAgentContext({ id: '7d0c' }).threadId.startsWith('account-7d0c::')).toBe(true);
   });
 });

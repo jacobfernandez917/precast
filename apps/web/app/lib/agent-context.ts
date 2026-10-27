@@ -1,8 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { cookies } from 'next/headers';
-
-// Server-only by construction: importing `next/headers` into a client component
-// is a build error, so this module cannot be pulled into the browser bundle.
 
 /**
  * Who the agent is talking to, and in which conversation.
@@ -26,30 +22,20 @@ import { cookies } from 'next/headers';
  * client would reintroduce the same hole from the other side.
  *
  * ── The model here ───────────────────────────────────────────────────────────
- * `resourceId` is an opaque, server-generated UUID kept in an httpOnly cookie.
- * A caller cannot read it from JavaScript and cannot usefully forge one: values
- * are unguessable, so presenting someone else's requires already knowing it.
- * This is the standard opaque-session-identifier model — the cookie needs no
- * signature because its value carries no structure to tamper with.
+ * People sign in before they can chat (app/lib/auth.ts), and `resourceId` is
+ * `account-<user id>` from the verified session, so a person's memory follows
+ * their account to any device and is nobody else's. The caller passes the user
+ * it got from `getSignedInUser()`; nothing from the request body is involved.
  *
  * `threadId` is namespaced under the resource (`<resourceId>::<conversation>`).
  * The client picks the conversation segment, but the server owns the prefix, so
  * no client-supplied value can address another user's thread — the id simply
  * cannot be spelled. This is defence in depth layered under Mastra's ownership
  * check, not a replacement for it.
- *
- * ── Replacing this with real auth ────────────────────────────────────────────
- * The anonymous cookie is a stand-in so the boilerplate is safe by default, not
- * an identity system. Precast ships Keycloak for dev (CLAUDE.md §4.5); when you
- * wire OIDC, return the verified token's `sub` from `resolveResourceId()` and
- * delete the cookie path. Nothing else in the app needs to change — every
- * caller goes through `resolveAgentContext()`.
  */
 
-const RESOURCE_COOKIE = 'precast_rid';
 /** Separates the server-owned resource prefix from the client's conversation id. */
 const THREAD_SEPARATOR = '::';
-const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 export interface AgentContext {
   /** Stable per-user id. Mastra's memory `resourceId`. Never sent to the browser. */
@@ -62,8 +48,6 @@ export interface AgentContext {
    * deliberately not included.
    */
   conversationId: string;
-  /** True when this request minted a new resource id (no usable cookie). */
-  isNewResource: boolean;
 }
 
 /**
@@ -86,55 +70,27 @@ export function buildThreadId(resourceId: string, conversationId: string): strin
   return `${resourceId}${THREAD_SEPARATOR}${conversationId}`;
 }
 
-/**
- * Read the caller's resource id from its httpOnly cookie, minting one on first
- * visit.
- *
- * Next.js only permits setting a cookie from a Server Action or Route Handler.
- * This is called from the A2A route handler, so the write is allowed; the
- * try/catch keeps it usable from a Server Component (where the mint still
- * returns a working id for the request, it just won't persist).
- */
-async function resolveResourceId(): Promise<{ resourceId: string; isNewResource: boolean }> {
-  const jar = await cookies();
-  const existing = jar.get(RESOURCE_COOKIE)?.value;
-
-  // Only accept a well-formed value — a malformed cookie is treated as absent
-  // rather than trusted into the memory key.
-  if (existing && /^[0-9a-f-]{36}$/i.test(existing)) {
-    return { resourceId: existing, isNewResource: false };
-  }
-
-  const resourceId = randomUUID();
-  try {
-    jar.set(RESOURCE_COOKIE, resourceId, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: COOKIE_MAX_AGE_SECONDS,
-    });
-  } catch {
-    // Read-only cookie context (Server Component). The id is still valid for
-    // this request; the next route-handler call will persist one.
-  }
-  return { resourceId, isNewResource: true };
+/** The memory scope for a signed-in person. */
+export function resourceIdFor(user: { id: string }): string {
+  return `account-${user.id}`;
 }
 
 /**
- * Resolve the full agent context for a request.
+ * Resolve the full agent context for a signed-in person's turn.
  *
  * `conversationId` is the ONLY client-influenced input, and it is sanitized and
  * namespaced before use. Pass the value the browser is tracking for the current
  * chat; omit it to start a fresh conversation.
  */
-export async function resolveAgentContext(conversationId?: string | null): Promise<AgentContext> {
-  const { resourceId, isNewResource } = await resolveResourceId();
+export function resolveAgentContext(
+  user: { id: string },
+  conversationId?: string | null,
+): AgentContext {
+  const resourceId = resourceIdFor(user);
   const conversation = sanitizeConversationId(conversationId) ?? randomUUID();
   return {
     resourceId,
     threadId: buildThreadId(resourceId, conversation),
     conversationId: conversation,
-    isNewResource,
   };
 }

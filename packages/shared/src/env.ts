@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isPostgresUrl } from './database.js';
+import { isPostgresUrl, projectSchema } from './database.js';
 
 /** Shared `.refine()` for any var that must be a Postgres connection URL. */
 const postgresUrl = (varName: string) =>
@@ -23,7 +23,8 @@ const postgresUrl = (varName: string) =>
 export const EnvSchema = z.object({
   // ── Mastra API (agents + Studio) ───────────────────────────────────────────
   MASTRA_PORT: z.coerce.number().default(45000),
-  MASTRA_HOST: z.string().default('0.0.0.0'),
+  // 127.0.0.1: a local run is for this computer. The image sets 0.0.0.0 for AgentBase.
+  MASTRA_HOST: z.string().default('127.0.0.1'),
   // Agent memory/thread store (Mastra's own threads, messages, working memory).
   // Postgres, like everything else — see ADR-002.
   //
@@ -33,14 +34,21 @@ export const EnvSchema = z.object({
   // separate instance or schema from your application data — a reasonable
   // choice, since the two have very different growth and retention profiles.
   MASTRA_DB_URL: postgresUrl('MASTRA_DB_URL').optional(),
-  // Postgres schema that Mastra creates its own tables in. Namespacing them
-  // keeps agent-memory tables from colliding with the project's own when
-  // MASTRA_DB_URL and DATABASE_URL point at the same database (the default).
-  MASTRA_DB_SCHEMA: z.string().default('mastra'),
+  // Postgres schema that Mastra creates its own tables in, named after the
+  // project (`<project>_agents`). Keeps agent memory apart from the project's
+  // own tables, and from any other project's, when databases are shared.
+  // Blank counts as unset.
+  MASTRA_DB_SCHEMA: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z
+      .string()
+      .regex(/^[a-z_][a-z0-9_]*$/, 'MASTRA_DB_SCHEMA must be lowercase letters, digits and _')
+      .default(projectSchema('agents')),
+  ),
 
   // ── Web ──────────────────────────────────────────────────────────────────
   WEB_PORT: z.coerce.number().default(45001),
-  WEB_HOST: z.string().default('0.0.0.0'),
+  WEB_HOST: z.string().default('127.0.0.1'),
 
   // ── LLM access ─────────────────────────────────────────────────────────────
   // Models come from the AgentBase LLM gateway only, authenticated with the
@@ -54,8 +62,8 @@ export const EnvSchema = z.object({
   // local-file fallback to branch on. Required with no default: it fails fast
   // if unset.
   //
-  // Precast still does not run Postgres in Compose (CLAUDE.md §4.5) — point
-  // this at a managed instance (Neon, Supabase, RDS, Railway, …).
+  // Precast never runs Postgres on the developer's computer (CLAUDE.md §4.5):
+  // point this at a managed instance, or let `pnpm db:provision` create one.
   DATABASE_URL: postgresUrl('DATABASE_URL'),
 
   // ── Redis (remote / managed) ───────────────────────────────────────────────
@@ -63,15 +71,8 @@ export const EnvSchema = z.object({
   // a dev fallback only; set your `rediss://` URL in `.env` for real use.
   REDIS_URL: z.string().url().default('redis://localhost:6379'),
 
-  // ── Keycloak / OIDC (remote) ───────────────────────────────────────────────
-  // Point at your hosted Keycloak (or any OIDC issuer). The localhost default is
-  // a dev fallback only; set your issuer URL in `.env` for real use.
-  KEYCLOAK_TOKEN_ISSUER_URI: z.string().url().default('http://localhost:45002/realms/precast'),
-  KEYCLOAK_CLIENT_ID: z.string().default('precast-api'),
-  KEYCLOAK_CLIENT_SECRET: z.string().optional(),
-
   // Base URL the web app uses to reach the Mastra agent API for *direct* A2A
-  // calls (when AgentBase is disabled). Docker sets this to http://agents:45000.
+  // calls (PRECAST_LOCAL_AGENTS=1). `pnpm poc` sets it to the local agents port.
   MASTRA_INTERNAL_URL: z.string().url().default('http://localhost:45000'),
 
   // ── AgentBase (A2A registry/proxy) ─────────────────────────────────────────

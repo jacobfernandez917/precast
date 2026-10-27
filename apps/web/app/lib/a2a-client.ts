@@ -145,6 +145,13 @@ interface CallOptions {
    * `resolveAgentContext()`.
    */
   resourceId?: string;
+  /**
+   * The signed-in person the turn acts for, sent as `X-AgentBase-On-Behalf-Of`.
+   * AgentBase forwards it to the agent when the Application is OBO-enabled, so
+   * per-person tool accounts are that person's and nobody else's; the local
+   * agents app reads it directly. Server-derived, never from the request body.
+   */
+  onBehalfOf?: string;
   signal?: AbortSignal;
 }
 
@@ -230,18 +237,27 @@ async function callViaAgentBase(
   // re-import. `AGENTBASE_AGENT_URL_<AGENT_ID>` still wins when set, so pinning
   // and offline dev keep working. Failure returns an error — never a guessed
   // URL, which would 404 while looking perfectly well-formed.
+  // Both failures below carry setup detail (variable names, slugs) that helps
+  // whoever runs the app and means nothing to the person chatting: log it,
+  // show a sentence.
   const target = await resolveAgentUrl(agentId);
-  if (!target.ok) return failure('agentbase', 502, target.error, null);
+  if (!target.ok) {
+    log.warn({ agentId, detail: target.error }, 'A2A × agent address not found on AgentBase');
+    return failure('agentbase', 502, 'This page cannot reach your agent on AgentBase yet.', null);
+  }
   const url = target.url;
 
   const tokenResult = await getAgentBaseAccessToken();
-  if (!tokenResult.ok) return failure('agentbase', 502, tokenResult.error, null);
+  if (!tokenResult.ok) {
+    log.warn({ agentId, detail: tokenResult.error }, 'A2A × could not get an AgentBase token');
+    return failure('agentbase', 502, 'This app could not sign in to AgentBase.', null);
+  }
 
   // AgentBase's per-agent proxy takes the raw A2A envelope as the body (org +
   // agent are already in the URL) — the same one direct mode sends to Mastra.
   const body = buildA2aMessageEnvelope(text, options);
 
-  const outcome = await postJsonRpc(url, body, tokenResult.accessToken, options?.signal);
+  const outcome = await postJsonRpc(url, body, tokenResult.accessToken, options);
   return normalize(outcome, 'agentbase', url);
 }
 
@@ -258,7 +274,7 @@ async function callDirect(
   const body = buildA2aMessageEnvelope(text, options);
 
   const endpoint = `${base}/api/a2a/${encodeURIComponent(agentId)}`;
-  const outcome = await postJsonRpc(endpoint, body, token, options?.signal);
+  const outcome = await postJsonRpc(endpoint, body, token, options);
   return normalize(outcome, 'direct', endpoint);
 }
 
@@ -268,12 +284,16 @@ type RpcOutcome =
   | { kind: 'not-json'; status: number; snippet: string }
   | { kind: 'network'; timedOut: boolean; message: string };
 
+/** The header AgentBase reads the end-user subject from (matches the agents app). */
+const ON_BEHALF_OF_HEADER = 'X-AgentBase-On-Behalf-Of';
+
 async function postJsonRpc(
   endpoint: string,
   body: unknown,
   bearer: string,
-  signal?: AbortSignal,
+  options?: Pick<CallOptions, 'signal' | 'onBehalfOf'>,
 ): Promise<RpcOutcome> {
+  const signal = options?.signal;
   // The A2UI extension, requested on every call. AgentBase forwards a validated
   // `X-A2A-Extensions` (A2UI-1); the metadata above carries the same intent.
   const headers: Record<string, string> = {
@@ -281,6 +301,7 @@ async function postJsonRpc(
     'X-A2A-Extensions': A2UI_EXTENSION_URI,
   };
   if (bearer) headers['Authorization'] = `Bearer ${bearer}`;
+  if (options?.onBehalfOf) headers[ON_BEHALF_OF_HEADER] = options.onBehalfOf;
 
   // Debug-level so the full A2A wire traffic shows under `dev:verbose` /
   // LOG_LEVEL=debug, without noising up the default `info` terminal. Auth

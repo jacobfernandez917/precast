@@ -75,21 +75,21 @@ describe('docker: rename-proof workspace builds', () => {
 });
 
 /**
- * Base-image guard: every stage of every app Dockerfile runs on Node 24 (the
- * active LTS line, matching .nvmrc) on Alpine.
+ * Base-image guard: every stage of every app Dockerfile runs on the current Node LTS
+ * (`node:lts-alpine`, matching `.nvmrc`'s `lts/*`) on Alpine.
  *
- * Both halves matter. Node 24 because the runtime must match the version the
- * workspace is built and tested against — a builder/runtime version skew shows
- * up as a native-module or API mismatch only once the container runs. Alpine
- * because these images are rebuilt on every `pnpm poc`, and a slim base is the
- * difference between a fast PoC loop and a slow one.
+ * Both halves matter. The LTS tag because the runtime must match the line the workspace is
+ * built and tested against (CI installs `lts/*` too), and a builder/runtime skew shows up as
+ * a native-module or API mismatch only once the container runs. Alpine because AgentBase
+ * builds and stores this image for every import, and a slim base keeps that fast.
  */
 const FROM_LINE = /^FROM\s+(\S+)/gm;
+const LTS_BASE = 'node:lts-alpine';
 
-describe('docker: node 24 alpine base images', () => {
+describe('docker: node LTS alpine base images', () => {
   const dockerfiles = findDockerfiles();
 
-  it.each(dockerfiles)('%s builds every stage on node:24-alpine', (dockerfile) => {
+  it.each(dockerfiles)('%s builds every stage on node:lts-alpine', (dockerfile) => {
     const rel = dockerfile.replace(REPO_ROOT, '').replace(/^\//, '');
     const body = stripComments(readFileSync(dockerfile, 'utf8'));
     const bases = [...body.matchAll(FROM_LINE)].map((m) => m[1]);
@@ -100,38 +100,20 @@ describe('docker: node 24 alpine base images', () => {
     ).toBeGreaterThanOrEqual(2);
 
     for (const base of bases) {
-      // The build stage is parameterised so `pnpm poc` can swap in a prebuilt
-      // dependency image (see deps-image.spec.ts). That is only safe because
-      // the ARG's DEFAULT is pinned to node:24-alpine and the deps image is
-      // itself built FROM node:24-alpine — so every resolution of ${BASE_IMAGE}
-      // is still Node 24 Alpine. The default is asserted below.
-      if (base === '${BASE_IMAGE}') continue;
       expect(
         base,
-        `${rel} has a stage on "${base}" — every stage must use node:24-alpine so the runtime ` +
-          'matches the Node version the workspace is built and tested against (.nvmrc), and so ' +
-          'the images stay small enough to rebuild on every `pnpm poc`.',
-      ).toBe('node:24-alpine');
-    }
-
-    // A parameterised stage must still resolve to the pinned base by default,
-    // or the guard above becomes vacuous.
-    if (bases.includes('${BASE_IMAGE}')) {
-      const fallback = body.match(/^ARG\s+BASE_IMAGE=(.+)$/m)?.[1].trim();
-      expect(
-        fallback,
-        `${rel} parameterises a stage as \${BASE_IMAGE} but its ARG default is "${fallback}" — ` +
-          'it must default to node:24-alpine.',
-      ).toBe('node:24-alpine');
+        `${rel} has a stage on "${base}" — every stage must use ${LTS_BASE} so the runtime ` +
+          'is the Node line the workspace is built and tested against (.nvmrc), and so ' +
+          'the image AgentBase builds stays small.',
+      ).toBe(LTS_BASE);
     }
   });
 
-  it('.nvmrc agrees with the image major version', () => {
+  it('.nvmrc follows the LTS line, as the images do', () => {
     const nvmrc = readFileSync(join(REPO_ROOT, '.nvmrc'), 'utf8').trim();
-    expect(
-      nvmrc.replace(/^v/, '').split('.')[0],
-      'the Dockerfiles pin node:24-alpine, so .nvmrc must be on the same major line.',
-    ).toBe('24');
+    expect(nvmrc, 'the Dockerfiles build on node:lts-alpine, so .nvmrc must say lts/*').toBe(
+      'lts/*',
+    );
   });
 });
 
@@ -140,9 +122,10 @@ describe('docker: node 24 alpine base images', () => {
  *
  * Precast is Postgres-only (ADR-002): the env schema validates `DATABASE_URL`
  * and `MASTRA_DB_URL` with `isPostgresUrl()` and rejects `file:` / `sqlite:` /
- * `libsql:`. A Dockerfile `ENV` default is NOT a harmless fallback — Compose
- * deliberately sets neither key, so whatever the image declares is exactly what
- * the container gets, and an invalid value fails env validation at boot.
+ * `libsql:`. A Dockerfile `ENV` default is NOT a harmless fallback: AgentBase
+ * supplies DATABASE_URL from the project's variables and nothing else sets
+ * MASTRA_DB_URL, so whatever the image declares is exactly what the container
+ * gets, and an invalid value fails env validation at boot.
  *
  * This regressed once: `apps/agents/Dockerfile` kept `MASTRA_DB_URL=file:/data/
  * mastra.db` after the Postgres-only change removed the matching override from
@@ -212,5 +195,24 @@ describe('docker: runtime stages drop root', () => {
         '--chown=node:node',
       );
     }
+  });
+});
+
+/**
+ * WEB-014: the images prefer IPv4 when a host is dual-stack. AgentBase is Cloudflare-fronted
+ * and publishes AAAA records, and a container network without IPv6 gets ENETUNREACH on the
+ * AAAA, which surfaces as an intermittent `fetch failed` that looks exactly like bad
+ * credentials. Set on CMD: a NODE_OPTIONS from the host's environment would replace an
+ * image-level value and drop the flag. (`pnpm poc` starts both apps with it too; APP-033.)
+ */
+describe('docker: runtime images prefer IPv4', () => {
+  const RUNTIMES = ['apps/agents/Dockerfile', 'apps/web/Dockerfile'];
+
+  it.each(RUNTIMES)('%s starts node with --dns-result-order=ipv4first on CMD', (rel) => {
+    const src = stripComments(readFileSync(join(REPO_ROOT, rel), 'utf8'));
+    const cmd = /^CMD \[.*\]$/m.exec(src)?.[0] ?? '';
+    expect(cmd, `${rel} should have an exec-form CMD`).toBeTruthy();
+    expect(cmd).toContain('--dns-result-order=ipv4first');
+    expect(src).not.toMatch(/ENV\s+NODE_OPTIONS/);
   });
 });

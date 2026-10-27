@@ -15,7 +15,7 @@ It provides:
 - Documentation contracts ensuring zero context loss between agents
 - Guardrails and automated progress tracking
 - Shared libraries and type definitions
-- Infrastructure configuration (Docker Compose)
+- Dockerfiles for AgentBase, and `pnpm poc` to run both apps on your computer with Node alone
 - Monorepo orchestration (pnpm + Turborepo)
 
 ---
@@ -94,14 +94,11 @@ It provides:
 │       ├── package.json
 │       └── tsconfig.json
 │
-├── docker/
-│   ├── docker-compose.yml     ← agents + web + Keycloak (dev); Postgres/Redis remote via .env
-│   └── docker-compose.override.yml.example ← Template; copy to docker-compose.override.yml (gitignored local overrides)
-│
 ├── scripts/
 │   ├── bootstrap.mjs          ← New-project bootstrap (rename + deps + blank git)
 │   ├── rename-project.mjs     ← One-shot `precast` → your-name rename
 │   ├── update-deps.mjs        ← Update deps to latest compatible + verify
+│   ├── poc.mjs                ← `pnpm poc`: build both apps, run them on 127.0.0.1; stop, logs
 │   └── progress-stamp.mjs     ← Auto-journaling utility
 │
 ├── templates/                 ← Feed-forward planning docs (PRD, DATA_MODEL,
@@ -193,7 +190,7 @@ On disagreement between docs:
 
 - `zod` at all external boundaries (HTTP body, env vars, API payloads).
 - Env validation in `packages/shared/src/env.ts`.
-- **Single root `.env`** — the only env file in the monorepo; no per-app `.env` in `apps/*`. Dev/start scripts load it via `dotenv-cli`; Docker Compose via `env_file: ../.env`; production from the real environment.
+- **Single root `.env`** — the only env file in the monorepo; no per-app `.env` in `apps/*`. Dev/start scripts load it via `dotenv-cli`; `pnpm poc` reads it and passes it to both apps; production from the real environment.
 
 ### 4.5 Logging
 

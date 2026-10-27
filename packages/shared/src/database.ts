@@ -116,3 +116,33 @@ export function resolvePostgresSsl(
       return undefined;
   }
 }
+
+/**
+ * This project's name. `pnpm bootstrap` rewrites the literal (through `pnpm rename`), so every
+ * name derived from it below belongs to the project, not to the boilerplate.
+ */
+export const PROJECT_NAME = 'precast';
+
+/** What a project keeps in its database, each in a schema of its own. */
+export type ProjectSchemaPurpose = 'agents' | 'auth';
+
+const PG_IDENTIFIER_MAX = 63;
+
+/**
+ * The Postgres schema for one part of this project: `meeting-rooms` gives
+ * `meeting_rooms_agents` for Mastra's memory and `meeting_rooms_auth` for sign-in.
+ *
+ * Named after the project, never a generic `mastra` or `auth`: two projects pointed at one
+ * database would otherwise share agent memory, and share accounts. The result is a legal
+ * unquoted identifier (lowercase letters, digits, underscores; not starting with a digit),
+ * within Postgres' 63-byte limit.
+ */
+export function projectSchema(purpose: ProjectSchemaPurpose, name: string = PROJECT_NAME): string {
+  const base = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  const safe = /^[a-z]/.test(base) ? base : `p_${base}`;
+  const room = PG_IDENTIFIER_MAX - purpose.length - 1;
+  return `${safe.slice(0, room).replace(/_+$/, '')}_${purpose}`;
+}

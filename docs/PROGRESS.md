@@ -43,13 +43,13 @@ You MUST update PROGRESS.md when you:
 
 > Fill this in for your project after `pnpm bootstrap`.
 
-| Field            | Value                                                                                                        |
-| ---------------- | ------------------------------------------------------------------------------------------------------------ |
-| **Project**      | <your project name>                                                                                          |
-| **Mission**      | <one-line mission>                                                                                           |
-| **Stacks**       | pnpm + Turborepo · Mastra (agents) · Next.js + Astryx (web) · zod · Postgres/Redis/Keycloak (remote/managed) |
-| **Repo Root**    | <path>                                                                                                       |
-| **Primary Docs** | [SPEC.md](SPEC.md), [TECH_STACK.md](TECH_STACK.md), [STYLE_GUIDE.md](STYLE_GUIDE.md)                         |
+| Field            | Value                                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Project**      | <your project name>                                                                                               |
+| **Mission**      | <one-line mission>                                                                                                |
+| **Stacks**       | pnpm + Turborepo · Mastra (agents) · Next.js + Astryx + Better Auth (web) · zod · Postgres/Redis (remote/managed) |
+| **Repo Root**    | <path>                                                                                                            |
+| **Primary Docs** | [SPEC.md](SPEC.md), [TECH_STACK.md](TECH_STACK.md), [STYLE_GUIDE.md](STYLE_GUIDE.md)                              |
 
 ---
 
@@ -98,11 +98,11 @@ You MUST update PROGRESS.md when you:
 
 ## 7. Environment State
 
-| Variable | Value                                    |
-| -------- | ---------------------------------------- |
-| `Node`   | 24 (`.nvmrc`)                            |
-| `pnpm`   | 9.15.9                                   |
-| `Ports`  | Web 3000 · Mastra 4111 (infra is remote) |
+| Variable | Value                                                                  |
+| -------- | ---------------------------------------------------------------------- |
+| `Node`   | current LTS (`.nvmrc`: `lts/*`)                                        |
+| `pnpm`   | 9.15.9                                                                 |
+| `Ports`  | Mastra 45000 · Web 45001 (one pair, set by bootstrap; infra is remote) |
 
 ---
 

@@ -16,7 +16,30 @@ const workspaceRoot = path.join(import.meta.dirname, '..', '..');
 const isProd = process.env.NODE_ENV === 'production';
 const jsxDevShim = path.join(import.meta.dirname, 'jsx-dev-runtime.shim.ts');
 
+/**
+ * Sent with every response. No script-src policy: Next and StyleX inject inline
+ * code, and a nonce-based policy is a project of its own. What is here stops
+ * the page being framed (clickjacking the sign-in form), MIME sniffing, plugin
+ * content and form posts or base URLs pointing elsewhere.
+ */
+export const SECURITY_HEADERS = [
+  {
+    key: 'Content-Security-Policy',
+    value: "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+  },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // Ignored by browsers over plain HTTP, so harmless on localhost.
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
+];
+
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: '/:path*', headers: SECURITY_HEADERS }];
+  },
   // Self-contained server bundle for the Docker runtime stage (copies
   // .next/standalone + .next/static instead of the whole workspace).
   output: 'standalone',

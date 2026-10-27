@@ -23,8 +23,10 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { stdin, stdout } from 'node:process';
 import { createInterface } from 'node:readline/promises';
+import { Writable } from 'node:stream';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseEnvFile, setEnvValue } from './provision-db.mjs';
+import { restrictEnvFile } from './local-secrets.mjs';
 
 export const FIELDS = [
   {
@@ -289,18 +291,46 @@ export async function connect({
   return { ok: true, envText: text, written, models: items, model };
 }
 
+/**
+ * Questions in the person's own terminal, with a way to ask one without echoing the answer.
+ * readline echoes through its output stream, so the stream itself goes quiet for a secret:
+ * overriding `rl._writeToOutput`, the usual trick, does nothing on current Node (25 calls an
+ * internal method instead) and the secret was printed as it was typed.
+ */
+export function createPrompt({ input = stdin, output = stdout } = {}) {
+  let muted = false;
+  const quiet = new Writable({
+    write(chunk, encoding, done) {
+      if (!muted) output.write(chunk, encoding);
+      done();
+    },
+  });
+  const rl = createInterface({ input, output: quiet, terminal: Boolean(input.isTTY) });
+  return {
+    ask: async (question) => (await rl.question(question)).trim(),
+    askHidden: async (question) => {
+      output.write(question);
+      muted = true;
+      try {
+        return (await rl.question('')).trim();
+      } finally {
+        muted = false;
+        output.write('\n');
+      }
+    },
+    close: () => rl.close(),
+  };
+}
+
 /** Prompt in the person's own terminal; the secret is not echoed. */
 async function askValue(field) {
-  const rl = createInterface({ input: stdin, output: stdout, terminal: true });
+  const prompt = createPrompt();
   try {
-    if (!field.secret) return (await rl.question(`${field.prompt}: `)).trim();
-    stdout.write(`${field.prompt}: `);
-    rl._writeToOutput = () => {};
-    const value = await rl.question('');
-    stdout.write('\n');
-    return value.trim();
+    return field.secret
+      ? await prompt.askHidden(`${field.prompt}: `)
+      : await prompt.ask(`${field.prompt}: `);
   } finally {
-    rl.close();
+    prompt.close();
   }
 }
 
@@ -324,8 +354,10 @@ async function main() {
   const values = {};
   for (const f of FIELDS) {
     const fromFlag = typeof flags[f.flag] === 'string' ? flags[f.flag] : undefined;
+    // A secret pasted into the chat arrives in the environment, never on the command line.
+    const fromShell = f.secret ? process.env[f.env]?.trim() || undefined : undefined;
     const fromEnv = isPlaceholder(current[f.env]) ? '' : current[f.env];
-    values[f.env] = (fromFlag ?? fromEnv ?? '').trim();
+    values[f.env] = (fromFlag ?? fromShell ?? fromEnv ?? '').trim();
   }
 
   if (!check && stdin.isTTY) {
@@ -339,6 +371,7 @@ async function main() {
   const result = await connect({ values, envText, check, log: console });
   if (result.written.length) {
     writeFileSync(envPath, result.envText);
+    restrictEnvFile(envPath);
     console.log(`Wrote into .env: ${result.written.join(', ')}.`);
   }
   if (!result.ok) {

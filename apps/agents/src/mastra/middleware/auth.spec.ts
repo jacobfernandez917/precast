@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { assertAgentApiAuthConfigured } from './auth';
+import { afterEach, describe, expect, it, beforeEach } from 'vitest';
+import { assertAgentApiAuthConfigured, createAuthMiddleware, isProtectedPath } from './auth';
 
 /**
  * The production auth guard (AGT-010).
@@ -71,5 +71,73 @@ describe('assertAgentApiAuthConfigured', () => {
         );
       if (shouldThrow) expect(call, `"${v}" must not disable the guard`).toThrow();
     }
+  });
+});
+
+/**
+ * AGT-026: the bearer guards every Mastra route under /api, not only A2A. Found
+ * on a fresh scaffold: `POST /api/tools/<tool>/execute` ran a tool, and the
+ * memory threads, workflows and traces routes answered, all with no bearer.
+ */
+describe('createAuthMiddleware — what the bearer protects', () => {
+  const TOKEN = 'a'.repeat(64);
+  const call = async (path: string, authorization?: string) => {
+    let reached = false;
+    let status = 200;
+    const c = {
+      req: {
+        path,
+        header: (n: string) => (n.toLowerCase() === 'authorization' ? authorization : undefined),
+      },
+      json: (_b: Record<string, unknown>, s: number) => {
+        status = s;
+        return new Response(null, { status: s });
+      },
+      res: new Response('{}'),
+    };
+    const out = await createAuthMiddleware()(c, async () => {
+      reached = true;
+    });
+    if (out) status = out.status;
+    return { reached, status };
+  };
+
+  beforeEach(() => {
+    process.env.AGENT_API_TOKEN = TOKEN;
+  });
+  afterEach(() => {
+    delete process.env.AGENT_API_TOKEN;
+  });
+
+  it.each([
+    '/api/tools/exampleTool/execute',
+    '/api/tools',
+    '/api/memory/threads',
+    '/api/memory/threads/t1/messages',
+    '/api/workflows',
+    '/api/observability/traces',
+    '/api/a2a/example-agent',
+    '/api/agents/example-agent/generate',
+    '/api',
+  ])('%s needs the bearer', async (path) => {
+    expect(await call(path)).toEqual({ reached: false, status: 401 });
+    expect(await call(path, 'Bearer wrong')).toEqual({ reached: false, status: 401 });
+    expect(await call(path, `Bearer ${TOKEN}`)).toEqual({ reached: true, status: 200 });
+  });
+
+  it('leaves the agent card, the root page and /health open', async () => {
+    for (const path of ['/api/.well-known/example-agent/agent-card.json', '/', '/health']) {
+      expect(await call(path), path).toEqual({ reached: true, status: 200 });
+    }
+  });
+
+  it('a path that only looks like the card is still protected', () => {
+    expect(isProtectedPath('/api/tools/agent-card.json')).toBe(true);
+    expect(isProtectedPath('/api/.well-known/x/agent-card.json')).toBe(false);
+  });
+
+  it('with no token set (local development) nothing is refused', async () => {
+    delete process.env.AGENT_API_TOKEN;
+    expect(await call('/api/tools/exampleTool/execute')).toEqual({ reached: true, status: 200 });
   });
 });

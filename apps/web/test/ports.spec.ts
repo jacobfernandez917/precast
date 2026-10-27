@@ -7,15 +7,15 @@ import { PORT_RANGE, STACK_SIZE, pickConsecutivePorts } from '../../../scripts/s
 /**
  * Port-block guards (APP-011).
  *
- * Precast assigns its stack ONE consecutive block of ports — agents, web,
- * keycloak — inside a bounded high range, picked free at bootstrap time:
+ * Precast gives a project ONE consecutive pair of ports, agents then web, inside a bounded
+ * high range, picked free at bootstrap time:
  *
- *  - **Consecutive** so a project's whole stack is one memorable block.
+ *  - **Consecutive** so a project's ports are one memorable block.
  *  - **Random + verified free** so two Precast projects on the same machine
  *    don't both try to own 3000/4111, which they always did before.
  *  - **45000–49151** because that is above every common dev-server default and
  *    the privileged range, but BELOW where the OS ephemeral range starts
- *    (49152 on macOS/Linux/IANA). Publishing inside the ephemeral range means a
+ *    (49152 on macOS/Linux/IANA). Listening inside the ephemeral range means a
  *    random outbound socket can steal the port first — an "address already in
  *    use" that reproduces only sometimes. This test is what keeps the committed
  *    defaults inside those bounds.
@@ -32,15 +32,13 @@ function envPort(name: string): number {
   return Number(hit![1]);
 }
 
-describe('port block: bounded, consecutive, host-mapped', () => {
+describe('port block: bounded and consecutive', () => {
   const agents = envPort('MASTRA_PORT');
   const web = envPort('WEB_PORT');
-  const keycloak = envPort('KEYCLOAK_HOST_PORT');
 
   it.each([
     ['agents', agents],
     ['web', web],
-    ['keycloak', keycloak],
   ])('%s port sits in the safe high range', (name, port) => {
     expect(
       port,
@@ -49,30 +47,22 @@ describe('port block: bounded, consecutive, host-mapped', () => {
     expect(
       port,
       `${name} port must stay below ${EPHEMERAL_START} — the OS ephemeral range, where an ` +
-        'outbound socket can grab the port before Compose binds it.',
+        'outbound socket can grab the port before the app listens on it.',
     ).toBeLessThan(EPHEMERAL_START);
   });
 
-  it('assigns one consecutive block in stack order (agents → web → keycloak)', () => {
+  it('assigns one consecutive block in stack order (agents → web)', () => {
     expect(
-      [agents, web, keycloak],
-      'the three ports must be consecutive and in stack order, e.g. 45000/45001/45002 — ' +
+      [agents, web],
+      'the two ports must be consecutive and in stack order, e.g. 45000/45001 — ' +
         '`pnpm set-ports --auto` and `pnpm bootstrap` both assign them that way.',
-    ).toEqual([agents, agents + 1, agents + 2]);
+    ).toEqual([agents, agents + 1]);
   });
 
-  it('published host ports default to the app ports', () => {
-    // Compose interpolates these from .env; leaving them stale publishes the
-    // containers on the previous project's ports.
-    expect(envPort('AGENTS_HOST_PORT')).toBe(agents);
-    expect(envPort('WEB_HOST_PORT')).toBe(web);
-  });
-
-  it('host-facing URLs follow the block', () => {
+  it('the URLs on this computer follow the block, and nothing names a third port', () => {
     expect(envExample).toMatch(new RegExp(`^MASTRA_INTERNAL_URL=http://localhost:${agents}$`, 'm'));
-    expect(envExample).toMatch(
-      new RegExp(`^KEYCLOAK_TOKEN_ISSUER_URI=http://localhost:${keycloak}/`, 'm'),
-    );
+    expect(envExample).toMatch(new RegExp(`^BETTER_AUTH_URL=http://localhost:${web}$`, 'm'));
+    expect(envExample).not.toMatch(/^(AGENTS_HOST_PORT|WEB_HOST_PORT|KEYCLOAK_HOST_PORT)=/m);
   });
 });
 
@@ -80,7 +70,7 @@ describe('pickConsecutivePorts', () => {
   it('returns a consecutive, in-range, bindable block', async () => {
     const block = await pickConsecutivePorts();
     expect(block).toHaveLength(STACK_SIZE);
-    expect(block).toEqual([block[0], block[0] + 1, block[0] + 2]);
+    expect(block).toEqual([block[0], block[0] + 1]);
     expect(block[0]).toBeGreaterThanOrEqual(PORT_RANGE.min);
     expect(block[STACK_SIZE - 1]).toBeLessThan(EPHEMERAL_START);
   });
@@ -93,9 +83,9 @@ describe('pickConsecutivePorts', () => {
 /**
  * Env-file hygiene (APP-019).
  *
- * `.env.example` is copied verbatim to `.env` by `pnpm bootstrap`, and Docker
- * Compose's `env_file` does **not** strip inline `#` comments — the entire rest
- * of the line becomes the value. So
+ * `.env.example` is copied verbatim to `.env` by `pnpm bootstrap`, and some
+ * dotenv readers (Docker Compose's `env_file` was one) do **not** strip inline
+ * `#` comments — the entire rest of the line becomes the value. So
  *
  *     GOOGLE_GENERATIVE_AI_API_KEY=      # or GOOGLE_API_KEY — either is accepted
  *

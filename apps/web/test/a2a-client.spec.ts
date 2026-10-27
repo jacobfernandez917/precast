@@ -66,7 +66,9 @@ describe('callAgent — proxy mode (AgentBase)', () => {
 
     expect(reply.ok).toBe(false);
     expect(reply.via).toBe('agentbase');
-    expect(reply.error).toMatch(/AGENTBASE_URL/);
+    // The setup detail (which variable is missing) goes to the log; the person
+    // chatting gets a sentence.
+    expect(reply.error).toBe('This page cannot reach your agent on AgentBase yet.');
     expect(reply.error, 'must not hand back an invented URL').not.toMatch(/proxy\/a2a/);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
@@ -95,7 +97,7 @@ describe('callAgent — proxy mode (AgentBase)', () => {
     const reply = await callAgent('example-agent', 'hi');
 
     expect(reply.ok).toBe(false);
-    expect(reply.error).toBe('Application credentials not set');
+    expect(reply.error).toBe('This app could not sign in to AgentBase.');
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -428,5 +430,39 @@ describe('callAgent — errors, statuses and Task states', () => {
       status: 200,
       text: 'hello back',
     });
+  });
+});
+
+/** WEB-027: the signed-in person travels as X-AgentBase-On-Behalf-Of on both transports. */
+describe('callAgent — on behalf of the signed-in person', () => {
+  const headersOf = (spy: ReturnType<typeof vi.fn>) =>
+    (spy.mock.calls[0]![1] as RequestInit).headers as Record<string, string>;
+  const ok = () =>
+    vi.fn(async () => new Response(JSON.stringify(A2A_MESSAGE_RESPONSE), { status: 200 }));
+
+  it('sends the subject to the local agents app, and nothing when there is none', async () => {
+    process.env.PRECAST_LOCAL_AGENTS = '1';
+    process.env.MASTRA_INTERNAL_URL = 'http://mastra.test';
+    const spy = ok();
+    vi.stubGlobal('fetch', spy);
+    await callAgent('example-agent', 'hi', { onBehalfOf: 'u-123' });
+    expect(headersOf(spy)['X-AgentBase-On-Behalf-Of']).toBe('u-123');
+
+    const bare = ok();
+    vi.stubGlobal('fetch', bare);
+    await callAgent('example-agent', 'hi');
+    expect(headersOf(bare)).not.toHaveProperty('X-AgentBase-On-Behalf-Of');
+  });
+
+  it('sends the subject through the AgentBase proxy too', async () => {
+    resetDiscoveryCacheForTests();
+    process.env.PRECAST_LOCAL_AGENTS = '0';
+    process.env[AGENT_URL_VAR] = 'https://agentbase.acme.dev/proxy/a2a/acme/example-agent-a1b2c3d4';
+    mockedGetToken.mockResolvedValue({ ok: true, accessToken: 'jwt' });
+    const spy = ok();
+    vi.stubGlobal('fetch', spy);
+    await callAgent('example-agent', 'hi', { onBehalfOf: 'u-123' });
+    expect(headersOf(spy)['X-AgentBase-On-Behalf-Of']).toBe('u-123');
+    expect(headersOf(spy).Authorization).toBe('Bearer jwt');
   });
 });

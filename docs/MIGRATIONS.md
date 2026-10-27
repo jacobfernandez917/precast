@@ -122,7 +122,132 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
-## v0.10.3 — MCP tools per caller, A2A error handling, chat reset race (unreleased)
+## v0.11.0: sign-in required, no Docker locally, Hannibal databases, project schemas, Node LTS (2026-10-27)
+
+A release with real manual work: read it whole before applying. It also carries v0.10.3 (the
+entry below), which was never tagged on its own. Version 0.11.0 rather than 1.0.0 because the
+1.x line is held back on purpose.
+
+**What changed.**
+
+- Sign-in with Better Auth inside the web app replaces the local Keycloak. Users, sessions and
+  accounts live in the project's Postgres (schema `<project>_auth`, created at startup by
+  `apps/web/instrumentation.ts`); email and password work out of the box, and any OIDC issuer can
+  be added with `OIDC_ISSUER_URI`, `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET`. Chatting requires a
+  signed-in account: the chat route answers 401 without one, agent memory is scoped to
+  `account-<user id>` (the anonymous cookie scope is gone), and the person is sent to the agent
+  as `X-AgentBase-On-Behalf-Of`. `/api/health` reports `signIn`, and `pnpm poc` waits for it.
+- Security: the agents' bearer now protects every `/api` path except the agent card (tool
+  execution, memory, workflows and traces were open), compared in constant time; every web
+  response carries framing, sniffing, referrer and permissions headers and no `X-Powered-By`;
+  each person gets 20 chat turns a minute and 500 a day (`CHAT_TURNS_PER_MINUTE`,
+  `CHAT_TURNS_PER_DAY`), and sign-in and sign-up have their own limits; the home page no longer
+  fetches its own health through the request's Host header; every script that writes `.env`
+  makes it owner-only; bootstrap and `pnpm poc` fill in `AGENT_API_TOKEN` and
+  `BETTER_AUTH_SECRET` when they are empty.
+- `pnpm poc` no longer uses Docker. It builds the same production bundles the Dockerfiles build
+  (the Mastra output, Next's standalone server) and runs them as two Node processes bound to
+  `127.0.0.1`, with process ids and logs in `.precast/run/` (git-ignored). Nothing to install
+  beyond Node and pnpm. `pnpm stop` and `pnpm logs` replace `pnpm docker:down` and
+  `pnpm docker:logs`; `pnpm poc web` rebuilds and replaces one app. Docker Compose, the local
+  Keycloak, the prebuilt dependency image and its workflow, and the Docker preflight are gone.
+  The Dockerfiles stay: AgentBase builds the agents image from one, and a new CI job builds
+  both on every push.
+- Which apps run follows `PRECAST_LOCAL_AGENTS` (`1` both, `0` only the web app);
+  `COMPOSE_PROFILES` is gone. A project has two ports (agents, web) instead of three, written
+  to `MASTRA_PORT` / `WEB_PORT`; the `*_HOST_PORT` variables and every `KEYCLOAK_*` setting are
+  gone. `MASTRA_HOST` and `WEB_HOST` default to `127.0.0.1`.
+- `pnpm db:provision` (and `pnpm bootstrap --db=provision`) asks Hannibal, the database agent on
+  AgentBase, for the database through the project's AgentBase Application. Nobody needs the
+  server's admin credential any more. With `PRECAST_RDS_SUPERUSER_URL` in the shell it still
+  goes to the server directly. The new credentials must connect before `DATABASE_URL` is written.
+- Mastra's tables go in a schema named after the project (`<project>_agents`) instead of
+  `mastra`, and sign-in's in `<project>_auth`. Two projects pointed at one database no longer
+  share agent memory or accounts. `MASTRA_DB_SCHEMA` still overrides.
+- Precast follows the current Node LTS instead of pinning Node 24: `.nvmrc` says `lts/*`, both
+  image stages are `node:lts-alpine`, CI installs the latest LTS, and `pnpm poc` refuses a Node
+  older than 24. `engines` stays `>=24` as the floor.
+- The AgentBase client secret may be pasted into the Claude Code chat. Bootstrap and
+  `pnpm connect` read it from `AGENTBASE_CLIENT_SECRET` in the environment (a flag would be
+  printed with the command line), and `pnpm forget-secret` then overwrites every other copy on
+  this computer: Claude Code's transcripts, prompt history and task output, and the project's
+  files. `.env` keeps it. At a terminal, the secret prompt is hidden and asked also when the
+  project name is passed; both bootstrap's and `pnpm connect`'s old "hidden" prompts echoed it
+  on Node 25.
+
+**Handled by `pnpm precast:update`.** `scripts/poc.mjs`, `scripts/set-ports.mjs`,
+`scripts/bootstrap.mjs`, `scripts/provision-db.mjs`, `scripts/connect-agentbase.mjs`,
+`scripts/forget-secret.mjs`, `scripts/local-secrets.mjs`, `scripts/rename-project.mjs`,
+`scripts/precast-update.mjs`, `.nvmrc`, `.gitignore`, `eslint.config.js`, `CLAUDE.md`. The files upstream deleted are listed under "Removed
+upstream" and never deleted for you (step 2).
+
+**Manual steps.**
+
+1. **Stop the containers first**, while the old script still exists: `pnpm docker:down`.
+2. **Delete what upstream removed:** `docker/` (including your own
+   `docker-compose.override.yml`, if you made one), `scripts/docker-compose.mjs`,
+   `scripts/check-docker.mjs`, `scripts/deps-image.mjs`, `.github/workflows/deps-image.yml`,
+   and `apps/web/test/{compose-runtime,compose-wrapper,deps-image,docker-compose-profiles}.spec.ts`.
+3. **`.env` and `.env.example`:** delete `AGENTS_HOST_PORT`, `WEB_HOST_PORT`, `COMPOSE_PROFILES`
+   and every `KEYCLOAK_*` line; set `MASTRA_HOST=127.0.0.1` and `WEB_HOST=127.0.0.1`; make
+   `MASTRA_INTERNAL_URL` `http://localhost:<MASTRA_PORT>`. In `.env.example` also replace
+   `MASTRA_DB_SCHEMA=mastra` with the commented line, so new clones get the derived name.
+4. **Keep `MASTRA_DB_SCHEMA=mastra` in your `.env`.** Every project scaffolded before this
+   release has that line, and it keeps your agent memory where it is. Removing it would start
+   an empty memory in `<project>_agents`. To use the new name, rename the schema first
+   (`ALTER SCHEMA mastra RENAME TO <project>_agents;`, with `-` in the project name written as
+   `_`), then delete the line. Do that only if no other project uses that database's `mastra`
+   schema.
+5. **Shared package (advisory):** in `packages/shared/src/database.ts` add `PROJECT_NAME` (set to
+   your project's name) and `projectSchema()`. In `packages/shared/src/env.ts` make
+   `MASTRA_DB_SCHEMA` default to `projectSchema('agents')` with blank counting as unset, default
+   `MASTRA_HOST`/`WEB_HOST` to `127.0.0.1`, and delete the `KEYCLOAK_*` keys.
+6. **App Dockerfiles:** in `apps/agents/Dockerfile` and `apps/web/Dockerfile`, replace the
+   `ARG BASE_IMAGE=…` line and `FROM ${BASE_IMAGE} AS build` with `FROM node:lts-alpine AS build`,
+   drop `--store-dir …` from `pnpm install`, and make the runtime stage `FROM node:lts-alpine`.
+7. **`package.json` (advisory):** remove the `docker:*` scripts and `deps:image`; add
+   `"stop": "node scripts/poc.mjs --stop"`, `"logs": "node scripts/poc.mjs --logs"` and
+   `"forget-secret": "node scripts/forget-secret.mjs"`. Keep `engines.node` at `>=24`.
+8. **CI (advisory):** add the `images` job from `.github/workflows/ci.yml`, so a broken
+   Dockerfile fails a push instead of an AgentBase import.
+9. **Sign-in (web app):** add `better-auth`, `kysely` and `pg` (and `@types/pg`) to
+   `apps/web/package.json`. Copy `apps/web/app/lib/{auth,auth-client,rate-limit}.ts`,
+   `app/api/auth/[...all]/route.ts`, `instrumentation.ts`, `app/sign-in/`, `app/HomeChat.tsx`,
+   `app/AccountBar.tsx`, and the changed `app/page.tsx`, `app/AgentChat.tsx`,
+   `app/api/a2a/[agentId]/route.ts`, `app/api/health/route.ts`, `app/lib/agent-context.ts`,
+   `app/lib/a2a-client.ts` and `next.config.ts` (security headers). Add `signIn` to
+   `HealthStatus` in `packages/shared/src/types.ts`. Chat memory kept under the old anonymous
+   cookie ids is not carried over: people start fresh under their account.
+10. **Agents:** copy `apps/agents/src/mastra/middleware/auth.ts` and its spec. A caller that
+    reached `/api/tools/*`, `/api/memory/*` or `/api/workflows` without the bearer now gets 401.
+11. **`.env`:** run `pnpm poc` once, which adds `BETTER_AUTH_SECRET`; set
+    `BETTER_AUTH_URL=http://localhost:<WEB_PORT>`. `OIDC_*` and the two `CHAT_TURNS_*` limits
+    are optional.
+12. **Specs:** copy `apps/web/test/poc.spec.ts`, `test/rename-project.spec.ts`,
+    `test/ports.spec.ts`, `test/security-config.spec.ts`, `test/docker-build.spec.ts`,
+    `test/provision-db.spec.ts`, `test/connect-prompt.spec.ts`, `test/forget-secret.spec.ts` and
+    the schema case in `test/health.spec.ts`, and for sign-in and security
+    `test/{auth,rate-limit,local-secrets,a2a-route,a2a-client,agent-context}.spec.ts`,
+    `e2e/session.ts` and the changed `e2e/{home,a2a-route,agent-cards,chat-reset}.spec.ts`
+    (AGT-026, APP-011, APP-012, APP-017, APP-028 to APP-033, TOOL-009, WEB-014, WEB-022 to
+    WEB-028, E2E-009, E2E-010, SHR-005).
+
+Docker Desktop can be uninstalled afterwards if nothing else on the computer needs it.
+
+**Advisory files touched.** `.env.example`, `package.json`, `.github/workflows/ci.yml`,
+`packages/shared/src/database.ts`, `packages/shared/src/env.ts`, and the fitness specs listed in
+step 12.
+
+**Verify.**
+
+```bash
+pnpm verify
+pnpm test:e2e
+pnpm poc            # then sign up on the web app and send one chat turn
+pnpm db:provision --label "a check that Hannibal answers"   # creates a database
+```
+
+## v0.10.3 — MCP tools per caller, A2A error handling, chat reset race (shipped in v0.11.0)
 
 **What changed.** Three fixes found in review.
 

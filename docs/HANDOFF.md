@@ -15,9 +15,9 @@
 **Fresh baseline.** This is a clean Precast checkout — a runnable, agent-native monorepo with neutral placeholders (`example-agent` / `summary-agent` / `example-tool`, a generic landing page + agent-chat demo). No domain logic yet. `pnpm build` / `typecheck` / `lint` / `test` are green out of the box.
 
 - The Mastra app (`apps/agents`) and Next app (`apps/web`) are intentionally **neutral placeholders**. Real agents/pages/schema come from the feed-forward docs in `templates/` + TECH_STACK.
-- Infra (Postgres/Redis/Keycloak) is **remote/managed** via the root `.env` — not run in Compose.
+- Infra (Postgres/Redis) is **remote/managed** via the root `.env`, never run on the developer's computer. `pnpm poc` runs both apps as Node processes on `127.0.0.1`; there is no container runtime locally.
 - **Postgres-only** ([ADR-002](ADRS.md), supersedes ADR-001): `DATABASE_URL` rejects SQLite/libsql at boot. A provisioned managed Postgres is a bootstrap precondition — the stack will not start without one.
-- **Agent memory is wired and durable.** `example-agent` carries a `Memory` backed by Postgres (`@mastra/pg`); `summary-agent` deliberately has none (transformation, not conversation). The web app derives `resourceId` (httpOnly cookie) and a resource-namespaced `threadId` **server-side** in `apps/web/app/lib/agent-context.ts` and never accepts either from the request body — Mastra otherwise defaults `resourceId` to the agent id, which would put every user in one shared memory bucket.
+- **Agent memory is wired and durable.** `example-agent` carries a `Memory` backed by Postgres (`@mastra/pg`); `summary-agent` deliberately has none (transformation, not conversation). The web app derives `resourceId` (`account-<user id>` from the signed-in session) and a resource-namespaced `threadId` **server-side** in `apps/web/app/lib/agent-context.ts` and never accepts either from the request body. Mastra otherwise defaults `resourceId` to the agent id, which would put every user in one shared memory bucket. Its tables are in `<project>_agents`.
 - **Orchestrator crew — `docs/plans/orchestrator-crew-plan.md` (Phases 1–4 done).** `apps/agents/src/mastra/crew.ts` is the single source of truth for the roster; `defineCrew()` (`lib/crew.ts`) builds an **in-process** orchestrator front door — `crew-orchestrator`, a Mastra Agent Network (agents-as-tools) over the members that routes LLM-decided and **activates only at 2+ members**, collapsing to the sole member at N=1 (no routing hop, no extra card). Each member stays a plain agent → keeps its own `/api/.well-known/:id/agent-card.json` and is independently invocable; the orchestrator is purely additive. `index.ts` registers exactly `crewAgents(crew)`. Guards: reserved orchestrator id, duplicate ids, flat single layer. **P2:** `scripts/emit-import-manifest.mjs` emits an `orchestration` block into `agentbase.import.json` (orchestrator id from `ORCHESTRATOR_ID`; members omitted → discovered; `defaultImport: orchestrator-only`), guarded by `orchestration-manifest.spec.ts`. **P4 R2/R3:** `apps/agents/src/mastra/telemetry/otel.ts` (imported FIRST in `index.ts`) starts an OTel SDK — W3C propagation always, OTLP export when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (AgentBase injects it into hosted containers) — so the crew's in-process hops continue AgentBase's inbound trace and forward it on egress. (P3 + P4 R1/R4/R5 are AgentBase-side.)
 
 _Known carry-forwards:_
@@ -25,7 +25,7 @@ _Known carry-forwards:_
 - Memory has **not been exercised against a live Postgres** — the baseline is verified by typecheck, unit tests, `mastra build`, and runtime env-validation checks only. First run against a real `DATABASE_URL` should confirm Mastra creates its tables in the `mastra` schema and that a second turn recalls the first.
 - The crew's **live A2A cards have not been fetched against a running server.** This checkout's `.env` carries only placeholder DB creds (`your-postgres-host`) plus a pre-existing invalid `file:` `MASTRA_DB_URL` (the repo is Postgres-only, ADR-002), so `mastra start`/`dev` cannot boot here. Phase 1 is verified by typecheck, lint, the 51 agents-package unit tests (8 new in `lib/crew.spec.ts`), and a successful `mastra build` (which constructs the full instance graph including all three agents). First boot against a real Postgres should confirm `/api/.well-known/{example-agent,summary-agent,crew-orchestrator}/agent-card.json` all serve, and that a 2-member prompt routes through `crew-orchestrator`.
 - **Context threading (OBO subject + session) through the orchestrator → member → egress, and W3C `traceparent` propagation, are NOT in Phase 1** — they are Phase 4 (telemetry R1–R5) in the plan. In-process routing works today; the governed-context/telemetry seam is the next correctness-sensitive piece.
-- The `resourceId` cookie is **anonymous, not authentication**. Keycloak ships for dev but no OIDC is wired into `apps/web`; swap `resolveResourceId()` for the verified token's `sub` when it is.
+- Sign-in runs inside the web app (Better Auth, `apps/web/app/lib/auth.ts`); chatting needs an account, and agent memory is scoped to `account-<user id>` from the verified session.
 
 ---
 
@@ -42,7 +42,7 @@ Precast otherwise remains a runnable baseline. To start a real project:
 
 1. `pnpm install && pnpm bootstrap` (or `pnpm bootstrap my-project`).
 2. **Write the feed-forward docs first:** copy the relevant `templates/*.md` into `docs/`, replace the example content with your product.
-3. Fill in `docs/PROGRESS.md` §1 (name + mission) and the README title; run `pnpm connect` for the AgentBase Application and model (it proves them before writing `.env`; no vendor key anywhere), point `REDIS_URL` / `KEYCLOAK_TOKEN_ISSUER_URI` at your remote/managed services, and set `DATABASE_URL` to a **managed Postgres** URL — Postgres-only since [ADR-002](ADRS.md), and the stack will not boot without it (see [.env.example](../.env.example)).
+3. Fill in `docs/PROGRESS.md` §1 (name + mission) and the README title; run `pnpm connect` for the AgentBase Application and model (it proves them before writing `.env`; no vendor key anywhere), point `REDIS_URL` at your remote/managed Redis, and set `DATABASE_URL` to a **managed Postgres** URL — Postgres-only since [ADR-002](ADRS.md), and the stack will not boot without it (see [.env.example](../.env.example)).
 4. Build your agents/tools under `apps/agents/src/mastra/` and pages under `apps/web/app/`; extend the env schema in `packages/shared/src/env.ts`.
 
 ---
@@ -125,14 +125,13 @@ apps/web/e2e/                ← Playwright UI specs (home.spec.ts)
 apps/web/Dockerfile          ← multi-stage build of the Next standalone server
 packages/shared/src/         ← env parser (zod, ESM) + Postgres-only DATABASE_URL validation + shared types
 templates/                   ← feed-forward planning docs (PRD, DATA_MODEL, AGENT_SPEC, DESIGN_SYSTEM)
-docker/                      ← Docker Compose (agents + web + Keycloak; Postgres/Redis remote via .env; COMPOSE_PROFILES selects services). `agents` is stateless — no volume
 scripts/bootstrap.mjs        ← new-project bootstrap (rename + set-ports + deps + reset docs + blank git)
-scripts/set-ports.mjs        ← retarget Mastra/Next dev ports across env/configs/scripts/compose/docs
+scripts/poc.mjs              ← `pnpm poc`: build both apps, run them on 127.0.0.1, wait for health + sign-in; `pnpm stop`, `pnpm logs`
+scripts/set-ports.mjs        ← retarget the agents/web port pair across env/configs/scripts/Dockerfiles/docs
 scripts/rename-project.mjs   ← one-shot placeholder rename (walks all source)
 scripts/update-deps.mjs      ← update deps to latest compatible + verify
 scripts/progress-stamp.mjs   ← PROGRESS.md auto-journal
 scripts/emit-import-manifest.mjs ← derive agentbase.import.json requiredEnv from the env schema
-scripts/docker-compose.mjs   ← wrapper: passes --env-file .env to every `pnpm docker:*` (fails fast if .env is missing)
 ```
 
 ## 5. Lifecycle — when this file gets updated

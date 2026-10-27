@@ -246,7 +246,7 @@ discovery). Shipping the manifest just makes the contract explicit.
 - **Skills are only as good as your tools.** Mastra maps each tool → one A2A skill. Define meaningful tools; the placeholder exposes only `exampleTool`.
 - **New skills start `APPROVED`** on both paths. Governance still requires reviewing the synchronized surface before publication; later sync preserves existing status and deprecates missing skills.
 - **Updates are org-initiated** (Path A). New commits are not auto-deployed; use **Pull latest & redeploy** on the imported agent's edit page. Webhook auto-deploy is out of scope for now.
-- **Auth.** Precast ships auth-off locally; on import AgentBase mints + injects `AGENT_API_TOKEN` for you. For Path B, register with the matching `declaredAuthScheme` + a `credentialRef`. AgentBase supports `Bearer`, `ApiKey`, `Basic`, `None`, `OAuth2ClientCredentials`; plain `OAuth2` and `mTLS` currently return `501` in the proxy.
+- **Auth.** Locally `pnpm bootstrap` and `pnpm poc` put a random `AGENT_API_TOKEN` in `.env`; on import AgentBase mints + injects its own for you. For Path B, register with the matching `declaredAuthScheme` + a `credentialRef`. AgentBase supports `Bearer`, `ApiKey`, `Basic`, `None`, `OAuth2ClientCredentials`; plain `OAuth2` and `mTLS` currently return `501` in the proxy.
 
 ---
 
@@ -364,7 +364,7 @@ Mastra agent  (verifies Bearer <AGENT_API_TOKEN>)
 AGENT_API_TOKEN=your-secret-token
 
 # .env (or environment) — Next side
-PRECAST_LOCAL_AGENTS=0                            # 1 = call the local agents app directly (development)
+PRECAST_LOCAL_AGENTS=0                            # 1 = call the local agents app directly (development); also whether pnpm poc runs it
 MASTRA_INTERNAL_URL=http://localhost:45000         # where the local agents app answers
 AGENTBASE_CLIENT_ID=your-application-client-id    # from AgentBase Studio → Applications
 AGENTBASE_CLIENT_SECRET=your-application-secret   # shown once at creation/rotation
@@ -594,7 +594,7 @@ allowlist.
 - **Metrics,** read every 30 s: `process.memory.usage`, `v8js.memory.heap.used`, `process.cpu.utilization` by `cpu.mode`, and the HTTP server and client request durations.
 - **Logs.** One `agent.request` record per A2A call (agent id, status, duration; INFO, WARN on 4xx, ERROR on 5xx) and one `agents.telemetry.started` at boot, each correlated to the active trace.
 
-Liveness probes (`GET /api/agents`, which the Compose health check calls every 10 s, and `/health`) are left out of traces and HTTP metrics.
+Liveness probes (`GET /api/agents`, which `pnpm poc` and AgentBase's readiness check call, and `/health`) are left out of traces and HTTP metrics.
 
 **Configuration** is the standard OpenTelemetry environment and nothing else. The exporters read their own per-signal endpoint, headers and protocol (`OTEL_EXPORTER_OTLP_{TRACES,METRICS,LOGS}_*` over the unsuffixed ones), so the values AgentBase injects are used as given. `http/protobuf` is the default and `http/json` is honoured; `grpc` is not supported and disables that signal with a warning. `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` flow onto every signal. `OTEL_<SIGNAL>_EXPORTER=none` turns one signal off and `OTEL_SDK_DISABLED=true` turns telemetry off entirely. With no endpoint nothing is exported and the trace context is still carried through.
 

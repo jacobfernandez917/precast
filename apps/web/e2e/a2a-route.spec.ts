@@ -12,49 +12,42 @@ import { expect, test } from '@playwright/test';
  * needs a working provider key and is not part of CI.
  */
 test.describe('POST /api/a2a/:agentId', () => {
-  test('rejects a request with no text field', async ({ request }) => {
-    const res = await request.post('/api/a2a/example-agent', { data: {} });
-    expect(res.status()).toBe(400);
-    const body = await res.json();
-    expect(body.error ?? body.message, 'a 400 must say what was wrong').toBeTruthy();
-  });
-
-  test('rejects a non-string text field', async ({ request }) => {
-    const res = await request.post('/api/a2a/example-agent', { data: { text: 42 } });
-    expect(res.status()).toBe(400);
-  });
+  // Sign-in is required before anything else is read; body validation is
+  // covered by the route's unit tests, where a signed-in user is stubbed.
+  for (const [name, data] of [
+    ['no text field', {}],
+    ['a non-string text field', { text: 42 }],
+    ['a malformed card press', { action: 'retry' }],
+    ['a well-formed message', { text: 'hello' }],
+  ] as const) {
+    test(`refuses ${name} from someone not signed in, with 401`, async ({ request }) => {
+      const res = await request.post('/api/a2a/example-agent', { data });
+      expect(res.status()).toBe(401);
+      expect(res.headers()['content-type'] ?? '').toContain('application/json');
+      expect((await res.json()).error).toBe('Sign in to chat with the agent.');
+    });
+  }
 
   test('never leaks a stack trace or env value on failure', async ({ request }) => {
-    // A misconfigured deploy will fail here. What it must not do is answer with
-    // internals — this route is reachable from the browser.
     const res = await request.post('/api/a2a/does-not-exist-agent', {
       data: { text: 'hello' },
     });
     const body = await res.text();
     expect(body).not.toMatch(/at\s+\w+\s+\(.*\.ts:\d+/); // stack frame
-    expect(body).not.toMatch(/AGENTBASE_CLIENT_SECRET|AGENT_API_TOKEN/);
-  });
-
-  test('refuses a malformed card press before reaching an agent', async ({ request }) => {
-    const res = await request.post('/api/a2a/example-agent', { data: { action: 'retry' } });
-    expect(res.status()).toBe(400);
-    expect((await res.json()).error).toBe('Invalid action');
-  });
-
-  test('answers with a JSON body whatever the outcome', async ({ request }) => {
-    // The UI parses JSON unconditionally; an HTML error page here surfaces as an
-    // unhandled parse error in the browser rather than a readable message.
-    const res = await request.post('/api/a2a/example-agent', { data: { text: 'ping' } });
-    expect(res.headers()['content-type'] ?? '').toContain('application/json');
-    await expect(res.json()).resolves.toBeTruthy();
+    expect(body).not.toMatch(/AGENTBASE_CLIENT_SECRET|AGENT_API_TOKEN|BETTER_AUTH_SECRET/);
   });
 });
 
 test.describe('health route', () => {
-  test('reports the transport the app is configured for', async ({ request }) => {
+  test('answers, and says why when the app cannot be used', async ({ request }) => {
     const res = await request.get('/api/health');
     expect(res.ok()).toBeTruthy();
     const body = await res.json();
-    expect(body.status).toBe('ok');
+    // This test server has no sign-in secret or database, so sign-in cannot
+    // work and health says so instead of a misleading ok.
+    expect(body.status).toBe(
+      body.signIn === 'ready' || body.signIn === 'starting' ? 'ok' : 'degraded',
+    );
+    expect(body.signIn).not.toBe('ready');
   });
 });

@@ -25,7 +25,16 @@ updates:
       next:
         patterns: ['next', 'react', 'react-dom', '@types/react', '@types/react-dom']
       tooling:
-        patterns: ['eslint*', '@typescript-eslint/*', 'prettier*', 'typescript', 'turbo', 'vitest', '@playwright/*']
+        patterns:
+          [
+            'eslint*',
+            '@typescript-eslint/*',
+            'prettier*',
+            'typescript',
+            'turbo',
+            'vitest',
+            '@playwright/*',
+          ]
       types:
         patterns: ['@types/*']
     commit-message:

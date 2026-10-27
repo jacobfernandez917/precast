@@ -3,21 +3,11 @@
 #   docker build -f apps/web/Dockerfile -t precast-web .
 
 # ---- build: install the workspace and build Next (standalone output) ----
-# The dependency layer. Defaults to plain node so a clone with no registry
-# access builds exactly as before; `pnpm poc` upgrades this to a prebuilt
-# ghcr.io/.../precast-deps:lock-<hash> when one matching THIS lockfile is
-# published (scripts/deps-image.mjs). Because the tag is the lockfile hash, a
-# mismatched image cannot be silently consumed — it simply doesn't exist.
-ARG BASE_IMAGE=node:24-alpine
-FROM ${BASE_IMAGE} AS build
-# Idempotent: already enabled in the deps image, needed on the plain fallback.
+FROM node:lts-alpine AS build
 RUN corepack enable
 WORKDIR /repo
 COPY . .
-# A no-op relink when the base already carries this lockfile's packages; a real
-# (but store-warm, offline) install otherwise. `--store-dir` must match the one
-# baked into deps.Dockerfile or the warm content is invisible here.
-RUN pnpm install --frozen-lockfile --ignore-scripts --store-dir "${PNPM_STORE_DIR:-/pnpm/store}"
+RUN pnpm install --frozen-lockfile --ignore-scripts
 # Filter by workspace PATH, not package name: a name-based `--filter @scope/pkg`
 # that matches nothing (e.g. after `pnpm rename`) exits 0 and builds nothing,
 # which only surfaces as an opaque COPY failure below. The `test -f` then makes
@@ -30,7 +20,7 @@ RUN pnpm --filter "./packages/shared" --filter "./packages/a2ui" build \
 # `output: 'standalone'` (next.config.ts) emits a minimal server plus only the
 # node_modules it traces. With outputFileTracingRoot at the workspace root, the
 # bundle mirrors the repo layout, so server.js lives at apps/web/server.js.
-FROM node:24-alpine AS runtime
+FROM node:lts-alpine AS runtime
 ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=45001
@@ -38,7 +28,7 @@ WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
 COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build --chown=node:node /repo/apps/web/public ./apps/web/public
-# Drop root. `node:24-alpine` ships an unprivileged `node` user (uid 1000), and
+# Drop root. `node:lts-alpine` ships an unprivileged `node` user (uid 1000), and
 # nothing here needs more: both ports are above 1024, and the bundle is only
 # read at runtime. Running as root turns any container escape or arbitrary-write
 # bug into a considerably worse incident, and it is the default nobody chooses
@@ -55,6 +45,6 @@ EXPOSE 45001
 # intermittent `fetch failed` that looked exactly like bad credentials.
 #
 # Set on the CMD, NOT as ENV NODE_OPTIONS: a NODE_OPTIONS supplied through
-# compose or `.env` would REPLACE the image's value and silently drop this —
+# the host's environment would REPLACE the image's value and silently drop this —
 # the same shadowing that once made the transport switch unsettable.
 CMD ["node", "--dns-result-order=ipv4first", "apps/web/server.js"]

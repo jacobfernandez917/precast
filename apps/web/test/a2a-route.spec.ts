@@ -2,10 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../app/lib/a2a-client', () => ({ callAgent: vi.fn() }));
 vi.mock('../app/lib/agent-context', () => ({ resolveAgentContext: vi.fn() }));
+vi.mock('../app/lib/auth', () => ({ getSignedInUser: vi.fn() }));
+vi.mock('../app/lib/rate-limit', () => ({ chatTurnLimiter: { take: vi.fn() } }));
 
 import { POST } from '../app/api/a2a/[agentId]/route';
 import { callAgent } from '../app/lib/a2a-client';
 import { resolveAgentContext } from '../app/lib/agent-context';
+import { getSignedInUser } from '../app/lib/auth';
+import { chatTurnLimiter } from '../app/lib/rate-limit';
 
 /**
  * WEB-016: the route handler's press path. A press on a card reaches the agent as TEXT on the
@@ -15,6 +19,9 @@ import { resolveAgentContext } from '../app/lib/agent-context';
  */
 const mockedCall = vi.mocked(callAgent);
 const mockedContext = vi.mocked(resolveAgentContext);
+const mockedUser = vi.mocked(getSignedInUser);
+const mockedLimit = vi.mocked(chatTurnLimiter.take);
+const USER = { id: 'u-123', email: 'jamie@example.com', name: 'Jamie' };
 
 const post = (body: unknown) =>
   POST(
@@ -29,12 +36,11 @@ const post = (body: unknown) =>
 beforeEach(() => {
   mockedCall.mockReset();
   mockedContext.mockReset();
-  mockedContext.mockResolvedValue({
-    resourceId: 'r1',
-    threadId: 'r1:c1',
-    conversationId: 'c1',
-    isNewResource: false,
-  });
+  mockedContext.mockReturnValue({ resourceId: 'r1', threadId: 'r1:c1', conversationId: 'c1' });
+  mockedUser.mockReset();
+  mockedUser.mockResolvedValue(USER);
+  mockedLimit.mockReset();
+  mockedLimit.mockReturnValue({ ok: true });
   mockedCall.mockResolvedValue({
     ok: true,
     text: 'Retrying.',
@@ -58,11 +64,11 @@ describe('POST /api/a2a/:agentId — card presses', () => {
       conversationId: 'c1',
     });
     expect(res.status).toBe(200);
-    expect(mockedContext).toHaveBeenCalledWith('c1');
+    expect(mockedContext).toHaveBeenCalledWith(USER, 'c1');
 
     const [agentId, text, options] = mockedCall.mock.calls[0]!;
     expect(agentId).toBe('example-agent');
-    expect(options).toEqual({ threadId: 'r1:c1', resourceId: 'r1' });
+    expect(options).toEqual({ threadId: 'r1:c1', resourceId: 'r1', onBehalfOf: 'u-123' });
     expect(text).toMatch(/press on your card/);
     const payload = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
     expect(payload.a2ui.action).toEqual({
@@ -112,7 +118,7 @@ describe('POST /api/a2a/:agentId — card presses', () => {
  * WEB-019: what the browser gets. The reply's status is the route's status, a
  * failure carries the conversation id so a retry stays in thread, and the raw
  * upstream reply never leaves the server (Mastra echoes the A2A contextId, which
- * is `<resourceId>::<conversation>`, and the resourceId is the httpOnly cookie).
+ * is `<resourceId>::<conversation>`, and the resourceId names the account).
  */
 describe('POST /api/a2a/:agentId — statuses and what reaches the browser', () => {
   const upstreamRaw = {
@@ -186,13 +192,54 @@ describe('POST /api/a2a/:agentId — statuses and what reaches the browser', () 
   });
 
   it('an unexpected exception is a JSON 500 with no stack and no detail', async () => {
-    mockedContext.mockRejectedValue(
-      new Error('cookie store exploded at /srv/app/agent-context.ts:42'),
-    );
+    mockedContext.mockImplementation(() => {
+      throw new Error('cookie store exploded at /srv/app/agent-context.ts:42');
+    });
     const res = await post({ text: 'hello' });
     expect(res.status).toBe(500);
     const text = await res.text();
     expect(JSON.parse(text)).toEqual({ ok: false, error: 'The agent call failed.', status: 500 });
     expect(text).not.toMatch(/agent-context\.ts|exploded/);
+  });
+});
+
+/**
+ * WEB-026: sign-in is required, each person is rate limited, and the agent is
+ * told who the turn acts for. The memory scope comes from the signed-in user.
+ */
+describe('POST /api/a2a/:agentId — signed in, limited, on behalf of the person', () => {
+  it('refuses a request with no session before reading anything else, with 401', async () => {
+    mockedUser.mockResolvedValue(null);
+    for (const body of [{ text: 'hello' }, {}, { action: 'retry' }]) {
+      const res = await post(body);
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({
+        ok: false,
+        error: 'Sign in to chat with the agent.',
+        status: 401,
+      });
+    }
+    expect(mockedCall).not.toHaveBeenCalled();
+    expect(mockedLimit).not.toHaveBeenCalled();
+  });
+
+  it('a person over their limit gets 429 with Retry-After, and the agent is not called', async () => {
+    mockedLimit.mockReturnValue({ ok: false, retryAfterSeconds: 42 });
+    const res = await post({ text: 'hello' });
+    expect(res.status).toBe(429);
+    expect(res.headers.get('Retry-After')).toBe('42');
+    expect((await res.json()).error).toMatch(/faster than this app allows/);
+    expect(mockedCall).not.toHaveBeenCalled();
+    expect(mockedLimit).toHaveBeenCalledWith('u-123');
+  });
+
+  it('derives the memory scope from the signed-in user and sends them as the on-behalf-of subject', async () => {
+    await post({ text: 'hello', conversationId: 'c9' });
+    expect(mockedContext).toHaveBeenCalledWith(USER, 'c9');
+    expect(mockedCall.mock.calls[0]![2]).toMatchObject({
+      threadId: 'r1:c1',
+      resourceId: 'r1',
+      onBehalfOf: 'u-123',
+    });
   });
 });

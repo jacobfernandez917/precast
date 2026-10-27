@@ -35,6 +35,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
+          # .nvmrc says lts/*; without this a runner's cached LTS can lag the latest release.
+          check-latest: true
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -66,6 +68,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
+          # .nvmrc says lts/*; without this a runner's cached LTS can lag the latest release.
+          check-latest: true
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Install Playwright browsers
@@ -78,3 +82,24 @@ jobs:
           name: playwright-report
           path: apps/web/playwright-report/
           retention-days: 7
+
+  images:
+    # Nothing on a developer's computer builds the images any more (`pnpm poc` runs
+    # the apps natively), so this is where a broken Dockerfile shows up: before
+    # AgentBase tries to import it, not during the import.
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [agents, web]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - name: Build ${{ matrix.app }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: false
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}

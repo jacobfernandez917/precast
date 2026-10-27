@@ -66,11 +66,12 @@ describe('SMOKE-002 — root package.json is coherent', () => {
     // .nvmrc is advisory — nothing reads it during `pnpm install`. Without an
     // engines field, Node 20 installs happily and fails later, confusingly.
     expect(pkg.engines?.node, 'package.json needs an engines.node range').toBeTruthy();
-    const nvmrc = read('.nvmrc').trim();
-    expect(
-      pkg.engines.node.includes(nvmrc),
-      `engines.node (${pkg.engines.node}) must agree with .nvmrc (${nvmrc})`,
-    ).toBe(true);
+    // .nvmrc follows the LTS line (lts/*), so engines is the floor: the oldest LTS
+    // line Precast still supports. Newer LTS releases always satisfy it.
+    expect(read('.nvmrc').trim()).toBe('lts/*');
+    expect(pkg.engines.node, 'engines.node is a floor on an LTS (even) major').toMatch(
+      /^>=\s*\d*[02468]$/,
+    );
   });
 
   it('every script has a non-empty command', () => {
@@ -306,7 +307,7 @@ describe('DOC-002/003/004 — required doc sections are present', () => {
 
   it('TECH_STACK.md covers the facts other docs defer to it for', () => {
     const t = read('docs/TECH_STACK.md');
-    for (const heading of ['Quick Reference', 'Port Assignments', 'Docker Compose Services']) {
+    for (const heading of ['Quick Reference', 'Port Assignments', 'Local Run']) {
       expect(t, `TECH_STACK.md is missing "${heading}"`).toContain(heading);
     }
   });
@@ -377,46 +378,56 @@ describe('SMOKE-017 — a fresh scaffold can actually boot', () => {
   const bootstrap = read('scripts/bootstrap.mjs');
   const example = read('.env.example');
 
-  it('bootstrap mints an AGENT_API_TOKEN', () => {
-    expect(
-      /AGENT_API_TOKEN:\s*randomBytes\(/.test(bootstrap),
-      'bootstrap must generate AGENT_API_TOKEN — an empty one makes the production ' +
-        'boot guard reject a fresh scaffold',
-    ).toBe(true);
+  const secrets = read('scripts/local-secrets.mjs');
+  const poc = read('scripts/poc.mjs');
+
+  it('the local secrets module mints AGENT_API_TOKEN and BETTER_AUTH_SECRET with a CSPRNG', () => {
+    expect(secrets).toMatch(/AGENT_API_TOKEN:\s*\(\)\s*=>\s*randomBytes\(/);
+    expect(secrets).toMatch(/BETTER_AUTH_SECRET:\s*\(\)\s*=>\s*randomBytes\(/);
+    expect(secrets, 'Math.random is not suitable for a credential').not.toContain('Math.random');
   });
 
-  it('and actually CALLS the generator', () => {
-    // Asserting the function exists is not enough: deleting only the call site
-    // leaves the definition in place, the regex above still matches, and the
-    // original bug returns with a green suite. Caught by mutation-testing this
-    // very test.
-    const defAt = bootstrap.indexOf('function generateLocalSecrets');
-    const calls = [...bootstrap.matchAll(/generateLocalSecrets\(\)/g)].map((m) => m.index!);
-    const invocations = calls.filter((i) => i < defAt || i > bootstrap.indexOf('}', defAt));
-    expect(
-      invocations.length,
-      'generateLocalSecrets() is defined but never invoked — a fresh .env would ship an ' +
-        'empty AGENT_API_TOKEN and the agents container would refuse to boot',
-    ).toBeGreaterThan(0);
-    expect(bootstrap).toMatch(/writeEnvValues\(generateLocalSecrets\(\)\)/);
+  it('and both bootstrap and pnpm poc actually CALL it', () => {
+    // Asserting the module exists is not enough: deleting a call site leaves it
+    // in place and the original bug (an empty token, a missing sign-in secret)
+    // returns with a green suite.
+    expect(bootstrap).toMatch(/ensureLocalSecrets\(join\(rootDir, '\.env'\)\)/);
+    expect(poc).toMatch(/ensureLocalSecrets\(join\(rootDir, '\.env'\)\)/);
   });
 
-  it('generates it with a CSPRNG, not Math.random', () => {
-    const fn = bootstrap.slice(
-      bootstrap.indexOf('function generateLocalSecrets'),
-      bootstrap.indexOf('function writeEnvValues'),
+  // APP-030: found on a fresh scaffold. lint-staged on bootstrap's first commit
+  // aborted the scaffold over one lint error, and its reformatting made a new
+  // project's untouched files look customized to `precast:update`.
+  it("bootstrap's first commit skips lint-staged", () => {
+    expect(bootstrap).toMatch(
+      /run\('git', \['commit', '-m', `chore: initialize \$\{name\} from Precast`\], \{\s*env: \{ SKIP_LINT_STAGED: '1' \},?\s*\}\)/,
     );
-    expect(fn).toContain('randomBytes');
-    expect(fn, 'Math.random is not suitable for a credential').not.toContain('Math.random');
   });
 
-  it('.env.example still ships it EMPTY — the committed file must carry no secret', () => {
-    // The two halves are a pair: example stays blank, bootstrap fills it. If
-    // someone "fixes" the boot failure by putting a value in .env.example
-    // instead, every clone would share one token.
-    const line = /^AGENT_API_TOKEN=(.*)$/m.exec(example);
-    expect(line, '.env.example must declare AGENT_API_TOKEN').not.toBeNull();
-    expect(line![1].trim(), '.env.example must not carry a real token').toBe('');
+  // APP-031: the scaffold skill passes the project name, which makes bootstrap ask
+  // nothing. The client secret was then impossible to give except as a flag, so a
+  // run in the person's own terminal stopped. It is asked whenever there is a
+  // terminal, and never echoed (connect-prompt.spec.ts types into a real terminal).
+  it('bootstrap asks for the AgentBase secret, hidden, whenever there is a terminal', () => {
+    expect(bootstrap).toMatch(/nameArg && !stdin\.isTTY \? null : createPrompt\(\)/);
+    expect(bootstrap).toMatch(/field\.secret\s*\?\s*await prompt\.askHidden\(/);
+    // The old trick, overriding rl._writeToOutput, echoes on current Node.
+    expect(bootstrap).not.toMatch(/_writeToOutput/);
+    // A secret pasted into the chat is passed in the environment, never as a flag that
+    // pnpm prints with the command line.
+    expect(bootstrap).toMatch(/field\.secret \? process\.env\[field\.env\]/);
+    expect(read('scripts/connect-agentbase.mjs')).toMatch(/f\.secret \? process\.env\[f\.env\]/);
+  });
+
+  it('.env.example still ships both EMPTY — the committed file must carry no secret', () => {
+    // The two halves are a pair: example stays blank, the module fills it. If
+    // someone "fixes" a boot failure by putting a value in .env.example instead,
+    // every clone would share one token.
+    for (const key of ['AGENT_API_TOKEN', 'BETTER_AUTH_SECRET']) {
+      const line = new RegExp(`^${key}=(.*)$`, 'm').exec(example);
+      expect(line, `.env.example must declare ${key}`).not.toBeNull();
+      expect(line![1].trim(), `.env.example must not carry a real ${key}`).toBe('');
+    }
   });
 
   it('every placeholder host in .env.example is an obvious non-address', () => {

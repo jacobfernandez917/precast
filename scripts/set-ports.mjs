@@ -1,21 +1,20 @@
 #!/usr/bin/env node
 /**
- * set-ports.mjs — Point the project at different dev ports for the Mastra
- * agents API, the Next web app, and the local Keycloak, wiring the change
- * through env, configs, pnpm scripts, Docker Compose, and the port-stating docs
- * in one pass.
+ * set-ports.mjs — Point the project at different ports for the Mastra agents
+ * API and the Next web app, wiring the change through env, configs, pnpm
+ * scripts, the Dockerfiles, and the port-stating docs in one pass.
  *
- *   node scripts/set-ports.mjs --auto                       # random free consecutive triple
- *   node scripts/set-ports.mjs --mastra=45000 --web=45001 --keycloak=45002
- *   node scripts/set-ports.mjs --mastra=45000               # others unchanged
- *   pnpm set-ports --web=45001                              # mastra/keycloak unchanged
+ *   node scripts/set-ports.mjs --auto                       # random free consecutive pair
+ *   node scripts/set-ports.mjs --mastra=45000 --web=45001
+ *   node scripts/set-ports.mjs --mastra=45000               # web unchanged
+ *   pnpm set-ports --web=45001                              # mastra unchanged
  *
  * A port not supplied keeps its current value (read from .env.example).
  * Idempotent and re-runnable: re-running with the same values changes nothing.
  *
- * `--auto` picks a random, currently-free, CONSECUTIVE triple in the high
+ * `--auto` picks a random, currently-free, CONSECUTIVE pair in the high
  * private range (see PORT_RANGE below) and assigns them in stack order:
- * agents → web → keycloak (e.g. 45000 / 45001 / 45002). Consecutive so the
+ * agents → web (e.g. 45000 / 45001). Consecutive so the
  * project's whole stack is one memorable block; random so two Precast projects
  * on the same machine don't collide the way two 3000/4111 projects always do;
  * range-bounded so it can't land on a port some other tool expects.
@@ -40,15 +39,15 @@ const RESERVED = { 5432: 'Postgres', 6379: 'Redis' };
  *  - Below 49152: that's where the IANA/macOS/Linux EPHEMERAL range starts.
  *    This is the reason the range stops at 49100 rather than 50000 — a base
  *    above 49152 would publish inside the ephemeral range.
- *    Publishing a container port inside it invites a random outbound socket to
+ *    Listening on a port inside it invites a random outbound socket to
  *    have grabbed the port first — a flaky "address already in use" that only
  *    reproduces sometimes. Staying under it makes the pick genuinely safe.
  * The max base leaves room for the whole consecutive block.
  */
 export const PORT_RANGE = { min: 45000, max: 49100 };
-export const STACK_SIZE = 3; // agents, web, keycloak
+export const STACK_SIZE = 2; // agents, web
 
-/** Is this port bindable right now on all interfaces (what Docker publishes on)? */
+/** Is this port bindable right now on all interfaces (so nothing else holds it on any)? */
 export function isPortFree(port) {
   return new Promise((resolve) => {
     const srv = createServer();
@@ -74,7 +73,7 @@ export async function pickConsecutivePorts(count = STACK_SIZE, attempts = 200) {
   }
   throw new Error(
     `Could not find ${count} consecutive free ports in ${PORT_RANGE.min}–${PORT_RANGE.max} ` +
-      `after ${attempts} attempts. Free some ports, or pass explicit --mastra/--web/--keycloak.`,
+      `after ${attempts} attempts. Free some ports, or pass explicit --mastra/--web.`,
   );
 }
 
@@ -116,16 +115,14 @@ export async function main() {
   const envText = existsSync(envExamplePath) ? readFileSync(envExamplePath, 'utf8') : '';
   const curMastra = Number((envText.match(/^MASTRA_PORT=(\d+)/m) || [])[1] || 4111);
   const curWeb = Number((envText.match(/^WEB_PORT=(\d+)/m) || [])[1] || 3000);
-  const curKeycloak = Number((envText.match(/^KEYCLOAK_HOST_PORT=(\d+)/m) || [])[1] || 8080);
 
   const auto = process.argv.slice(2).includes('--auto');
   let mastra = curMastra;
   let web = curWeb;
-  let keycloak = curKeycloak;
 
   if (auto) {
-    [mastra, web, keycloak] = await pickConsecutivePorts();
-    console.log(`Auto-picked a free consecutive block: ${mastra} / ${web} / ${keycloak}`);
+    [mastra, web] = await pickConsecutivePorts();
+    console.log(`Auto-picked a free consecutive block: ${mastra} / ${web}`);
   }
 
   // Explicit flags always win over --auto, so a caller can pin one port and
@@ -133,7 +130,6 @@ export async function main() {
   for (const [flag, label, apply] of [
     ['mastra', 'Mastra', (p) => (mastra = p)],
     ['web', 'Web', (p) => (web = p)],
-    ['keycloak', 'Keycloak', (p) => (keycloak = p)],
   ]) {
     const v = flagVal(flag);
     if (v === undefined) continue;
@@ -145,10 +141,8 @@ export async function main() {
     apply(r.port);
   }
 
-  if (new Set([mastra, web, keycloak]).size !== 3) {
-    console.error(
-      `❌ Mastra, web, and Keycloak ports must all differ (got ${mastra}, ${web}, ${keycloak}).`,
-    );
+  if (mastra === web) {
+    console.error(`❌ The agents and web ports must differ (got ${mastra} for both).`);
     process.exit(1);
   }
 
@@ -156,17 +150,14 @@ export async function main() {
 
   // ── Configs (env schema + app config) ──────────────────────────────────────
   // Both .env.example (the committed schema) and .env (the real file, if it
-  // already exists) — Compose interpolates the published host ports from .env,
-  // so leaving it stale would publish the containers on the OLD ports.
+  // already exists) — `pnpm poc` starts the apps on the ports in .env, so
+  // leaving it stale would start them on the OLD ports.
   const envSubs = [
     [/^(MASTRA_PORT=)\d+/m, `$1${mastra}`],
     [/^(WEB_PORT=)\d+/m, `$1${web}`],
-    [/^(AGENTS_HOST_PORT=)\d+/m, `$1${mastra}`],
-    [/^(WEB_HOST_PORT=)\d+/m, `$1${web}`],
-    [/^(KEYCLOAK_HOST_PORT=)\d+/m, `$1${keycloak}`],
-    // Host-facing Keycloak issuer follows the published Keycloak port.
-    [/^(KEYCLOAK_TOKEN_ISSUER_URI=http:\/\/localhost:)\d+/m, `$1${keycloak}`],
-    // Mastra base URL follows the agents port, in either host or Docker-DNS form.
+    // Sign-in callbacks and origin checks use the address people open the app at.
+    [/^(BETTER_AUTH_URL=http:\/\/localhost:)\d+/m, `$1${web}`],
+    // Mastra base URL follows the agents port (older projects wrote the Docker-DNS form).
     [/^(MASTRA_INTERNAL_URL=http:\/\/(?:localhost|agents):)\d+/m, `$1${mastra}`],
   ];
   edit('.env.example', envSubs, counter);
@@ -181,7 +172,6 @@ export async function main() {
       // them on the old ports makes a missing var point at nothing.
       [/(MASTRA_INTERNAL_URL:[^\n]*localhost:)\d+/, `$1${mastra}`],
       [/(agents:)\d+(\.)/g, `$1${mastra}$2`],
-      [/(KEYCLOAK_TOKEN_ISSUER_URI:[^\n]*localhost:)\d+/, `$1${keycloak}`],
     ],
     counter,
   );
@@ -236,32 +226,12 @@ export async function main() {
     counter,
   );
 
-  // ── Docker compose (rewrite app-port occurrences if any are present) ────────
-  // Infra ports (5432/6379) are never touched — we only replace the exact
-  // current Mastra/web/Keycloak-host port numbers, and only when they changed.
-  // Keycloak's CONTAINER port stays 8080; only its published host port moves,
-  // and that lives in ${KEYCLOAK_HOST_PORT}'s default, handled below.
-  for (const f of [
-    'docker/docker-compose.yml',
-    'docker/docker-compose.override.yml',
-    'docker/docker-compose.override.yml.example',
-  ]) {
-    const subs = [];
-    if (mastra !== curMastra) subs.push([new RegExp(`\\b${curMastra}\\b`, 'g'), String(mastra)]);
-    if (web !== curWeb) subs.push([new RegExp(`\\b${curWeb}\\b`, 'g'), String(web)]);
-    if (keycloak !== curKeycloak) {
-      subs.push([new RegExp(`(KEYCLOAK_HOST_PORT:-)${curKeycloak}`, 'g'), `$1${keycloak}`]);
-    }
-    if (subs.length) edit(f, subs, counter);
-  }
-
   // ── Port-stating docs (kept accurate) ──────────────────────────────────────
   edit(
     'README.md',
     [
       [/(web app runs at `http:\/\/localhost:)\d+/g, `$1${web}`],
       [/(Studio playground at `http:\/\/localhost:)\d+/g, `$1${mastra}`],
-      [/(Keycloak admin console at `http:\/\/localhost:)\d+/g, `$1${keycloak}`],
     ],
     counter,
   );
@@ -270,18 +240,13 @@ export async function main() {
     [
       [/(\| Web \(host dev\)\s*\|\s*)\d+/, `$1${web}`],
       [/(\| Mastra \(host dev\)\s*\|\s*)\d+/, `$1${mastra}`],
-      [/(\| Keycloak \(host dev\)\s*\|\s*)\d+/, `$1${keycloak}`],
       [/(on `MASTRA_PORT` \(default )\d+(\))/, `$1${mastra}$2`],
-      [/(AGENTS_HOST_PORT:-)\d+(\})/g, `$1${mastra}$2`],
-      [/(WEB_HOST_PORT:-)\d+(\})/g, `$1${web}$2`],
-      [/(KEYCLOAK_HOST_PORT:-)\d+(\})/g, `$1${keycloak}$2`],
       [/(agents:)\d+/g, `$1${mastra}`],
     ],
     counter,
   );
   // Prose port claims elsewhere in the doc set. Only `localhost:<port>` and the
-  // Docker-DNS `agents:<port>` forms are rewritten — a bare "8080" is often
-  // Keycloak's CONTAINER port, which never moves.
+  // `agents:<port>` forms are rewritten, never a bare number.
   for (const f of ['CLAUDE.md', 'docs/INTEGRATION_AGENTBASE.md', 'docs/SPEC.md']) {
     edit(
       f,
@@ -295,12 +260,12 @@ export async function main() {
   }
 
   console.log(
-    `\n✅ Ports set — Mastra ${mastra}, web ${web}, Keycloak ${keycloak} ` +
+    `\n✅ Ports set — Mastra ${mastra}, web ${web} ` +
       `(${counter.changed} file${counter.changed === 1 ? '' : 's'} updated).`,
   );
   if (counter.changed === 0) console.log('   Nothing to change; already on those ports.');
 
-  return { mastra, web, keycloak };
+  return { mastra, web };
 }
 
 // Only run the CLI when invoked directly — bootstrap.mjs imports the picker.

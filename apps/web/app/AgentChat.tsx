@@ -25,7 +25,7 @@ const AgentCards = dynamic(() => import('./a2ui/AgentCards').then((m) => m.Agent
  * MEMORY: the route handler returns a `conversationId`; sending it back on the
  * next turn keeps the agent in the same thread, so it remembers what was said.
  * The browser never sees or sets the `resourceId` that scopes that memory —
- * that is derived server-side from an httpOnly cookie (see
+ * that is derived server-side from the signed-in account (see
  * `app/lib/agent-context.ts`). Starting a new conversation drops the id and the
  * agent begins a fresh thread — though anything it recorded in working memory
  * follows the user across threads, which is the visible difference between the
@@ -144,7 +144,7 @@ export function AgentChat() {
           <div className="flex flex-col gap-3">
             {turns.map((turn, i) => (
               <div key={i} className="flex flex-col gap-2">
-                <div className="rounded-lg border border-border p-3">
+                <div className="flex flex-col gap-1 rounded-lg border border-border p-3">
                   <Text type="supporting">You</Text>
                   <Text as="p">{turn.question}</Text>
                 </div>
