@@ -77,8 +77,7 @@ It provides:
 │       ├── public/            ← static assets
 │       ├── test/              ← Vitest specs
 │       ├── e2e/               ← Playwright UI specs
-│       ├── next.config.ts     ← standalone output; webpack jsxDEV shim (prod)
-│       ├── jsx-dev-runtime.shim.ts ← Astryx dev-JSX → prod jsx (prod build)
+│       ├── next.config.ts     ← standalone output, security headers
 │       ├── postcss.config.mjs ← Tailwind v4 PostCSS plugin
 │       ├── vitest.config.ts
 │       ├── playwright.config.ts ← autonomous E2E (boots next dev)

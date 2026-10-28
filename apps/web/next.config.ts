@@ -5,17 +5,6 @@ import type { NextConfig } from 'next';
 // spelled out in a monorepo, and output-file tracing uses it to find deps.
 const workspaceRoot = path.join(import.meta.dirname, '..', '..');
 
-// Astryx 0.1.5 ships components compiled against React's *development* JSX
-// runtime (`jsxDEV`), which React sets to `undefined` in production. That
-// breaks SSR in a production build, so we alias `react/jsx-dev-runtime` to a
-// shim mapping `jsxDEV` → the production `jsx`. webpack's resolve.alias applies
-// across every compiler layer (incl. the react-server/SSR layer), which is why
-// the production build runs on webpack; `next dev` stays on Turbopack where the
-// real dev runtime is present and no shim is needed. Revisit once Astryx ships
-// a production build.
-const isProd = process.env.NODE_ENV === 'production';
-const jsxDevShim = path.join(import.meta.dirname, 'jsx-dev-runtime.shim.ts');
-
 /**
  * Sent with every response. No script-src policy: Next and StyleX inject inline
  * code, and a nonce-based policy is a project of its own. What is here stops
@@ -41,7 +30,11 @@ const nextConfig: NextConfig = {
     return [{ source: '/:path*', headers: SECURITY_HEADERS }];
   },
   // Self-contained server bundle for the Docker runtime stage (copies
-  // .next/standalone + .next/static instead of the whole workspace).
+  // .next/standalone + .next/static instead of the whole workspace). The
+  // production build runs on webpack (`next build --webpack`): Turbopack's
+  // standalone output leaves `@swc/helpers` out of the traced pnpm packages,
+  // and the server then fails at startup with "Cannot find module". `next dev`
+  // stays on Turbopack.
   output: 'standalone',
   outputFileTracingRoot: workspaceRoot,
   // pino / pino-pretty use dynamic requires that webpack shouldn't bundle;
@@ -49,15 +42,6 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['pino', 'pino-pretty'],
   turbopack: {
     root: workspaceRoot,
-  },
-  webpack: (config) => {
-    if (isProd) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'react/jsx-dev-runtime': jsxDevShim,
-      };
-    }
-    return config;
   },
 };
 

@@ -12,7 +12,7 @@
  * themes: **Stockholm, Prague, Arctic, Nova, Melbourne**.
  *
  * ── Why it layers instead of replacing ────────────────────────────────────────
- * Astryx defines ~178 variables; APC's semantic set maps onto ~90 of them. Rather
+ * Astryx defines ~187 variables; APC's semantic set maps onto 53 of them. Rather
  * than swap Astryx's theme out (and leave the unmapped variables undefined), this
  * emits an OVERRIDE layer: Astryx's own theme.css still supplies every value, and
  * `@layer apc-theme` — declared after `astryx-theme` in globals.css — wins for the

@@ -99,8 +99,8 @@ Astryx ships purpose-built **Chat** components — prefer them for the chat surf
 - **Light and dark** come from the theme via `<Theme mode="system">`.
 - Components using state/effects need `'use client'`; keep pages server components
   where possible.
-- **Build note:** Astryx 0.1.x ships dev-JSX-compiled components, so `apps/web`
-  builds with `next build --webpack` + a `jsx-dev-runtime` shim (see TECH_STACK.md).
+- **Build note:** `apps/web` builds for production with `next build --webpack`; Turbopack's
+  standalone output misses a pnpm dependency (see TECH_STACK.md).
 
 ## 8. References
 

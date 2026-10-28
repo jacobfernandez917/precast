@@ -51,7 +51,7 @@ APC is a **token-first** system with three layers:
   `state`, `code`. Ten modes (light + dark per theme). Plus per-theme `typography` and shared
   `effect` tokens.
 
-Precast **layers APC on top of Astryx rather than replacing it.** Astryx supplies ~178
+Precast **layers APC on top of Astryx rather than replacing it.** Astryx supplies ~187
 variables; APC's semantic set maps onto ~53 of them. `pnpm theme:build` reads
 `apps/web/app/theme/apc.tokens.json` and emits `apc-themes.css`, which overrides only what APC
 specifies — everything else keeps Astryx's value instead of going undefined.

@@ -122,6 +122,56 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.11.1: Astryx 0.7.4, and the JSX shim is gone (2026-10-28)
+
+A dependency bump in the web app and one build workaround removed. Precast's own `app/` code
+did not change.
+
+**What changed.**
+
+- `@astryxdesign/core`, `@astryxdesign/theme-neutral` and `@astryxdesign/cli` move from
+  `^0.1.5` to `^0.7.4`. A caret range on 0.1.5 never reaches 0.2, so every project was 33
+  Astryx releases behind. Astryx's own codemods (`astryx upgrade --from 0.1.5`) ran 31
+  migrations over Precast's `apps/web/app` and changed nothing: Precast uses none of the props
+  or theme targets that were renamed or removed.
+- APC theming is unaffected: all 53 Astryx variables APC overrides are still read by 0.7.4.
+  0.7.4 adds chart colours (`--color-data-*`) and diff colours that APC does not map yet.
+- One visible change: since Astryx 0.2.0 a bordered `Card` draws its frame with
+  `--color-border` instead of `--color-border-emphasized`, so the chat card's outer edge is
+  lighter in light mode and a little darker in dark mode. Both are APC colours.
+- Astryx ships React's production JSX runtime since 0.1.6, so `apps/web/jsx-dev-runtime.shim.ts`
+  and its webpack alias in `next.config.ts` are deleted. The production build stays on webpack
+  (`next build --webpack`): Turbopack's standalone output leaves `@swc/helpers` out of the
+  traced pnpm packages, and its server fails at startup with "Cannot find module".
+
+**Handled by `pnpm precast:update`.** `templates/DESIGN_SYSTEM.md` and a comment in
+`scripts/build-apc-theme.mjs`.
+
+**Manual steps.**
+
+1. In `apps/web/package.json`, set `@astryxdesign/core`, `@astryxdesign/theme-neutral` and
+   `@astryxdesign/cli` to `^0.7.4`, then run `pnpm install`.
+2. From `apps/web`, run Astryx's codemods: `pnpm exec astryx upgrade --from 0.1.5 --path app --apply`.
+   They cover what a project may have built on top of Precast: root `className` / `style` /
+   `xstyle` on inputs and selectors (now `control*` or `container*`), Avatar sizes, Banner's
+   `defaultIsExpanded`, and Astryx class selectors in CSS such as `.astryx-button.primary`,
+   which become `[data-*]` selectors. Styling passed through a spread or a wrapper's own props
+   is not rewritten and shows up as a type error; fix those by hand. Banners no longer set
+   `role="alert"` on their own: add `role` where an error banner must be announced.
+3. Delete `apps/web/jsx-dev-runtime.shim.ts`. In `apps/web/next.config.ts`, delete the `isProd`
+   and `jsxDevShim` constants and the `webpack` function. Keep `--webpack` in the `build` script.
+4. Look at your screens in light and dark. Cards are the change to expect.
+
+**Advisory files touched.** None.
+
+**Verify.**
+
+```bash
+pnpm verify
+pnpm test:e2e
+pnpm poc web        # then sign in and send one chat turn
+```
+
 ## v0.11.0: sign-in required, no Docker locally, Hannibal databases, project schemas, Node LTS (2026-10-27)
 
 A release with real manual work: read it whole before applying. It also carries v0.10.3 (the

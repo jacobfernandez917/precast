@@ -19,8 +19,8 @@
   "dependencies": {
     "@a2ui/react": "0.14.0",
     "@a2ui/web_core": "0.14.0",
-    "@astryxdesign/core": "^0.1.5",
-    "@astryxdesign/theme-neutral": "^0.1.5",
+    "@astryxdesign/core": "^0.7.4",
+    "@astryxdesign/theme-neutral": "^0.7.4",
     "@precast/a2ui": "workspace:*",
     "@precast/shared": "workspace:*",
     "better-auth": "^1.7.14",
@@ -33,7 +33,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@astryxdesign/cli": "^0.1.5",
+    "@astryxdesign/cli": "^0.7.4",
     "@playwright/test": "^1.0.0",
     "@tailwindcss/postcss": "^4.3.2",
     "@types/node": "^24.0.0",
