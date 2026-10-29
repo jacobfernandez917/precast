@@ -6,9 +6,18 @@
  * value is present during SSR: reading it from the environment at runtime would
  * render the first paint unthemed and flash on hydration.
  *
- * Preview all five: https://apc-design-system.917v.dev
+ * Preview them all: https://apc-design-system.917v.dev (`arctic` is Arctic Night
+ * 2.0 there).
  */
-export const APC_THEMES = ['stockholm', 'prague', 'arctic', 'nova', 'melbourne'] as const;
+export const APC_THEMES = [
+  'stockholm',
+  'prague',
+  'arctic',
+  'nova',
+  'melbourne',
+  'lapland',
+  'cappadocia',
+] as const;
 
 export type ApcTheme = (typeof APC_THEMES)[number];
 

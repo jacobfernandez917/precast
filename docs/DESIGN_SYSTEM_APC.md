@@ -1,6 +1,6 @@
 # DESIGN_SYSTEM_APC.md — The APC Design System in Precast
 
-> **What this is.** How Precast consumes the **APC Design System** — the five themes, how the
+> **What this is.** How Precast consumes the **APC Design System** — the seven themes, how the
 > tokens reach the UI, how to switch themes, and how to re-import the library when the design
 > source changes.
 >
@@ -17,15 +17,24 @@
 
 ---
 
-## 1. The five themes
+## 1. The seven themes
 
-| Theme         | Id          | Character                                     |
-| ------------- | ----------- | --------------------------------------------- |
-| **Stockholm** | `stockholm` | The base. Deep navy brand with a lime accent. |
-| **Prague**    | `prague`    | Nightfall blues with a warm glow accent.      |
-| **Arctic**    | `arctic`    | Cool cast/glacier blues; its own status ramp. |
-| **Nova**      | `nova`      | Midnight sea with spring-green and lavender.  |
-| **Melbourne** | `melbourne` | Dark blue with mustard.                       |
+| Theme                | Id           | Character                                                                 |
+| -------------------- | ------------ | ------------------------------------------------------------------------- |
+| **Stockholm**        | `stockholm`  | The base. Deep navy brand with a lime accent.                             |
+| **Prague**           | `prague`     | Nightfall blues with a warm glow accent.                                  |
+| **Arctic Night 2.0** | `arctic`     | Deep teal Fjord brand, glacier accent, four secondary colours of its own. |
+| **Nova**             | `nova`       | Midnight sea with spring-green and lavender.                              |
+| **Melbourne**        | `melbourne`  | Dark blue with mustard.                                                   |
+| **Lapland**          | `lapland`    | Indigo actions over cool greys, pale-blue accent, its own status ramps.   |
+| **Cappadocia**       | `cappadocia` | Deep teal actions, warm yellow accent, earthy secondaries.                |
+
+`arctic` has been Arctic Night 2.0 since v0.12.0: the id stays so `pnpm set-theme arctic` and
+existing projects keep working, and the tokens are the revised palette. The token file also
+carries the first Arctic (`arctic`) and `kowloon`, AgentBase Studio's theme; neither is built.
+Lapland's families are Clarity City and Quicksand, Cappadocia's Epilogue and Fraunces; like the
+other themes' families they are named, not loaded, so a machine without them falls back to the
+system stack.
 
 Stockholm is the default. It has no `Stockholm *.dc.html` component files in the design
 project because the plain `APC *.dc.html` files **are** Stockholm.
@@ -76,7 +85,9 @@ Three details that are load-bearing — change them and the theming silently sto
    flash.
 
 `apps/web/test/apc-theme.spec.ts` pins all three, plus WCAG AA contrast for text on the
-primary action and on the page background, in both modes, for all five themes.
+primary action and on the page background, in both modes, for all seven themes. One recorded shortfall: Lapland's light-mode button is
+white on Electra 200 (`#6962F6`), 4.49:1, 0.01 short; the guard allows that pair at the measured
+value and nothing else, and the fix is a darker Electra 200 in the design project.
 
 ---
 
@@ -150,7 +161,7 @@ it and flag it.
 
 ## 6. Reference
 
-- **Live preview of all five themes:** https://apc-design-system.917v.dev
+- **Live preview of all seven themes:** https://apc-design-system.917v.dev
 - **Token source:** `apps/web/app/theme/apc.tokens.json` (W3C DTCG)
 - **Generator:** `scripts/build-apc-theme.mjs` (`pnpm theme:build`)
 - **Theme switch:** `scripts/set-theme.mjs` (`pnpm set-theme <name>`)

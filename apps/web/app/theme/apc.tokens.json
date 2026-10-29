@@ -1,66 +1,197 @@
 {
-  "$description": "APC Design System — design tokens in W3C DTCG format. Import with a Figma variables plugin (Tokens Studio, Variables Import, etc). Seven collections: APC Core (shared, 1 mode), five per-theme Primitives collections (Stockholm, Prague, Arctic, Nova, Melbourne), and APC Semantic (aliases, 10 modes: Light + Dark for each theme). Bind components to Semantic only.",
-
+  "$description": "APC Design System — design tokens in W3C DTCG format. Import with a Figma variables plugin (Tokens Studio, Variables Import, etc). Ten collections: APC Core (shared, 1 mode), seven per-theme Primitives collections (Stockholm, Prague, Arctic, Nova, Melbourne, Lapland, Kowloon), and APC Semantic (aliases, 16 modes: Light + Dark for each theme). Bind components to Semantic only.",
   "core": {
     "$description": "APC Core — shared by every theme, single mode. Neutrals, scale, and motion never change between themes.",
     "neutral": {
-      "900": { "$type": "color", "$value": "#111215" },
-      "800": { "$type": "color", "$value": "#22252B" },
-      "700": { "$type": "color", "$value": "#333740" },
-      "600": { "$type": "color", "$value": "#444955" },
-      "500": { "$type": "color", "$value": "#696D77" },
-      "400": { "$type": "color", "$value": "#8F9299" },
-      "300": { "$type": "color", "$value": "#B4B6BB" },
-      "200": { "$type": "color", "$value": "#DADBDD" },
-      "100": { "$type": "color", "$value": "#ECEDEE" },
-      "50": { "$type": "color", "$value": "#F5F6F6" },
-      "25": { "$type": "color", "$value": "#FCFCFC" },
-      "10": { "$type": "color", "$value": "#FFFFFF" }
+      "10": {
+        "$type": "color",
+        "$value": "#FFFFFF"
+      },
+      "25": {
+        "$type": "color",
+        "$value": "#FCFCFC"
+      },
+      "50": {
+        "$type": "color",
+        "$value": "#F5F6F6"
+      },
+      "100": {
+        "$type": "color",
+        "$value": "#ECEDEE"
+      },
+      "200": {
+        "$type": "color",
+        "$value": "#DADBDD"
+      },
+      "300": {
+        "$type": "color",
+        "$value": "#B4B6BB"
+      },
+      "400": {
+        "$type": "color",
+        "$value": "#8F9299"
+      },
+      "500": {
+        "$type": "color",
+        "$value": "#696D77"
+      },
+      "600": {
+        "$type": "color",
+        "$value": "#444955"
+      },
+      "700": {
+        "$type": "color",
+        "$value": "#333740"
+      },
+      "800": {
+        "$type": "color",
+        "$value": "#22252B"
+      },
+      "900": {
+        "$type": "color",
+        "$value": "#111215"
+      }
     },
     "validation": {
       "$description": "Shared status ramps, used by Stockholm, Prague, Nova Scotia, and Melbourne. Arctic Night overrides these — see arctic.validation.",
       "lime": {
-        "200": { "$type": "color", "$value": "#2B893C" },
-        "100": { "$type": "color", "$value": "#43D75E" },
-        "50": { "$type": "color", "$value": "#8CEC7F" },
-        "10": { "$type": "color", "$value": "#CDFFC7" }
+        "10": {
+          "$type": "color",
+          "$value": "#CDFFC7"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#8CEC7F"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#43D75E"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#2B893C"
+        }
       },
       "bright-rose": {
-        "200": { "$type": "color", "$value": "#9A001C" },
-        "100": { "$type": "color", "$value": "#EC183F" },
-        "50": { "$type": "color", "$value": "#FF738D" },
-        "10": { "$type": "color", "$value": "#FFDFE5" }
+        "10": {
+          "$type": "color",
+          "$value": "#FFDFE5"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#FF738D"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#EC183F"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#9A001C"
+        }
       },
       "daisy": {
-        "200": { "$type": "color", "$value": "#A76F00" },
-        "100": { "$type": "color", "$value": "#FF9900" },
-        "50": { "$type": "color", "$value": "#FFD28A" },
-        "10": { "$type": "color", "$value": "#FFF0C6" }
+        "10": {
+          "$type": "color",
+          "$value": "#FFF0C6"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#FFD28A"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#FF9900"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#A76F00"
+        }
       }
     },
     "space": {
-      "4": { "$type": "dimension", "$value": "4px" },
-      "8": { "$type": "dimension", "$value": "8px" },
-      "16": { "$type": "dimension", "$value": "16px" },
-      "24": { "$type": "dimension", "$value": "24px" },
-      "32": { "$type": "dimension", "$value": "32px" },
-      "40": { "$type": "dimension", "$value": "40px" },
-      "48": { "$type": "dimension", "$value": "48px" },
-      "64": { "$type": "dimension", "$value": "64px" },
-      "80": { "$type": "dimension", "$value": "80px" },
-      "96": { "$type": "dimension", "$value": "96px" },
-      "128": { "$type": "dimension", "$value": "128px" },
-      "160": { "$type": "dimension", "$value": "160px" }
+      "4": {
+        "$type": "dimension",
+        "$value": "4px"
+      },
+      "8": {
+        "$type": "dimension",
+        "$value": "8px"
+      },
+      "16": {
+        "$type": "dimension",
+        "$value": "16px"
+      },
+      "24": {
+        "$type": "dimension",
+        "$value": "24px"
+      },
+      "32": {
+        "$type": "dimension",
+        "$value": "32px"
+      },
+      "40": {
+        "$type": "dimension",
+        "$value": "40px"
+      },
+      "48": {
+        "$type": "dimension",
+        "$value": "48px"
+      },
+      "64": {
+        "$type": "dimension",
+        "$value": "64px"
+      },
+      "80": {
+        "$type": "dimension",
+        "$value": "80px"
+      },
+      "96": {
+        "$type": "dimension",
+        "$value": "96px"
+      },
+      "128": {
+        "$type": "dimension",
+        "$value": "128px"
+      },
+      "160": {
+        "$type": "dimension",
+        "$value": "160px"
+      }
     },
     "radius": {
-      "4": { "$type": "dimension", "$value": "4px" },
-      "6": { "$type": "dimension", "$value": "6px" },
-      "8": { "$type": "dimension", "$value": "8px" },
-      "10": { "$type": "dimension", "$value": "10px" },
-      "12": { "$type": "dimension", "$value": "12px" },
-      "16": { "$type": "dimension", "$value": "16px" },
-      "28": { "$type": "dimension", "$value": "28px" },
-      "full": { "$type": "dimension", "$value": "9999px" }
+      "4": {
+        "$type": "dimension",
+        "$value": "4px"
+      },
+      "6": {
+        "$type": "dimension",
+        "$value": "6px"
+      },
+      "8": {
+        "$type": "dimension",
+        "$value": "8px"
+      },
+      "10": {
+        "$type": "dimension",
+        "$value": "10px"
+      },
+      "12": {
+        "$type": "dimension",
+        "$value": "12px"
+      },
+      "16": {
+        "$type": "dimension",
+        "$value": "16px"
+      },
+      "28": {
+        "$type": "dimension",
+        "$value": "28px"
+      },
+      "full": {
+        "$type": "dimension",
+        "$value": "9999px"
+      }
     },
     "size": {
       "lg": {
@@ -68,209 +199,893 @@
         "$value": "54px",
         "$description": "Sanctioned off-grid exception."
       },
-      "md": { "$type": "dimension", "$value": "40px" },
-      "sm": { "$type": "dimension", "$value": "24px" },
-      "row": { "$type": "dimension", "$value": "56px" },
-      "row-compact": { "$type": "dimension", "$value": "40px" },
-      "touch-min": { "$type": "dimension", "$value": "44px" },
-      "icon-lg": { "$type": "dimension", "$value": "20px" },
-      "icon-md": { "$type": "dimension", "$value": "16px" },
-      "icon-sm": { "$type": "dimension", "$value": "14px" }
+      "md": {
+        "$type": "dimension",
+        "$value": "40px"
+      },
+      "sm": {
+        "$type": "dimension",
+        "$value": "24px"
+      },
+      "row": {
+        "$type": "dimension",
+        "$value": "56px"
+      },
+      "row-compact": {
+        "$type": "dimension",
+        "$value": "40px"
+      },
+      "touch-min": {
+        "$type": "dimension",
+        "$value": "44px"
+      },
+      "icon-lg": {
+        "$type": "dimension",
+        "$value": "20px"
+      },
+      "icon-md": {
+        "$type": "dimension",
+        "$value": "16px"
+      },
+      "icon-sm": {
+        "$type": "dimension",
+        "$value": "14px"
+      }
     },
     "grid": {
       "wide": {
-        "columns": { "$type": "number", "$value": 12 },
-        "margin": { "$type": "dimension", "$value": "56px" },
-        "gutter": { "$type": "dimension", "$value": "24px" },
-        "max": { "$type": "dimension", "$value": "1440px" }
+        "columns": {
+          "$type": "number",
+          "$value": 12
+        },
+        "margin": {
+          "$type": "dimension",
+          "$value": "56px"
+        },
+        "gutter": {
+          "$type": "dimension",
+          "$value": "24px"
+        },
+        "max": {
+          "$type": "dimension",
+          "$value": "1440px"
+        }
       },
       "desktop": {
-        "columns": { "$type": "number", "$value": 12 },
-        "margin": { "$type": "dimension", "$value": "32px" },
-        "gutter": { "$type": "dimension", "$value": "24px" }
+        "columns": {
+          "$type": "number",
+          "$value": 12
+        },
+        "margin": {
+          "$type": "dimension",
+          "$value": "32px"
+        },
+        "gutter": {
+          "$type": "dimension",
+          "$value": "24px"
+        }
       },
       "tablet": {
-        "columns": { "$type": "number", "$value": 8 },
-        "margin": { "$type": "dimension", "$value": "24px" },
-        "gutter": { "$type": "dimension", "$value": "24px" }
+        "columns": {
+          "$type": "number",
+          "$value": 8
+        },
+        "margin": {
+          "$type": "dimension",
+          "$value": "24px"
+        },
+        "gutter": {
+          "$type": "dimension",
+          "$value": "24px"
+        }
       },
       "mobile": {
-        "columns": { "$type": "number", "$value": 4 },
-        "margin": { "$type": "dimension", "$value": "16px" },
-        "gutter": { "$type": "dimension", "$value": "24px" }
+        "columns": {
+          "$type": "number",
+          "$value": 4
+        },
+        "margin": {
+          "$type": "dimension",
+          "$value": "16px"
+        },
+        "gutter": {
+          "$type": "dimension",
+          "$value": "24px"
+        }
       }
     },
     "duration": {
-      "fast": { "$type": "duration", "$value": "120ms" },
-      "default": { "$type": "duration", "$value": "140ms" },
-      "slow": { "$type": "duration", "$value": "160ms" },
-      "tooltip-in": { "$type": "duration", "$value": "300ms" },
-      "tooltip-out": { "$type": "duration", "$value": "100ms" }
+      "fast": {
+        "$type": "duration",
+        "$value": "120ms"
+      },
+      "default": {
+        "$type": "duration",
+        "$value": "140ms"
+      },
+      "slow": {
+        "$type": "duration",
+        "$value": "160ms"
+      },
+      "tooltip-in": {
+        "$type": "duration",
+        "$value": "300ms"
+      },
+      "tooltip-out": {
+        "$type": "duration",
+        "$value": "100ms"
+      }
     }
   },
-
   "stockholm": {
     "$description": "APC Stockholm Primitives — brand family + type. Uses core.validation.",
-    "neptune": { "$type": "color", "$value": "#103F58" },
-    "neptune-hover": { "$type": "color", "$value": "#0B2D40" },
-    "neptune-active": { "$type": "color", "$value": "#071F2C" },
-    "lime": { "$type": "color", "$value": "#D4F553" },
-    "lime-hover": { "$type": "color", "$value": "#C7EB3C" },
-    "lime-active": { "$type": "color", "$value": "#B6DA2A" },
-    "spritz": { "$type": "color", "$value": "#B8CEE1" },
-    "spritz-hover": { "$type": "color", "$value": "#A6C1DA" },
-    "spritz-active": { "$type": "color", "$value": "#93B4D1" },
-    "spritz-10": { "$type": "color", "$value": "#EDF3F8" },
-    "spritz-20": { "$type": "color", "$value": "#DDE8F1" },
-    "fog": { "$type": "color", "$value": "#BEB9C2" },
-    "sand": { "$type": "color", "$value": "#EDEAE1" },
+    "neptune": {
+      "$type": "color",
+      "$value": "#103F58"
+    },
+    "neptune-hover": {
+      "$type": "color",
+      "$value": "#0B2D40"
+    },
+    "neptune-active": {
+      "$type": "color",
+      "$value": "#071F2C"
+    },
+    "lime": {
+      "$type": "color",
+      "$value": "#D4F553"
+    },
+    "lime-hover": {
+      "$type": "color",
+      "$value": "#C7EB3C"
+    },
+    "lime-active": {
+      "$type": "color",
+      "$value": "#B6DA2A"
+    },
+    "spritz": {
+      "$type": "color",
+      "$value": "#B8CEE1"
+    },
+    "spritz-hover": {
+      "$type": "color",
+      "$value": "#A6C1DA"
+    },
+    "spritz-active": {
+      "$type": "color",
+      "$value": "#93B4D1"
+    },
+    "spritz-10": {
+      "$type": "color",
+      "$value": "#EDF3F8"
+    },
+    "spritz-20": {
+      "$type": "color",
+      "$value": "#DDE8F1"
+    },
+    "fog": {
+      "$type": "color",
+      "$value": "#BEB9C2"
+    },
+    "sand": {
+      "$type": "color",
+      "$value": "#EDEAE1"
+    },
     "font": {
-      "heading": { "$type": "fontFamily", "$value": "Plus Jakarta Sans" },
-      "body": { "$type": "fontFamily", "$value": "Plus Jakarta Sans" },
-      "mono": { "$type": "fontFamily", "$value": "Fira Code" }
+      "heading": {
+        "$type": "fontFamily",
+        "$value": "Plus Jakarta Sans"
+      },
+      "body": {
+        "$type": "fontFamily",
+        "$value": "Plus Jakarta Sans"
+      },
+      "mono": {
+        "$type": "fontFamily",
+        "$value": "Fira Code"
+      }
     }
   },
-
   "prague": {
     "$description": "APC Prague Primitives. Uses core.validation.",
-    "nightfall": { "$type": "color", "$value": "#0A0E45" },
-    "nightfall-hover": { "$type": "color", "$value": "#060A33" },
-    "nightfall-active": { "$type": "color", "$value": "#04061F" },
-    "glow": { "$type": "color", "$value": "#F88514" },
-    "glow-hover": { "$type": "color", "$value": "#E07208" },
-    "glow-active": { "$type": "color", "$value": "#C86206" },
-    "dusk": { "$type": "color", "$value": "#949FF0" },
-    "stone": { "$type": "color", "$value": "#99B3C4" },
-    "stone-hover": { "$type": "color", "$value": "#88A5B9" },
-    "stone-active": { "$type": "color", "$value": "#7797AE" },
-    "concrete": { "$type": "color", "$value": "#B6B7A4" },
-    "sunday-paper": { "$type": "color", "$value": "#EDECE9" },
-    "light-glow": { "$type": "color", "$value": "#FFC097" },
-    "warm-grey": { "$type": "color", "$value": "#F5F1EB" },
+    "nightfall": {
+      "$type": "color",
+      "$value": "#0A0E45"
+    },
+    "nightfall-hover": {
+      "$type": "color",
+      "$value": "#060A33"
+    },
+    "nightfall-active": {
+      "$type": "color",
+      "$value": "#04061F"
+    },
+    "glow": {
+      "$type": "color",
+      "$value": "#F88514"
+    },
+    "glow-hover": {
+      "$type": "color",
+      "$value": "#E07208"
+    },
+    "glow-active": {
+      "$type": "color",
+      "$value": "#C86206"
+    },
+    "dusk": {
+      "$type": "color",
+      "$value": "#949FF0"
+    },
+    "stone": {
+      "$type": "color",
+      "$value": "#99B3C4"
+    },
+    "stone-hover": {
+      "$type": "color",
+      "$value": "#88A5B9"
+    },
+    "stone-active": {
+      "$type": "color",
+      "$value": "#7797AE"
+    },
+    "concrete": {
+      "$type": "color",
+      "$value": "#B6B7A4"
+    },
+    "sunday-paper": {
+      "$type": "color",
+      "$value": "#EDECE9"
+    },
+    "light-glow": {
+      "$type": "color",
+      "$value": "#FFC097"
+    },
+    "warm-grey": {
+      "$type": "color",
+      "$value": "#F5F1EB"
+    },
     "font": {
-      "heading": { "$type": "fontFamily", "$value": "Space Grotesk" },
-      "body": { "$type": "fontFamily", "$value": "Space Grotesk" },
-      "mono": { "$type": "fontFamily", "$value": "Cascadia Code" }
+      "heading": {
+        "$type": "fontFamily",
+        "$value": "Space Grotesk"
+      },
+      "body": {
+        "$type": "fontFamily",
+        "$value": "Space Grotesk"
+      },
+      "mono": {
+        "$type": "fontFamily",
+        "$value": "Cascadia Code"
+      }
     }
   },
-
   "arctic": {
     "$description": "APC Arctic Night Primitives. The only theme that overrides the status ramps — bind Semantic state/* to arctic.validation in the Arctic modes.",
-    "cast": { "$type": "color", "$value": "#192D75" },
-    "cast-hover": { "$type": "color", "$value": "#14235C" },
-    "cast-active": { "$type": "color", "$value": "#0E1943" },
-    "glacier": { "$type": "color", "$value": "#87D9D0" },
-    "glacier-hover": { "$type": "color", "$value": "#72C9C0" },
-    "glacier-active": { "$type": "color", "$value": "#5DB6AD" },
-    "slumber": { "$type": "color", "$value": "#7D549C" },
-    "fur": { "$type": "color", "$value": "#E2E8E0" },
-    "fur-hover": { "$type": "color", "$value": "#D3DBD0" },
-    "fur-active": { "$type": "color", "$value": "#C3CDBF" },
-    "fur-10": { "$type": "color", "$value": "#F1F4F0" },
-    "fur-20": { "$type": "color", "$value": "#DCE3DA" },
+    "cast": {
+      "$type": "color",
+      "$value": "#192D75"
+    },
+    "cast-hover": {
+      "$type": "color",
+      "$value": "#14235C"
+    },
+    "cast-active": {
+      "$type": "color",
+      "$value": "#0E1943"
+    },
+    "glacier": {
+      "$type": "color",
+      "$value": "#87D9D0"
+    },
+    "glacier-hover": {
+      "$type": "color",
+      "$value": "#72C9C0"
+    },
+    "glacier-active": {
+      "$type": "color",
+      "$value": "#5DB6AD"
+    },
+    "slumber": {
+      "$type": "color",
+      "$value": "#7D549C"
+    },
+    "fur": {
+      "$type": "color",
+      "$value": "#E2E8E0"
+    },
+    "fur-hover": {
+      "$type": "color",
+      "$value": "#D3DBD0"
+    },
+    "fur-active": {
+      "$type": "color",
+      "$value": "#C3CDBF"
+    },
+    "fur-10": {
+      "$type": "color",
+      "$value": "#F1F4F0"
+    },
+    "fur-20": {
+      "$type": "color",
+      "$value": "#DCE3DA"
+    },
     "validation": {
       "seafoam": {
-        "200": { "$type": "color", "$value": "#0BAB7B" },
-        "100": { "$type": "color", "$value": "#12DFA2" },
-        "50": { "$type": "color", "$value": "#7ACDB4" },
-        "10": { "$type": "color", "$value": "#C3F0E3" }
+        "10": {
+          "$type": "color",
+          "$value": "#C3F0E3"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#7ACDB4"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#12DFA2"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#0BAB7B"
+        }
       },
       "marmalade": {
-        "200": { "$type": "color", "$value": "#962500" },
-        "100": { "$type": "color", "$value": "#EC4D18" },
-        "50": { "$type": "color", "$value": "#FF8056" },
-        "10": { "$type": "color", "$value": "#FFCDBC" }
+        "10": {
+          "$type": "color",
+          "$value": "#FFCDBC"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#FF8056"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#EC4D18"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#962500"
+        }
       },
       "honey-bee": {
-        "200": { "$type": "color", "$value": "#CF7200" },
-        "100": { "$type": "color", "$value": "#FFBE34" },
-        "50": { "$type": "color", "$value": "#FFDF9A" },
-        "10": { "$type": "color", "$value": "#FFF1D4" }
+        "10": {
+          "$type": "color",
+          "$value": "#FFF1D4"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#FFDF9A"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#FFBE34"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#CF7200"
+        }
       }
     },
     "font": {
-      "heading": { "$type": "fontFamily", "$value": "Instrument Serif" },
-      "body": { "$type": "fontFamily", "$value": "Instrument Sans" },
-      "mono": { "$type": "fontFamily", "$value": "Fira Code" }
+      "heading": {
+        "$type": "fontFamily",
+        "$value": "Instrument Serif"
+      },
+      "body": {
+        "$type": "fontFamily",
+        "$value": "Instrument Sans"
+      },
+      "mono": {
+        "$type": "fontFamily",
+        "$value": "Fira Code"
+      }
     }
   },
-
+  "arctic2": {
+    "$description": "APC Arctic Night 2.0 Primitives. Same fonts as Arctic Night and reads arctic.validation.",
+    "fjord": {
+      "$type": "color",
+      "$value": "#0E5B63"
+    },
+    "fjord-hover": {
+      "$type": "color",
+      "$value": "#0B4A50"
+    },
+    "fjord-active": {
+      "$type": "color",
+      "$value": "#08393E"
+    },
+    "glacier": {
+      "$type": "color",
+      "$value": "#87D9D0"
+    },
+    "glacier-hover": {
+      "$type": "color",
+      "$value": "#72C9C0"
+    },
+    "glacier-active": {
+      "$type": "color",
+      "$value": "#5DB6AD"
+    },
+    "slumber": {
+      "$type": "color",
+      "$value": "#7D549C"
+    },
+    "fur": {
+      "$type": "color",
+      "$value": "#E2E8E0"
+    },
+    "fur-hover": {
+      "$type": "color",
+      "$value": "#D3DBD0"
+    },
+    "fur-active": {
+      "$type": "color",
+      "$value": "#C3CDBF"
+    },
+    "fur-10": {
+      "$type": "color",
+      "$value": "#F1F4F0"
+    },
+    "fur-20": {
+      "$type": "color",
+      "$value": "#DCE3DA"
+    },
+    "melt": {
+      "$type": "color",
+      "$value": "#FFFEFA"
+    },
+    "muted-glacier": {
+      "$type": "color",
+      "$value": "#C5D9E2"
+    },
+    "muted-slumber": {
+      "$type": "color",
+      "$value": "#A19ABC"
+    },
+    "nordic-green": {
+      "$type": "color",
+      "$value": "#1D393C",
+      "$description": "Brand dark surface for marketing. Product UI keeps core.neutral.900."
+    },
+    "font": {
+      "heading": {
+        "$type": "fontFamily",
+        "$value": "Instrument Serif"
+      },
+      "body": {
+        "$type": "fontFamily",
+        "$value": "Instrument Sans"
+      },
+      "mono": {
+        "$type": "fontFamily",
+        "$value": "Fira Code"
+      }
+    }
+  },
   "nova": {
     "$description": "APC Nova Scotia Primitives — a twin of Stockholm. Same type pairing, uses core.validation. Focus moves off the secondary onto Lupin.",
-    "midnight-sea": { "$type": "color", "$value": "#014751" },
-    "midnight-sea-hover": { "$type": "color", "$value": "#013A42" },
-    "midnight-sea-active": { "$type": "color", "$value": "#012C33" },
-    "spring-green": { "$type": "color", "$value": "#08F08D" },
-    "spring-green-hover": { "$type": "color", "$value": "#06D77D" },
-    "spring-green-active": { "$type": "color", "$value": "#05BB6C" },
+    "midnight-sea": {
+      "$type": "color",
+      "$value": "#014751"
+    },
+    "midnight-sea-hover": {
+      "$type": "color",
+      "$value": "#013A42"
+    },
+    "midnight-sea-active": {
+      "$type": "color",
+      "$value": "#012C33"
+    },
+    "spring-green": {
+      "$type": "color",
+      "$value": "#08F08D"
+    },
+    "spring-green-hover": {
+      "$type": "color",
+      "$value": "#06D77D"
+    },
+    "spring-green-active": {
+      "$type": "color",
+      "$value": "#05BB6C"
+    },
     "lupin": {
       "$type": "color",
       "$value": "#9740FF",
       "$description": "Focus ring only in product UI."
     },
-    "lavender": { "$type": "color", "$value": "#C8BDF4" },
-    "lavender-hover": { "$type": "color", "$value": "#B7A9F0" },
-    "lavender-active": { "$type": "color", "$value": "#A695EB" },
-    "lavender-10": { "$type": "color", "$value": "#F1EEFC" },
-    "lavender-20": { "$type": "color", "$value": "#E3DDF8" },
-    "lavender-grey": { "$type": "color", "$value": "#A7A8BD" },
+    "lavender": {
+      "$type": "color",
+      "$value": "#C8BDF4"
+    },
+    "lavender-hover": {
+      "$type": "color",
+      "$value": "#B7A9F0"
+    },
+    "lavender-active": {
+      "$type": "color",
+      "$value": "#A695EB"
+    },
+    "lavender-10": {
+      "$type": "color",
+      "$value": "#F1EEFC"
+    },
+    "lavender-20": {
+      "$type": "color",
+      "$value": "#E3DDF8"
+    },
+    "lavender-grey": {
+      "$type": "color",
+      "$value": "#A7A8BD"
+    },
     "gainsboro": {
       "$type": "color",
       "$value": "#DBDBDB",
       "$description": "Brand surface grey. Within one step of core.neutral.200 — use Neutral 200 for borders so the two do not drift."
     },
-    "jellybean": { "$type": "color", "$value": "#EAFFD8" },
+    "jellybean": {
+      "$type": "color",
+      "$value": "#EAFFD8"
+    },
     "coal": {
       "$type": "color",
       "$value": "#131B1A",
       "$description": "Brand black for marketing surfaces. Product UI keeps core.neutral.900."
     },
     "font": {
-      "heading": { "$type": "fontFamily", "$value": "Plus Jakarta Sans" },
-      "body": { "$type": "fontFamily", "$value": "Plus Jakarta Sans" },
-      "mono": { "$type": "fontFamily", "$value": "Fira Code" }
+      "heading": {
+        "$type": "fontFamily",
+        "$value": "Plus Jakarta Sans"
+      },
+      "body": {
+        "$type": "fontFamily",
+        "$value": "Plus Jakarta Sans"
+      },
+      "mono": {
+        "$type": "fontFamily",
+        "$value": "Fira Code"
+      }
     }
   },
-
   "melbourne": {
     "$description": "APC Melbourne Primitives. Shares Prague's type pairing and core.validation.",
-    "dark-blue": { "$type": "color", "$value": "#000432" },
-    "dark-blue-hover": { "$type": "color", "$value": "#000225" },
-    "dark-blue-active": { "$type": "color", "$value": "#000118" },
-    "mustard": { "$type": "color", "$value": "#ECC847" },
-    "mustard-hover": { "$type": "color", "$value": "#DCB534" },
-    "mustard-active": { "$type": "color", "$value": "#C49E24" },
-    "glass": { "$type": "color", "$value": "#A2BDBD" },
+    "dark-blue": {
+      "$type": "color",
+      "$value": "#000432"
+    },
+    "dark-blue-hover": {
+      "$type": "color",
+      "$value": "#000225"
+    },
+    "dark-blue-active": {
+      "$type": "color",
+      "$value": "#000118"
+    },
+    "mustard": {
+      "$type": "color",
+      "$value": "#ECC847"
+    },
+    "mustard-hover": {
+      "$type": "color",
+      "$value": "#DCB534"
+    },
+    "mustard-active": {
+      "$type": "color",
+      "$value": "#C49E24"
+    },
+    "glass": {
+      "$type": "color",
+      "$value": "#A2BDBD"
+    },
     "glass-10": {
       "$type": "color",
       "$value": "#EDF2F2",
       "$description": "Derived — Melbourne's source has no light step."
     },
-    "glass-20": { "$type": "color", "$value": "#DCE6E6", "$description": "Derived pressed tint." },
-    "sweater": { "$type": "color", "$value": "#D9D5CF" },
-    "sweater-hover": { "$type": "color", "$value": "#CAC5BD" },
-    "sweater-active": { "$type": "color", "$value": "#BAB4AB" },
+    "glass-20": {
+      "$type": "color",
+      "$value": "#DCE6E6",
+      "$description": "Derived pressed tint."
+    },
+    "sweater": {
+      "$type": "color",
+      "$value": "#D9D5CF"
+    },
+    "sweater-hover": {
+      "$type": "color",
+      "$value": "#CAC5BD"
+    },
+    "sweater-active": {
+      "$type": "color",
+      "$value": "#BAB4AB"
+    },
     "prussian-blue": {
       "$type": "color",
       "$value": "#004262",
       "$description": "Alternate inverse surface for marketing. Not bound in product UI."
     },
-    "cool-brown": { "$type": "color", "$value": "#715263", "$description": "Decorative only." },
+    "cool-brown": {
+      "$type": "color",
+      "$value": "#715263",
+      "$description": "Decorative only."
+    },
     "warm-brown": {
       "$type": "color",
       "$value": "#AD855D",
       "$description": "Decorative only — avatars, illustration, chart series."
     },
-    "warm-grey": { "$type": "color", "$value": "#F5F1EB" },
+    "warm-grey": {
+      "$type": "color",
+      "$value": "#F5F1EB"
+    },
     "font": {
-      "heading": { "$type": "fontFamily", "$value": "Space Grotesk" },
-      "body": { "$type": "fontFamily", "$value": "Space Grotesk" },
-      "mono": { "$type": "fontFamily", "$value": "Cascadia Code" }
+      "heading": {
+        "$type": "fontFamily",
+        "$value": "Space Grotesk"
+      },
+      "body": {
+        "$type": "fontFamily",
+        "$value": "Space Grotesk"
+      },
+      "mono": {
+        "$type": "fontFamily",
+        "$value": "Cascadia Code"
+      }
     }
   },
-
+  "lapland": {
+    "$description": "APC Lapland Primitives. Status colour reads lapland.validation (Set C: Jade / Cerise / Limonita).",
+    "electra-200": {
+      "$type": "color",
+      "$value": "#6962F6"
+    },
+    "electra-200-hover": {
+      "$type": "color",
+      "$value": "#5A53E6"
+    },
+    "electra-200-active": {
+      "$type": "color",
+      "$value": "#4B44D1"
+    },
+    "electra-100": {
+      "$type": "color",
+      "$value": "#918DE2",
+      "$description": "Focus ring."
+    },
+    "electra-10": {
+      "$type": "color",
+      "$value": "#DDDBFF",
+      "$description": "Secondary button fill. Text is electra-200."
+    },
+    "electra-10-hover": {
+      "$type": "color",
+      "$value": "#CCC9FF"
+    },
+    "electra-10-active": {
+      "$type": "color",
+      "$value": "#BBB7FB"
+    },
+    "breeze-100": {
+      "$type": "color",
+      "$value": "#AAD1FC"
+    },
+    "breeze-100-hover": {
+      "$type": "color",
+      "$value": "#96C4F9"
+    },
+    "breeze-100-active": {
+      "$type": "color",
+      "$value": "#82B6F4"
+    },
+    "breeze-10": {
+      "$type": "color",
+      "$value": "#E5F1FF"
+    },
+    "breeze-20": {
+      "$type": "color",
+      "$value": "#D3E6FD",
+      "$description": "Derived pressed tint."
+    },
+    "cool-gray": {
+      "$type": "color",
+      "$value": "#D8DCE5"
+    },
+    "cool-gray-hover": {
+      "$type": "color",
+      "$value": "#C9CED9"
+    },
+    "cool-gray-active": {
+      "$type": "color",
+      "$value": "#BAC0CD"
+    },
+    "nox": {
+      "$type": "color",
+      "$value": "#1F212D",
+      "$description": "Accent button fill in light mode, with white text. Also a brand near-black for marketing surfaces; product page backgrounds keep core.neutral.900."
+    },
+    "tundra": {
+      "$type": "color",
+      "$value": "#476380",
+      "$description": "Decorative."
+    },
+    "lavender-grey": {
+      "$type": "color",
+      "$value": "#F8F9FB"
+    },
+    "font": {
+      "heading": {
+        "$type": "fontFamily",
+        "$value": "Clarity City"
+      },
+      "body": {
+        "$type": "fontFamily",
+        "$value": "Clarity City"
+      },
+      "accent": {
+        "$type": "fontFamily",
+        "$value": "Quicksand",
+        "$description": "Eyebrows and overlines only. All caps, 1.5% letter spacing."
+      },
+      "mono": {
+        "$type": "fontFamily",
+        "$value": "Cascadia Code"
+      }
+    },
+    "nox-hover": {
+      "$type": "color",
+      "$value": "#33364A"
+    },
+    "nox-active": {
+      "$type": "color",
+      "$value": "#45495F"
+    },
+    "validation": {
+      "$description": "Validation Set C (Mixed). Same values in light and dark modes.",
+      "jade": {
+        "10": {
+          "$type": "color",
+          "$value": "#C9FFDA"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#7ACC94"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#45B96A"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#216D39"
+        }
+      },
+      "cerise": {
+        "10": {
+          "$type": "color",
+          "$value": "#FFC9C9"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#F66060"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#DE3A3A"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#860000"
+        }
+      },
+      "limonita": {
+        "10": {
+          "$type": "color",
+          "$value": "#FFF9C2"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#FFDF9A"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#F4CF60"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#B38909",
+          "$description": "About 3:1 on limonita/10. Use Neutral 900 for warning body text."
+        }
+      }
+    }
+  },
+  "kowloon": {
+    "$description": "APC Kowloon Primitives. Uses core.validation (Lime / Bright Rose / Daisy). Neon Orange takes white text (~3.4:1, AA large only — labels 14px bold or larger) and sits close to Daisy — never place an accent action inside a warning.",
+    "electric-indigo": {
+      "$type": "color",
+      "$value": "#4837FF"
+    },
+    "electric-indigo-hover": {
+      "$type": "color",
+      "$value": "#3A2AE6"
+    },
+    "electric-indigo-active": {
+      "$type": "color",
+      "$value": "#2E20C7"
+    },
+    "neon-orange": {
+      "$type": "color",
+      "$value": "#F75B04"
+    },
+    "neon-orange-hover": {
+      "$type": "color",
+      "$value": "#E04F00"
+    },
+    "neon-orange-active": {
+      "$type": "color",
+      "$value": "#C44500"
+    },
+    "light-plum": {
+      "$type": "color",
+      "$value": "#D1CDFF"
+    },
+    "light-plum-hover": {
+      "$type": "color",
+      "$value": "#C2BDFF"
+    },
+    "light-plum-active": {
+      "$type": "color",
+      "$value": "#B2ACFA"
+    },
+    "light-plum-10": {
+      "$type": "color",
+      "$value": "#EFEEFF",
+      "$description": "Derived selected tint."
+    },
+    "light-plum-20": {
+      "$type": "color",
+      "$value": "#E2DFFF",
+      "$description": "Derived pressed tint."
+    },
+    "asphalt": {
+      "$type": "color",
+      "$value": "#212030",
+      "$description": "Brand near-black for marketing surfaces. Product UI keeps core.neutral.900."
+    },
+    "haze": {
+      "$type": "color",
+      "$value": "#5F5F6B",
+      "$description": "Decorative."
+    },
+    "fine-china": {
+      "$type": "color",
+      "$value": "#F9F9F9"
+    },
+    "font": {
+      "display": {
+        "$type": "fontFamily",
+        "$value": "Bricolage Grotesque",
+        "$description": "heading/page-header, heading/inner-page, and page eyebrows only."
+      },
+      "heading": {
+        "$type": "fontFamily",
+        "$value": "Rethink Sans"
+      },
+      "body": {
+        "$type": "fontFamily",
+        "$value": "Rethink Sans"
+      },
+      "mono": {
+        "$type": "fontFamily",
+        "$value": "Cascadia Code"
+      }
+    },
+    "electric-indigo-light": {
+      "$type": "color",
+      "$value": "#6A5CFF",
+      "$description": "Gradient end stop for the dark-mode primary button: linear-gradient(135deg, electric-indigo, electric-indigo-light). Figma variables cannot hold gradients, so save it as a fill style: kowloon/primary-gradient."
+    }
+  },
   "semantic": {
-    "$description": "APC Semantic — 10 modes. $value is Stockholm Light; $extensions.apc holds the other nine (sl-dark, pr-light, pr-dark, ar-light, ar-dark, nv-light, nv-dark, mb-light, mb-dark). Bind ALL components here.",
+    "$description": "APC Semantic — 16 modes. $value is Stockholm Light; $extensions.apc holds the other thirteen (sl-dark, pr-light, pr-dark, ar-light, ar-dark, nv-light, nv-dark, mb-light, mb-dark, lp-light, lp-dark, kw-light, kw-dark, a2-light, a2-dark). Bind ALL components here.",
     "text": {
       "primary": {
         "$type": "color",
@@ -285,7 +1100,15 @@
             "nv-light": "{core.neutral.900}",
             "nv-dark": "{core.neutral.10}",
             "mb-light": "{core.neutral.900}",
-            "mb-dark": "{core.neutral.10}"
+            "mb-dark": "{core.neutral.10}",
+            "lp-light": "{core.neutral.900}",
+            "lp-dark": "{core.neutral.10}",
+            "kw-light": "{core.neutral.900}",
+            "kw-dark": "{core.neutral.10}",
+            "a2-light": "{core.neutral.900}",
+            "a2-dark": "{core.neutral.10}",
+            "cp-light": "{core.neutral.900}",
+            "cp-dark": "{core.neutral.10}"
           }
         }
       },
@@ -302,7 +1125,15 @@
             "nv-light": "{core.neutral.600}",
             "nv-dark": "{core.neutral.200}",
             "mb-light": "{core.neutral.600}",
-            "mb-dark": "{core.neutral.200}"
+            "mb-dark": "{core.neutral.200}",
+            "lp-light": "{core.neutral.600}",
+            "lp-dark": "{core.neutral.200}",
+            "kw-light": "{core.neutral.600}",
+            "kw-dark": "{core.neutral.200}",
+            "a2-light": "{core.neutral.600}",
+            "a2-dark": "{core.neutral.200}",
+            "cp-light": "{core.neutral.600}",
+            "cp-dark": "{core.neutral.200}"
           }
         }
       },
@@ -319,7 +1150,15 @@
             "nv-light": "{core.neutral.400}",
             "nv-dark": "{core.neutral.400}",
             "mb-light": "{core.neutral.400}",
-            "mb-dark": "{core.neutral.400}"
+            "mb-dark": "{core.neutral.400}",
+            "lp-light": "{core.neutral.400}",
+            "lp-dark": "{core.neutral.400}",
+            "kw-light": "{core.neutral.400}",
+            "kw-dark": "{core.neutral.400}",
+            "a2-light": "{core.neutral.400}",
+            "a2-dark": "{core.neutral.400}",
+            "cp-light": "{core.neutral.400}",
+            "cp-dark": "{core.neutral.400}"
           }
         }
       },
@@ -336,7 +1175,15 @@
             "nv-light": "{core.neutral.300}",
             "nv-dark": "{core.neutral.500}",
             "mb-light": "{core.neutral.300}",
-            "mb-dark": "{core.neutral.500}"
+            "mb-dark": "{core.neutral.500}",
+            "lp-light": "{core.neutral.300}",
+            "lp-dark": "{core.neutral.500}",
+            "kw-light": "{core.neutral.300}",
+            "kw-dark": "{core.neutral.500}",
+            "a2-light": "{core.neutral.300}",
+            "a2-dark": "{core.neutral.500}",
+            "cp-light": "{core.neutral.300}",
+            "cp-dark": "{core.neutral.500}"
           }
         }
       },
@@ -353,7 +1200,15 @@
             "nv-light": "{core.neutral.10}",
             "nv-dark": "{core.neutral.10}",
             "mb-light": "{core.neutral.10}",
-            "mb-dark": "{core.neutral.10}"
+            "mb-dark": "{core.neutral.10}",
+            "lp-light": "{core.neutral.10}",
+            "lp-dark": "{core.neutral.10}",
+            "kw-light": "{core.neutral.10}",
+            "kw-dark": "{core.neutral.10}",
+            "a2-light": "{core.neutral.10}",
+            "a2-dark": "{core.neutral.10}",
+            "cp-light": "{core.neutral.10}",
+            "cp-dark": "{core.neutral.10}"
           }
         }
       },
@@ -370,7 +1225,15 @@
             "nv-light": "{core.neutral.900}",
             "nv-dark": "{core.neutral.900}",
             "mb-light": "{core.neutral.900}",
-            "mb-dark": "{core.neutral.900}"
+            "mb-dark": "{core.neutral.900}",
+            "lp-light": "{core.neutral.10}",
+            "lp-dark": "{core.neutral.900}",
+            "kw-light": "{core.neutral.10}",
+            "kw-dark": "{core.neutral.10}",
+            "a2-light": "{core.neutral.900}",
+            "a2-dark": "{core.neutral.900}",
+            "cp-light": "{core.neutral.10}",
+            "cp-dark": "{core.neutral.900}"
           }
         },
         "$description": "Every theme's accent takes dark ink — Lime, Glow, and Glacier all fail AA with white."
@@ -388,7 +1251,15 @@
             "nv-light": "{nova.midnight-sea}",
             "nv-dark": "{nova.lavender}",
             "mb-light": "{melbourne.dark-blue}",
-            "mb-dark": "{melbourne.glass}"
+            "mb-dark": "{melbourne.glass}",
+            "lp-light": "{lapland.electra-200}",
+            "lp-dark": "{lapland.breeze-100}",
+            "kw-light": "{kowloon.electric-indigo}",
+            "kw-dark": "{kowloon.light-plum}",
+            "a2-light": "{arctic2.fjord}",
+            "a2-dark": "{arctic2.fur}",
+            "cp-light": "{cappadocia.nomad-100}",
+            "cp-dark": "{cappadocia.float}"
           }
         }
       },
@@ -405,7 +1276,15 @@
             "nv-light": "{core.neutral.900}",
             "nv-dark": "{core.neutral.100}",
             "mb-light": "{core.neutral.900}",
-            "mb-dark": "{core.neutral.100}"
+            "mb-dark": "{core.neutral.100}",
+            "lp-light": "{core.neutral.900}",
+            "lp-dark": "{core.neutral.100}",
+            "kw-light": "{core.neutral.900}",
+            "kw-dark": "{core.neutral.100}",
+            "a2-light": "{core.neutral.900}",
+            "a2-dark": "{core.neutral.100}",
+            "cp-light": "{core.neutral.900}",
+            "cp-dark": "{core.neutral.100}"
           }
         }
       }
@@ -424,7 +1303,15 @@
             "nv-light": "{core.neutral.50}",
             "nv-dark": "{core.neutral.900}",
             "mb-light": "{melbourne.warm-grey}",
-            "mb-dark": "{core.neutral.900}"
+            "mb-dark": "{core.neutral.900}",
+            "lp-light": "{core.neutral.50}",
+            "lp-dark": "{core.neutral.900}",
+            "kw-light": "{core.neutral.50}",
+            "kw-dark": "{core.neutral.900}",
+            "a2-light": "{core.neutral.50}",
+            "a2-dark": "{core.neutral.900}",
+            "cp-light": "{core.neutral.50}",
+            "cp-dark": "{core.neutral.900}"
           }
         }
       },
@@ -441,7 +1328,15 @@
             "nv-light": "{core.neutral.10}",
             "nv-dark": "{core.neutral.800}",
             "mb-light": "{core.neutral.10}",
-            "mb-dark": "{core.neutral.800}"
+            "mb-dark": "{core.neutral.800}",
+            "lp-light": "{core.neutral.10}",
+            "lp-dark": "{core.neutral.800}",
+            "kw-light": "{core.neutral.10}",
+            "kw-dark": "{core.neutral.800}",
+            "a2-light": "{core.neutral.10}",
+            "a2-dark": "{core.neutral.800}",
+            "cp-light": "{core.neutral.10}",
+            "cp-dark": "{core.neutral.800}"
           }
         }
       },
@@ -458,7 +1353,15 @@
             "nv-light": "{core.neutral.25}",
             "nv-dark": "{core.neutral.900}",
             "mb-light": "{core.neutral.25}",
-            "mb-dark": "{core.neutral.900}"
+            "mb-dark": "{core.neutral.900}",
+            "lp-light": "{core.neutral.25}",
+            "lp-dark": "{core.neutral.900}",
+            "kw-light": "{core.neutral.25}",
+            "kw-dark": "{core.neutral.900}",
+            "a2-light": "{core.neutral.25}",
+            "a2-dark": "{core.neutral.900}",
+            "cp-light": "{core.neutral.25}",
+            "cp-dark": "{core.neutral.900}"
           }
         }
       },
@@ -475,7 +1378,15 @@
             "nv-light": "{core.neutral.50}",
             "nv-dark": "{core.neutral.700}",
             "mb-light": "{core.neutral.50}",
-            "mb-dark": "{core.neutral.700}"
+            "mb-dark": "{core.neutral.700}",
+            "lp-light": "{core.neutral.50}",
+            "lp-dark": "{core.neutral.700}",
+            "kw-light": "{core.neutral.50}",
+            "kw-dark": "{core.neutral.700}",
+            "a2-light": "{core.neutral.50}",
+            "a2-dark": "{core.neutral.700}",
+            "cp-light": "{core.neutral.50}",
+            "cp-dark": "{core.neutral.700}"
           }
         }
       },
@@ -493,7 +1404,15 @@
             "nv-dark": "{nova.spring-green}",
             "mb-light": "{melbourne.glass-10}",
             "mb-dark": "{melbourne.mustard}",
-            "darkOpacity": 0.1
+            "darkOpacity": 0.1,
+            "lp-light": "{lapland.breeze-10}",
+            "lp-dark": "{lapland.breeze-100}",
+            "kw-light": "{kowloon.light-plum-10}",
+            "kw-dark": "{kowloon.neon-orange}",
+            "a2-light": "{arctic2.fur-10}",
+            "a2-dark": "{arctic2.glacier}",
+            "cp-light": "{cappadocia.nomad-tint}",
+            "cp-dark": "{cappadocia.float}"
           }
         },
         "$description": "Dark modes apply the accent at 10% opacity on the fill."
@@ -511,7 +1430,15 @@
             "nv-light": "{nova.midnight-sea}",
             "nv-dark": "{core.neutral.100}",
             "mb-light": "{melbourne.dark-blue}",
-            "mb-dark": "{core.neutral.100}"
+            "mb-dark": "{core.neutral.100}",
+            "lp-light": "{lapland.electra-200}",
+            "lp-dark": "{core.neutral.100}",
+            "kw-light": "{kowloon.electric-indigo}",
+            "kw-dark": "{core.neutral.100}",
+            "a2-light": "{arctic2.fjord}",
+            "a2-dark": "{core.neutral.100}",
+            "cp-light": "{cappadocia.nomad-100}",
+            "cp-dark": "{core.neutral.100}"
           }
         }
       },
@@ -528,7 +1455,15 @@
             "nv-light": "{core.neutral.25}",
             "nv-dark": "{core.neutral.900}",
             "mb-light": "{core.neutral.25}",
-            "mb-dark": "{core.neutral.900}"
+            "mb-dark": "{core.neutral.900}",
+            "lp-light": "{core.neutral.25}",
+            "lp-dark": "{core.neutral.900}",
+            "kw-light": "{core.neutral.25}",
+            "kw-dark": "{core.neutral.900}",
+            "a2-light": "{core.neutral.25}",
+            "a2-dark": "{core.neutral.900}",
+            "cp-light": "{core.neutral.25}",
+            "cp-dark": "{core.neutral.900}"
           }
         }
       },
@@ -545,7 +1480,15 @@
             "nv-light": "{core.neutral.900}",
             "nv-dark": "{core.neutral.100}",
             "mb-light": "{core.neutral.900}",
-            "mb-dark": "{core.neutral.100}"
+            "mb-dark": "{core.neutral.100}",
+            "lp-light": "{core.neutral.900}",
+            "lp-dark": "{core.neutral.100}",
+            "kw-light": "{core.neutral.900}",
+            "kw-dark": "{core.neutral.100}",
+            "a2-light": "{core.neutral.900}",
+            "a2-dark": "{core.neutral.100}",
+            "cp-light": "{core.neutral.900}",
+            "cp-dark": "{core.neutral.100}"
           }
         }
       }
@@ -565,10 +1508,14 @@
             "nv-dark": "{core.neutral.700}",
             "mb-light": "{core.neutral.200}",
             "mb-dark": "{core.neutral.700}",
-            "nv-light": "{core.neutral.200}",
-            "nv-dark": "{core.neutral.700}",
-            "mb-light": "{core.neutral.200}",
-            "mb-dark": "{core.neutral.700}"
+            "lp-light": "{core.neutral.200}",
+            "lp-dark": "{core.neutral.700}",
+            "kw-light": "{core.neutral.200}",
+            "kw-dark": "{core.neutral.700}",
+            "a2-light": "{core.neutral.200}",
+            "a2-dark": "{core.neutral.700}",
+            "cp-light": "{core.neutral.200}",
+            "cp-dark": "{core.neutral.700}"
           }
         }
       },
@@ -585,7 +1532,15 @@
             "nv-light": "{core.neutral.400}",
             "nv-dark": "{core.neutral.600}",
             "mb-light": "{core.neutral.400}",
-            "mb-dark": "{core.neutral.600}"
+            "mb-dark": "{core.neutral.600}",
+            "lp-light": "{core.neutral.400}",
+            "lp-dark": "{core.neutral.600}",
+            "kw-light": "{core.neutral.400}",
+            "kw-dark": "{core.neutral.600}",
+            "a2-light": "{core.neutral.400}",
+            "a2-dark": "{core.neutral.600}",
+            "cp-light": "{core.neutral.400}",
+            "cp-dark": "{core.neutral.600}"
           }
         }
       },
@@ -602,7 +1557,15 @@
             "nv-light": "{core.neutral.100}",
             "nv-dark": "{core.neutral.700}",
             "mb-light": "{core.neutral.100}",
-            "mb-dark": "{core.neutral.700}"
+            "mb-dark": "{core.neutral.700}",
+            "lp-light": "{core.neutral.100}",
+            "lp-dark": "{core.neutral.700}",
+            "kw-light": "{core.neutral.100}",
+            "kw-dark": "{core.neutral.700}",
+            "a2-light": "{core.neutral.100}",
+            "a2-dark": "{core.neutral.700}",
+            "cp-light": "{core.neutral.100}",
+            "cp-dark": "{core.neutral.700}"
           }
         }
       },
@@ -620,7 +1583,15 @@
             "nv-dark": "{nova.lupin}",
             "mb-light": "{melbourne.glass}",
             "mb-dark": "{melbourne.glass}",
-            "darkOpacity": 0.32
+            "darkOpacity": 0.32,
+            "lp-light": "{lapland.electra-100}",
+            "lp-dark": "{lapland.electra-100}",
+            "kw-light": "{kowloon.electric-indigo}",
+            "kw-dark": "{kowloon.electric-indigo}",
+            "a2-light": "{arctic2.slumber}",
+            "a2-dark": "{arctic2.slumber}",
+            "cp-light": "{cappadocia.nomad-100}",
+            "cp-dark": "{cappadocia.nomad-100}"
           }
         },
         "$description": "3px ring at 2px offset. Dark modes apply it at ~32% opacity."
@@ -638,7 +1609,15 @@
             "nv-light": "{nova.midnight-sea}",
             "nv-dark": "{nova.spring-green}",
             "mb-light": "{melbourne.dark-blue}",
-            "mb-dark": "{melbourne.mustard}"
+            "mb-dark": "{melbourne.mustard}",
+            "lp-light": "{lapland.electra-200}",
+            "lp-dark": "{lapland.breeze-100}",
+            "kw-light": "{kowloon.electric-indigo}",
+            "kw-dark": "{kowloon.neon-orange}",
+            "a2-light": "{arctic2.fjord}",
+            "a2-dark": "{arctic2.glacier}",
+            "cp-light": "{cappadocia.nomad-100}",
+            "cp-dark": "{cappadocia.float}"
           }
         }
       }
@@ -657,7 +1636,15 @@
             "nv-light": "{nova.midnight-sea}",
             "nv-dark": "{nova.spring-green}",
             "mb-light": "{melbourne.dark-blue}",
-            "mb-dark": "{melbourne.mustard}"
+            "mb-dark": "{melbourne.mustard}",
+            "lp-light": "{lapland.electra-200}",
+            "lp-dark": "{lapland.breeze-100}",
+            "kw-light": "{kowloon.electric-indigo}",
+            "kw-dark": "{kowloon.electric-indigo}",
+            "a2-light": "{arctic2.fjord}",
+            "a2-dark": "{arctic2.glacier}",
+            "cp-light": "{cappadocia.nomad-100}",
+            "cp-dark": "{cappadocia.float}"
           }
         },
         "$description": "Flips to the accent on dark in every theme — the brand navy has no contrast on Neutral 800."
@@ -675,7 +1662,15 @@
             "nv-light": "{nova.midnight-sea-hover}",
             "nv-dark": "{nova.spring-green-hover}",
             "mb-light": "{melbourne.dark-blue-hover}",
-            "mb-dark": "{melbourne.mustard-hover}"
+            "mb-dark": "{melbourne.mustard-hover}",
+            "lp-light": "{lapland.electra-200-hover}",
+            "lp-dark": "{lapland.breeze-100-hover}",
+            "kw-light": "{kowloon.electric-indigo-hover}",
+            "kw-dark": "{kowloon.electric-indigo-hover}",
+            "a2-light": "{arctic2.fjord-hover}",
+            "a2-dark": "{arctic2.glacier-hover}",
+            "cp-light": "{cappadocia.nomad-100-hover}",
+            "cp-dark": "{cappadocia.float-hover}"
           }
         }
       },
@@ -692,7 +1687,15 @@
             "nv-light": "{nova.midnight-sea-active}",
             "nv-dark": "{nova.spring-green-active}",
             "mb-light": "{melbourne.dark-blue-active}",
-            "mb-dark": "{melbourne.mustard-active}"
+            "mb-dark": "{melbourne.mustard-active}",
+            "lp-light": "{lapland.electra-200-active}",
+            "lp-dark": "{lapland.breeze-100-active}",
+            "kw-light": "{kowloon.electric-indigo-active}",
+            "kw-dark": "{kowloon.electric-indigo-active}",
+            "a2-light": "{arctic2.fjord-active}",
+            "a2-dark": "{arctic2.glacier-active}",
+            "cp-light": "{cappadocia.nomad-100-active}",
+            "cp-dark": "{cappadocia.float-active}"
           }
         }
       },
@@ -709,7 +1712,15 @@
             "nv-light": "{nova.lavender}",
             "nv-dark": "{core.neutral.700}",
             "mb-light": "{melbourne.sweater}",
-            "mb-dark": "{core.neutral.700}"
+            "mb-dark": "{core.neutral.700}",
+            "lp-light": "{lapland.electra-10}",
+            "lp-dark": "{core.neutral.700}",
+            "kw-light": "{kowloon.light-plum}",
+            "kw-dark": "{core.neutral.700}",
+            "a2-light": "{arctic2.fur}",
+            "a2-dark": "{core.neutral.700}",
+            "cp-light": "{cappadocia.nomad-10}",
+            "cp-dark": "{core.neutral.700}"
           }
         }
       },
@@ -726,7 +1737,15 @@
             "nv-light": "{nova.spring-green}",
             "nv-dark": "{nova.spring-green}",
             "mb-light": "{melbourne.mustard}",
-            "mb-dark": "{melbourne.mustard}"
+            "mb-dark": "{melbourne.mustard}",
+            "lp-light": "{lapland.nox}",
+            "lp-dark": "{lapland.breeze-100}",
+            "kw-light": "{kowloon.neon-orange}",
+            "kw-dark": "{kowloon.neon-orange}",
+            "a2-light": "{arctic2.glacier}",
+            "a2-dark": "{arctic2.glacier}",
+            "cp-light": "{lapland.nox}",
+            "cp-dark": "{cappadocia.float}"
           }
         }
       },
@@ -743,7 +1762,15 @@
             "nv-light": "{core.validation.bright-rose.100}",
             "nv-dark": "{core.validation.bright-rose.100}",
             "mb-light": "{core.validation.bright-rose.100}",
-            "mb-dark": "{core.validation.bright-rose.100}"
+            "mb-dark": "{core.validation.bright-rose.100}",
+            "lp-light": "{lapland.validation.cerise.100}",
+            "lp-dark": "{lapland.validation.cerise.100}",
+            "kw-light": "{core.validation.bright-rose.100}",
+            "kw-dark": "{core.validation.bright-rose.100}",
+            "a2-light": "{arctic.validation.marmalade.100}",
+            "a2-dark": "{arctic.validation.marmalade.100}",
+            "cp-light": "{lapland.validation.cerise.100}",
+            "cp-dark": "{lapland.validation.cerise.100}"
           }
         },
         "$description": "Never flips to the accent on dark — the accent reads as approval."
@@ -762,10 +1789,14 @@
             "nv-dark": "{core.neutral.700}",
             "mb-light": "{core.neutral.200}",
             "mb-dark": "{core.neutral.700}",
-            "nv-light": "{core.neutral.200}",
-            "nv-dark": "{core.neutral.700}",
-            "mb-light": "{core.neutral.200}",
-            "mb-dark": "{core.neutral.700}"
+            "lp-light": "{core.neutral.200}",
+            "lp-dark": "{core.neutral.700}",
+            "kw-light": "{core.neutral.200}",
+            "kw-dark": "{core.neutral.700}",
+            "a2-light": "{core.neutral.200}",
+            "a2-dark": "{core.neutral.700}",
+            "cp-light": "{core.neutral.200}",
+            "cp-dark": "{core.neutral.700}"
           }
         }
       }
@@ -785,7 +1816,15 @@
             "nv-light": "{core.validation.lime.100}",
             "nv-dark": "{core.validation.lime.50}",
             "mb-light": "{core.validation.lime.100}",
-            "mb-dark": "{core.validation.lime.50}"
+            "mb-dark": "{core.validation.lime.50}",
+            "lp-light": "{lapland.validation.jade.100}",
+            "lp-dark": "{lapland.validation.jade.50}",
+            "kw-light": "{core.validation.lime.100}",
+            "kw-dark": "{core.validation.lime.50}",
+            "a2-light": "{arctic.validation.seafoam.100}",
+            "a2-dark": "{arctic.validation.seafoam.50}",
+            "cp-light": "{lapland.validation.jade.100}",
+            "cp-dark": "{lapland.validation.jade.50}"
           }
         }
       },
@@ -802,7 +1841,15 @@
             "nv-light": "{core.validation.lime.200}",
             "nv-dark": "{core.validation.lime.50}",
             "mb-light": "{core.validation.lime.200}",
-            "mb-dark": "{core.validation.lime.50}"
+            "mb-dark": "{core.validation.lime.50}",
+            "lp-light": "{lapland.validation.jade.200}",
+            "lp-dark": "{lapland.validation.jade.50}",
+            "kw-light": "{core.validation.lime.200}",
+            "kw-dark": "{core.validation.lime.50}",
+            "a2-light": "{arctic.validation.seafoam.200}",
+            "a2-dark": "{arctic.validation.seafoam.50}",
+            "cp-light": "{lapland.validation.jade.200}",
+            "cp-dark": "{lapland.validation.jade.50}"
           }
         }
       },
@@ -820,7 +1867,15 @@
             "nv-dark": "{core.validation.lime.100}",
             "mb-light": "{core.validation.lime.10}",
             "mb-dark": "{core.validation.lime.100}",
-            "darkOpacity": 0.14
+            "darkOpacity": 0.14,
+            "lp-light": "{lapland.validation.jade.10}",
+            "lp-dark": "{lapland.validation.jade.100}",
+            "kw-light": "{core.validation.lime.10}",
+            "kw-dark": "{core.validation.lime.100}",
+            "a2-light": "{arctic.validation.seafoam.10}",
+            "a2-dark": "{arctic.validation.seafoam.100}",
+            "cp-light": "{lapland.validation.jade.10}",
+            "cp-dark": "{lapland.validation.jade.100}"
           }
         }
       },
@@ -837,7 +1892,15 @@
             "nv-light": "{core.validation.bright-rose.100}",
             "nv-dark": "{core.validation.bright-rose.50}",
             "mb-light": "{core.validation.bright-rose.100}",
-            "mb-dark": "{core.validation.bright-rose.50}"
+            "mb-dark": "{core.validation.bright-rose.50}",
+            "lp-light": "{lapland.validation.cerise.100}",
+            "lp-dark": "{lapland.validation.cerise.50}",
+            "kw-light": "{core.validation.bright-rose.100}",
+            "kw-dark": "{core.validation.bright-rose.50}",
+            "a2-light": "{arctic.validation.marmalade.100}",
+            "a2-dark": "{arctic.validation.marmalade.50}",
+            "cp-light": "{lapland.validation.cerise.100}",
+            "cp-dark": "{lapland.validation.cerise.50}"
           }
         }
       },
@@ -854,7 +1917,15 @@
             "nv-light": "{core.validation.bright-rose.200}",
             "nv-dark": "{core.validation.bright-rose.50}",
             "mb-light": "{core.validation.bright-rose.200}",
-            "mb-dark": "{core.validation.bright-rose.50}"
+            "mb-dark": "{core.validation.bright-rose.50}",
+            "lp-light": "{lapland.validation.cerise.200}",
+            "lp-dark": "{lapland.validation.cerise.50}",
+            "kw-light": "{core.validation.bright-rose.200}",
+            "kw-dark": "{core.validation.bright-rose.50}",
+            "a2-light": "{arctic.validation.marmalade.200}",
+            "a2-dark": "{arctic.validation.marmalade.50}",
+            "cp-light": "{lapland.validation.cerise.200}",
+            "cp-dark": "{lapland.validation.cerise.50}"
           }
         }
       },
@@ -872,7 +1943,15 @@
             "nv-dark": "{core.validation.bright-rose.100}",
             "mb-light": "{core.validation.bright-rose.10}",
             "mb-dark": "{core.validation.bright-rose.100}",
-            "darkOpacity": 0.16
+            "darkOpacity": 0.16,
+            "lp-light": "{lapland.validation.cerise.10}",
+            "lp-dark": "{lapland.validation.cerise.100}",
+            "kw-light": "{core.validation.bright-rose.10}",
+            "kw-dark": "{core.validation.bright-rose.100}",
+            "a2-light": "{arctic.validation.marmalade.10}",
+            "a2-dark": "{arctic.validation.marmalade.100}",
+            "cp-light": "{lapland.validation.cerise.10}",
+            "cp-dark": "{lapland.validation.cerise.100}"
           }
         }
       },
@@ -889,7 +1968,15 @@
             "nv-light": "{core.validation.daisy.100}",
             "nv-dark": "{core.validation.daisy.50}",
             "mb-light": "{core.validation.daisy.100}",
-            "mb-dark": "{core.validation.daisy.50}"
+            "mb-dark": "{core.validation.daisy.50}",
+            "lp-light": "{lapland.validation.limonita.100}",
+            "lp-dark": "{lapland.validation.limonita.50}",
+            "kw-light": "{core.validation.daisy.100}",
+            "kw-dark": "{core.validation.daisy.50}",
+            "a2-light": "{arctic.validation.honey-bee.100}",
+            "a2-dark": "{arctic.validation.honey-bee.50}",
+            "cp-light": "{lapland.validation.limonita.100}",
+            "cp-dark": "{lapland.validation.limonita.50}"
           }
         }
       },
@@ -906,7 +1993,15 @@
             "nv-light": "{core.validation.daisy.200}",
             "nv-dark": "{core.validation.daisy.50}",
             "mb-light": "{core.validation.daisy.200}",
-            "mb-dark": "{core.validation.daisy.50}"
+            "mb-dark": "{core.validation.daisy.50}",
+            "lp-light": "{lapland.validation.limonita.200}",
+            "lp-dark": "{lapland.validation.limonita.50}",
+            "kw-light": "{core.validation.daisy.200}",
+            "kw-dark": "{core.validation.daisy.50}",
+            "a2-light": "{arctic.validation.honey-bee.200}",
+            "a2-dark": "{arctic.validation.honey-bee.50}",
+            "cp-light": "{lapland.validation.limonita.200}",
+            "cp-dark": "{lapland.validation.limonita.50}"
           }
         }
       },
@@ -924,7 +2019,15 @@
             "nv-dark": "{core.validation.daisy.100}",
             "mb-light": "{core.validation.daisy.10}",
             "mb-dark": "{core.validation.daisy.100}",
-            "darkOpacity": 0.14
+            "darkOpacity": 0.14,
+            "lp-light": "{lapland.validation.limonita.10}",
+            "lp-dark": "{lapland.validation.limonita.100}",
+            "kw-light": "{core.validation.daisy.10}",
+            "kw-dark": "{core.validation.daisy.100}",
+            "a2-light": "{arctic.validation.honey-bee.10}",
+            "a2-dark": "{arctic.validation.honey-bee.100}",
+            "cp-light": "{lapland.validation.limonita.10}",
+            "cp-dark": "{lapland.validation.limonita.100}"
           }
         }
       },
@@ -941,7 +2044,15 @@
             "nv-light": "{nova.midnight-sea}",
             "nv-dark": "{nova.lavender}",
             "mb-light": "{melbourne.dark-blue}",
-            "mb-dark": "{melbourne.glass}"
+            "mb-dark": "{melbourne.glass}",
+            "lp-light": "{lapland.electra-200}",
+            "lp-dark": "{lapland.breeze-100}",
+            "kw-light": "{kowloon.electric-indigo}",
+            "kw-dark": "{kowloon.light-plum}",
+            "a2-light": "{arctic2.fjord}",
+            "a2-dark": "{arctic2.fur}",
+            "cp-light": "{cappadocia.nomad-100}",
+            "cp-dark": "{cappadocia.float}"
           }
         }
       },
@@ -959,7 +2070,15 @@
             "nv-dark": "{nova.lavender}",
             "mb-light": "{melbourne.glass-10}",
             "mb-dark": "{melbourne.glass}",
-            "darkOpacity": 0.14
+            "darkOpacity": 0.14,
+            "lp-light": "{lapland.breeze-10}",
+            "lp-dark": "{lapland.breeze-100}",
+            "kw-light": "{kowloon.light-plum-10}",
+            "kw-dark": "{kowloon.light-plum}",
+            "a2-light": "{arctic2.muted-glacier}",
+            "a2-dark": "{arctic2.fur}",
+            "cp-light": "{cappadocia.nomad-tint}",
+            "cp-dark": "{cappadocia.float}"
           }
         }
       }
@@ -978,7 +2097,15 @@
             "nv-light": "{core.neutral.900}",
             "nv-dark": "{core.neutral.100}",
             "mb-light": "{core.neutral.900}",
-            "mb-dark": "{core.neutral.100}"
+            "mb-dark": "{core.neutral.100}",
+            "lp-light": "{core.neutral.900}",
+            "lp-dark": "{core.neutral.100}",
+            "kw-light": "{core.neutral.900}",
+            "kw-dark": "{core.neutral.100}",
+            "a2-light": "{core.neutral.900}",
+            "a2-dark": "{core.neutral.100}",
+            "cp-light": "{core.neutral.900}",
+            "cp-dark": "{core.neutral.100}"
           }
         }
       },
@@ -995,7 +2122,15 @@
             "nv-light": "{nova.midnight-sea}",
             "nv-dark": "{nova.lavender}",
             "mb-light": "{melbourne.dark-blue}",
-            "mb-dark": "{melbourne.glass}"
+            "mb-dark": "{melbourne.glass}",
+            "lp-light": "{lapland.electra-200}",
+            "lp-dark": "{lapland.breeze-100}",
+            "kw-light": "{kowloon.electric-indigo}",
+            "kw-dark": "{kowloon.light-plum}",
+            "a2-light": "{arctic2.fjord}",
+            "a2-dark": "{arctic2.fur}",
+            "cp-light": "{cappadocia.nomad-100}",
+            "cp-dark": "{cappadocia.float}"
           }
         }
       },
@@ -1012,7 +2147,15 @@
             "nv-light": "{core.validation.bright-rose.200}",
             "nv-dark": "{nova.spring-green}",
             "mb-light": "{core.validation.bright-rose.200}",
-            "mb-dark": "{melbourne.mustard}"
+            "mb-dark": "{melbourne.mustard}",
+            "lp-light": "{lapland.validation.cerise.200}",
+            "lp-dark": "{lapland.breeze-100}",
+            "kw-light": "{core.validation.bright-rose.200}",
+            "kw-dark": "{kowloon.neon-orange}",
+            "a2-light": "{arctic.validation.marmalade.200}",
+            "a2-dark": "{arctic2.glacier}",
+            "cp-light": "{lapland.validation.cerise.200}",
+            "cp-dark": "{cappadocia.float}"
           }
         }
       },
@@ -1029,7 +2172,15 @@
             "nv-light": "{core.validation.lime.200}",
             "nv-dark": "{core.validation.lime.50}",
             "mb-light": "{core.validation.lime.200}",
-            "mb-dark": "{core.validation.lime.50}"
+            "mb-dark": "{core.validation.lime.50}",
+            "lp-light": "{lapland.validation.jade.200}",
+            "lp-dark": "{lapland.validation.jade.50}",
+            "kw-light": "{core.validation.lime.200}",
+            "kw-dark": "{core.validation.lime.50}",
+            "a2-light": "{arctic.validation.seafoam.200}",
+            "a2-dark": "{arctic.validation.seafoam.50}",
+            "cp-light": "{lapland.validation.jade.200}",
+            "cp-dark": "{lapland.validation.jade.50}"
           }
         }
       },
@@ -1046,7 +2197,15 @@
             "nv-light": "{core.validation.daisy.200}",
             "nv-dark": "{core.validation.daisy.50}",
             "mb-light": "{core.validation.daisy.200}",
-            "mb-dark": "{core.validation.daisy.50}"
+            "mb-dark": "{core.validation.daisy.50}",
+            "lp-light": "{lapland.validation.limonita.200}",
+            "lp-dark": "{lapland.validation.limonita.50}",
+            "kw-light": "{core.validation.daisy.200}",
+            "kw-dark": "{core.validation.daisy.50}",
+            "a2-light": "{arctic.validation.honey-bee.200}",
+            "a2-dark": "{arctic.validation.honey-bee.50}",
+            "cp-light": "{lapland.validation.limonita.200}",
+            "cp-dark": "{lapland.validation.limonita.50}"
           }
         }
       },
@@ -1063,7 +2222,15 @@
             "nv-light": "{core.neutral.500}",
             "nv-dark": "{core.neutral.400}",
             "mb-light": "{core.neutral.500}",
-            "mb-dark": "{core.neutral.400}"
+            "mb-dark": "{core.neutral.400}",
+            "lp-light": "{core.neutral.500}",
+            "lp-dark": "{core.neutral.400}",
+            "kw-light": "{core.neutral.500}",
+            "kw-dark": "{core.neutral.400}",
+            "a2-light": "{core.neutral.500}",
+            "a2-dark": "{core.neutral.400}",
+            "cp-light": "{core.neutral.500}",
+            "cp-dark": "{core.neutral.400}"
           }
         }
       },
@@ -1080,13 +2247,20 @@
             "nv-light": "{core.neutral.600}",
             "nv-dark": "{core.neutral.300}",
             "mb-light": "{core.neutral.600}",
-            "mb-dark": "{core.neutral.300}"
+            "mb-dark": "{core.neutral.300}",
+            "lp-light": "{core.neutral.600}",
+            "lp-dark": "{core.neutral.300}",
+            "kw-light": "{core.neutral.600}",
+            "kw-dark": "{core.neutral.300}",
+            "a2-light": "{core.neutral.600}",
+            "a2-dark": "{core.neutral.300}",
+            "cp-light": "{core.neutral.600}",
+            "cp-dark": "{core.neutral.300}"
           }
         }
       }
     }
   },
-
   "typography": {
     "$description": "19 text styles per theme, prefixed by theme. Line height and letter spacing are percentages, exactly as entered in Figma.",
     "stockholm": {
@@ -1711,9 +2885,57 @@
           }
         }
       }
+    },
+    "lapland": {
+      "$description": "Lapland reuses Stockholm's 19 text styles with fontFamily Clarity City and code in Cascadia Code. Exception: misc/overline is Quicksand 600, 11px, uppercase, letter-spacing 1.5%.",
+      "misc": {
+        "overline": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Quicksand",
+            "fontWeight": 600,
+            "fontSize": "11px",
+            "lineHeight": "16px",
+            "letterSpacing": "1.5%",
+            "textCase": "uppercase"
+          }
+        }
+      }
+    },
+    "kowloon": {
+      "$description": "Kowloon reuses Stockholm's 19 text styles in Rethink Sans with code in Cascadia Code. Exceptions: heading/page-header and heading/inner-page use Bricolage Grotesque (same size and weight, letter spacing 1.2% for readability).",
+      "heading": {
+        "page-header": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Bricolage Grotesque",
+            "fontWeight": 700,
+            "fontSize": "46px",
+            "lineHeight": "107%",
+            "letterSpacing": "1.2%",
+            "textCase": "none"
+          }
+        },
+        "inner-page": {
+          "$type": "typography",
+          "$value": {
+            "fontFamily": "Bricolage Grotesque",
+            "fontWeight": 600,
+            "fontSize": "36px",
+            "lineHeight": "125%",
+            "letterSpacing": "1.2%",
+            "textCase": "none"
+          }
+        }
+      }
+    },
+    "arctic2": {
+      "$description": "Arctic Night 2.0 reuses Arctic Night's 19 text styles verbatim."
+    },
+    "cappadocia": {
+      "$description": "Cappadocia reuses Stockholm's 19 text styles in Epilogue. Page Header, Inner Page Header and eyebrows switch to Fraunces."
     }
   },
-
   "effect": {
     "$description": "Figma effect styles — shared by all themes except the focus ring, which reads border/focus from Semantic.",
     "focus-ring": {
@@ -1769,12 +2991,94 @@
     "scrim-light": {
       "$type": "color",
       "$value": "#111215",
-      "$extensions": { "apc": { "opacity": 0.56 } }
+      "$extensions": {
+        "apc": {
+          "opacity": 0.56
+        }
+      }
     },
     "scrim-dark": {
       "$type": "color",
       "$value": "#111215",
-      "$extensions": { "apc": { "opacity": 0.72 } }
+      "$extensions": {
+        "apc": {
+          "opacity": 0.72
+        }
+      }
+    }
+  },
+  "cappadocia": {
+    "$description": "APC Cappadocia Primitives. Status colour reads Validation Set C (lapland.validation: Jade / Cerise / Limonita).",
+    "nomad-100": {
+      "$type": "color",
+      "$value": "#176E7F"
+    },
+    "nomad-100-hover": {
+      "$type": "color",
+      "$value": "#125A68"
+    },
+    "nomad-100-active": {
+      "$type": "color",
+      "$value": "#0E4752"
+    },
+    "nomad-10": {
+      "$type": "color",
+      "$value": "#9CB7C8"
+    },
+    "nomad-10-hover": {
+      "$type": "color",
+      "$value": "#8CA9BC"
+    },
+    "nomad-10-active": {
+      "$type": "color",
+      "$value": "#7C9BB0"
+    },
+    "nomad-tint": {
+      "$type": "color",
+      "$value": "#EAF1F5"
+    },
+    "float": {
+      "$type": "color",
+      "$value": "#FFC334"
+    },
+    "float-hover": {
+      "$type": "color",
+      "$value": "#F2B21F"
+    },
+    "float-active": {
+      "$type": "color",
+      "$value": "#E0A010"
+    },
+    "umbra-100": {
+      "$type": "color",
+      "$value": "#1E2D34"
+    },
+    "tuff": {
+      "$type": "color",
+      "$value": "#FEF7E7"
+    },
+    "dune": {
+      "$type": "color",
+      "$value": "#C09865"
+    },
+    "springwater": {
+      "$type": "color",
+      "$value": "#AFEDD6"
+    },
+    "font": {
+      "heading": {
+        "$type": "fontFamily",
+        "$value": "Fraunces",
+        "$description": "Page titles, Page and Inner Page headers, eyebrows only."
+      },
+      "body": {
+        "$type": "fontFamily",
+        "$value": "Epilogue"
+      },
+      "mono": {
+        "$type": "fontFamily",
+        "$value": "Google Sans Code"
+      }
     }
   }
 }

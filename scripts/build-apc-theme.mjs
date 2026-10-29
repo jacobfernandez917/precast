@@ -26,10 +26,13 @@
  * keeping `<Theme mode="system">` working with no JS.
  *
  * ── Token shape ───────────────────────────────────────────────────────────────
- * Semantic tokens carry Stockholm-light in `$value` and the other nine modes in
+ * Semantic tokens carry Stockholm-light in `$value` and every other mode in
  * `$extensions.apc` keyed by a two-letter theme prefix: `sl` Stockholm, `pr`
- * Prague, `ar` Arctic, `nv` Nova, `mb` Melbourne. Values may be literals or
- * `{dotted.path}` aliases into any collection.
+ * Prague, `a2` Arctic Night 2.0, `nv` Nova, `mb` Melbourne, `lp` Lapland, `cp`
+ * Cappadocia. Values may be literals or `{dotted.path}` aliases into any
+ * collection. The file also carries collections Precast does not ship (`arctic`,
+ * the first Arctic, and `kowloon`, AgentBase Studio's theme); only the entries in
+ * APC_THEMES below are built.
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -40,13 +43,38 @@ const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const TOKENS = join(rootDir, 'apps/web/app/theme/apc.tokens.json');
 const OUT = join(rootDir, 'apps/web/app/theme/apc-themes.css');
 
-/** Theme id → the prefix used inside `$extensions.apc`. Order = display order. */
+/**
+ * Theme id → the prefix used inside `$extensions.apc`. Order = display order.
+ *
+ * `tokens` is the palette collection in the token file; `typography` is the
+ * typography group to read font families from, for themes whose own group only
+ * says "reuses X" (Arctic Night 2.0 reuses Arctic's, Lapland and Cappadocia reuse
+ * Stockholm's with other families, named in `fonts`). Arctic keeps its id so
+ * `pnpm set-theme arctic` and existing projects keep working; its tokens are
+ * Arctic Night 2.0's since v0.12.0.
+ */
 export const APC_THEMES = [
-  { id: 'stockholm', label: 'Stockholm', prefix: 'sl' },
-  { id: 'prague', label: 'Prague', prefix: 'pr' },
-  { id: 'arctic', label: 'Arctic', prefix: 'ar' },
-  { id: 'nova', label: 'Nova', prefix: 'nv' },
-  { id: 'melbourne', label: 'Melbourne', prefix: 'mb' },
+  { id: 'stockholm', label: 'Stockholm', prefix: 'sl', tokens: 'stockholm' },
+  { id: 'prague', label: 'Prague', prefix: 'pr', tokens: 'prague' },
+  { id: 'arctic', label: 'Arctic Night 2.0', prefix: 'a2', tokens: 'arctic2', typography: 'arctic' },
+  { id: 'nova', label: 'Nova', prefix: 'nv', tokens: 'nova' },
+  { id: 'melbourne', label: 'Melbourne', prefix: 'mb', tokens: 'melbourne' },
+  {
+    id: 'lapland',
+    label: 'Lapland',
+    prefix: 'lp',
+    tokens: 'lapland',
+    typography: 'stockholm',
+    fonts: { body: 'Clarity City', heading: 'Clarity City' },
+  },
+  {
+    id: 'cappadocia',
+    label: 'Cappadocia',
+    prefix: 'cp',
+    tokens: 'cappadocia',
+    typography: 'stockholm',
+    fonts: { body: 'Epilogue', heading: 'Fraunces' },
+  },
 ];
 
 export const DEFAULT_THEME = 'stockholm';
@@ -153,17 +181,21 @@ function valueFor(tokens, role, prefix, mode) {
   return raw == null ? null : resolve(tokens, raw);
 }
 
-function fontStackFor(tokens, themeId) {
-  const body = lookup(tokens.typography, `${themeId}.body`) ?? {};
-  const heading = lookup(tokens.typography, `${themeId}.heading`) ?? {};
-  const pick = (group) => {
-    for (const key of Object.keys(group)) {
-      const family = group[key]?.$value?.fontFamily;
+function fontStackFor(tokens, theme) {
+  const group = theme.typography ?? theme.id;
+  const body = lookup(tokens.typography, `${group}.body`) ?? {};
+  const heading = lookup(tokens.typography, `${group}.heading`) ?? {};
+  const pick = (g) => {
+    for (const key of Object.keys(g)) {
+      const family = g[key]?.$value?.fontFamily;
       if (family) return family;
     }
     return null;
   };
-  return { body: pick(body), heading: pick(heading) };
+  return {
+    body: theme.fonts?.body ?? pick(body),
+    heading: theme.fonts?.heading ?? pick(heading),
+  };
 }
 
 export function buildCss(tokens) {
@@ -182,7 +214,8 @@ export function buildCss(tokens) {
     '@layer apc-theme {',
   ];
 
-  for (const { id, label, prefix } of APC_THEMES) {
+  for (const theme of APC_THEMES) {
+    const { id, label, prefix } = theme;
     out.push(`  /* ── ${label} ─────────────────────────────────────────────── */`);
     // Two selectors on purpose. Astryx's <Theme> provider renders a NESTED
     // element carrying `data-astryx-theme`, and its @scope rule re-declares
@@ -227,7 +260,7 @@ export function buildCss(tokens) {
 
     for (const [target, { value }] of declared) out.push(`    ${target}: ${value};`);
 
-    const fonts = fontStackFor(tokens, id);
+    const fonts = fontStackFor(tokens, theme);
     if (fonts.body) out.push(`    --font-family-body: '${fonts.body}', system-ui, sans-serif;`);
     if (fonts.heading) {
       out.push(`    --font-family-heading: '${fonts.heading}', system-ui, sans-serif;`);

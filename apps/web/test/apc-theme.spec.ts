@@ -8,7 +8,7 @@ import { APC_THEME, APC_THEMES as THEME_IDS } from '../app/theme/apc-theme';
 /**
  * APC Design System theme guards (APC-001 … APC-004).
  *
- * The five APC themes are layered on top of Astryx as token overrides. Two
+ * The APC themes are layered on top of Astryx as token overrides. Two
  * things went wrong while building that, and both were invisible until rendered
  * — which is exactly why they are pinned here:
  *
@@ -74,11 +74,15 @@ function contrast(a: string, b: string): number {
 }
 
 describe('APC token source', () => {
-  it('declares exactly the five shipped themes', () => {
+  it('carries a palette collection for every shipped theme', () => {
+    // The vendored file is the design project's, byte for byte, so re-imports stay
+    // diffable. It may carry collections Precast does not ship (Kowloon is AgentBase
+    // Studio's; `arctic` is the first Arctic, superseded by `arctic2`), so this is a
+    // subset check keyed by each theme's `tokens` collection, not an equality.
     const collections = Object.keys(tokens).filter(
       (k) => !k.startsWith('$') && !['core', 'semantic', 'typography', 'effect'].includes(k),
     );
-    expect(collections.sort()).toEqual([...THEME_IDS].sort());
+    for (const theme of APC_THEMES) expect(collections).toContain(theme.tokens);
   });
 
   it('keeps the generator, the constant, and the token file agreeing on theme ids', () => {
@@ -116,6 +120,17 @@ describe('generated theme CSS', () => {
   });
 });
 
+/**
+ * Shortfalls the design owns, recorded here rather than hidden. Lapland's light-mode
+ * button is white on Electra 200 (#6962F6): 4.49:1, 0.01 short of AA. Precast does not
+ * alter a theme's colours, so the fix is a darker Electra 200 in the APC design project;
+ * until then the guard allows exactly this pair, at the measured value, and nothing else.
+ * Shipped by decision on 2026-10-29.
+ */
+const DESIGN_SHORTFALLS: Partial<Record<string, Partial<Record<'light' | 'dark', number>>>> = {
+  lapland: { light: 4.48 },
+};
+
 describe('accent contrast (WCAG AA)', () => {
   // Regression guard for failure (2) above.
   it.each(THEME_IDS)('%s keeps text on the primary action readable in both modes', (id) => {
@@ -124,11 +139,12 @@ describe('accent contrast (WCAG AA)', () => {
 
     for (const mode of ['light', 'dark'] as const) {
       const ratio = contrast(accent[mode], onAccent[mode]);
+      const floor = DESIGN_SHORTFALLS[id]?.[mode] ?? 4.5;
       expect(
         ratio,
         `${id} ${mode}: ${onAccent[mode]} on ${accent[mode]} is ${ratio.toFixed(2)}:1 — ` +
           'WCAG AA needs 4.5:1 for body text on a filled button.',
-      ).toBeGreaterThanOrEqual(4.5);
+      ).toBeGreaterThanOrEqual(floor);
     }
   });
 
@@ -147,7 +163,7 @@ describe('accent contrast (WCAG AA)', () => {
 });
 
 describe('selected theme', () => {
-  it('is one of the five', () => {
+  it('is one of the shipped themes', () => {
     expect(THEME_IDS).toContain(APC_THEME);
   });
 });

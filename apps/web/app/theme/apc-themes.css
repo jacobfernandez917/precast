@@ -126,7 +126,7 @@
     --font-family-heading: 'Space Grotesk', system-ui, sans-serif;
   }
 
-  /* ── Arctic ─────────────────────────────────────────────── */
+  /* ── Arctic Night 2.0 ─────────────────────────────────────────────── */
   [data-apc-theme='arctic'],
   [data-apc-theme='arctic'] [data-astryx-theme] {
     --color-text-primary: light-dark(#111215, #FFFFFF);
@@ -134,7 +134,7 @@
     --color-text-gray: #8F9299;
     --color-text-disabled: light-dark(#B4B6BB, #696D77);
     --color-icon-disabled: light-dark(#B4B6BB, #696D77);
-    --color-text-accent: light-dark(#192D75, #E2E8E0);
+    --color-text-accent: light-dark(#0E5B63, #E2E8E0);
     --color-syntax-variable: light-dark(#111215, #ECEDEE);
     --color-background-body: light-dark(#F5F6F6, #111215);
     --color-background-card: light-dark(#FFFFFF, #22252B);
@@ -144,15 +144,15 @@
     --color-overlay-hover: light-dark(#F5F6F6, #333740);
     --color-tint-hover: light-dark(#F5F6F6, #333740);
     --color-overlay-pressed: light-dark(#F1F4F0, #87D9D0);
-    --color-overlay: light-dark(#192D75, #ECEDEE);
+    --color-overlay: light-dark(#0E5B63, #ECEDEE);
     --color-syntax-background: light-dark(#FCFCFC, #111215);
     --color-background-gray: light-dark(#111215, #ECEDEE);
     --color-border: light-dark(#DADBDD, #333740);
     --color-border-emphasized: light-dark(#8F9299, #444955);
     --color-border-gray: light-dark(#ECEDEE, #333740);
     --color-border-blue: #7D549C;
-    --color-accent: light-dark(#192D75, #87D9D0);
-    --color-accent-muted: light-dark(#14235C, #72C9C0);
+    --color-accent: light-dark(#0E5B63, #87D9D0);
+    --color-accent-muted: light-dark(#0B4A50, #72C9C0);
     --color-neutral: light-dark(#E2E8E0, #333740);
     --color-icon-accent: #87D9D0;
     --color-success: light-dark(#12DFA2, #7ACDB4);
@@ -170,10 +170,10 @@
     --color-text-yellow: light-dark(#CF7200, #FFDF9A);
     --color-warning-muted: light-dark(#FFF1D4, #FFBE34);
     --color-background-yellow: light-dark(#FFF1D4, #FFBE34);
-    --color-icon-blue: light-dark(#192D75, #E2E8E0);
-    --color-background-blue: light-dark(#F1F4F0, #E2E8E0);
+    --color-icon-blue: light-dark(#0E5B63, #E2E8E0);
+    --color-background-blue: light-dark(#C5D9E2, #E2E8E0);
     --color-syntax-punctuation: light-dark(#111215, #ECEDEE);
-    --color-syntax-keyword: light-dark(#192D75, #E2E8E0);
+    --color-syntax-keyword: light-dark(#0E5B63, #E2E8E0);
     --color-syntax-function: light-dark(#962500, #87D9D0);
     --color-syntax-string: light-dark(#0BAB7B, #7ACDB4);
     --color-syntax-number: light-dark(#CF7200, #FFDF9A);
@@ -294,6 +294,122 @@
     --color-syntax-comment: light-dark(#696D77, #8F9299);
     --color-syntax-operator: light-dark(#444955, #B4B6BB);
     --color-on-accent: light-dark(#FFFFFF, #111215);
+  }
+
+  /* ── Lapland ─────────────────────────────────────────────── */
+  [data-apc-theme='lapland'],
+  [data-apc-theme='lapland'] [data-astryx-theme] {
+    --color-text-primary: light-dark(#111215, #FFFFFF);
+    --color-text-secondary: light-dark(#444955, #DADBDD);
+    --color-text-gray: #8F9299;
+    --color-text-disabled: light-dark(#B4B6BB, #696D77);
+    --color-icon-disabled: light-dark(#B4B6BB, #696D77);
+    --color-text-accent: light-dark(#6962F6, #AAD1FC);
+    --color-syntax-variable: light-dark(#111215, #ECEDEE);
+    --color-background-body: light-dark(#F5F6F6, #111215);
+    --color-background-card: light-dark(#FFFFFF, #22252B);
+    --color-background-popover: light-dark(#FFFFFF, #22252B);
+    --color-background-muted: light-dark(#FCFCFC, #111215);
+    --color-background-surface: light-dark(#FCFCFC, #111215);
+    --color-overlay-hover: light-dark(#F5F6F6, #333740);
+    --color-tint-hover: light-dark(#F5F6F6, #333740);
+    --color-overlay-pressed: light-dark(#E5F1FF, #AAD1FC);
+    --color-overlay: light-dark(#6962F6, #ECEDEE);
+    --color-syntax-background: light-dark(#FCFCFC, #111215);
+    --color-background-gray: light-dark(#111215, #ECEDEE);
+    --color-border: light-dark(#DADBDD, #333740);
+    --color-border-emphasized: light-dark(#8F9299, #444955);
+    --color-border-gray: light-dark(#ECEDEE, #333740);
+    --color-border-blue: #918DE2;
+    --color-accent: light-dark(#6962F6, #AAD1FC);
+    --color-accent-muted: light-dark(#5A53E6, #96C4F9);
+    --color-neutral: light-dark(#DDDBFF, #333740);
+    --color-icon-accent: light-dark(#1F212D, #AAD1FC);
+    --color-success: light-dark(#45B96A, #7ACC94);
+    --color-icon-green: light-dark(#45B96A, #7ACC94);
+    --color-text-green: light-dark(#216D39, #7ACC94);
+    --color-success-muted: light-dark(#C9FFDA, #45B96A);
+    --color-background-green: light-dark(#C9FFDA, #45B96A);
+    --color-error: light-dark(#DE3A3A, #F66060);
+    --color-icon-red: light-dark(#DE3A3A, #F66060);
+    --color-text-red: light-dark(#860000, #F66060);
+    --color-error-muted: light-dark(#FFC9C9, #DE3A3A);
+    --color-background-red: light-dark(#FFC9C9, #DE3A3A);
+    --color-warning: light-dark(#F4CF60, #FFDF9A);
+    --color-icon-yellow: light-dark(#F4CF60, #FFDF9A);
+    --color-text-yellow: light-dark(#B38909, #FFDF9A);
+    --color-warning-muted: light-dark(#FFF9C2, #F4CF60);
+    --color-background-yellow: light-dark(#FFF9C2, #F4CF60);
+    --color-icon-blue: light-dark(#6962F6, #AAD1FC);
+    --color-background-blue: light-dark(#E5F1FF, #AAD1FC);
+    --color-syntax-punctuation: light-dark(#111215, #ECEDEE);
+    --color-syntax-keyword: light-dark(#6962F6, #AAD1FC);
+    --color-syntax-function: light-dark(#860000, #AAD1FC);
+    --color-syntax-string: light-dark(#216D39, #7ACC94);
+    --color-syntax-number: light-dark(#B38909, #FFDF9A);
+    --color-syntax-comment: light-dark(#696D77, #8F9299);
+    --color-syntax-operator: light-dark(#444955, #B4B6BB);
+    --color-on-accent: light-dark(#FFFFFF, #111215);
+    --font-family-body: 'Clarity City', system-ui, sans-serif;
+    --font-family-heading: 'Clarity City', system-ui, sans-serif;
+  }
+
+  /* ── Cappadocia ─────────────────────────────────────────────── */
+  [data-apc-theme='cappadocia'],
+  [data-apc-theme='cappadocia'] [data-astryx-theme] {
+    --color-text-primary: light-dark(#111215, #FFFFFF);
+    --color-text-secondary: light-dark(#444955, #DADBDD);
+    --color-text-gray: #8F9299;
+    --color-text-disabled: light-dark(#B4B6BB, #696D77);
+    --color-icon-disabled: light-dark(#B4B6BB, #696D77);
+    --color-text-accent: light-dark(#176E7F, #FFC334);
+    --color-syntax-variable: light-dark(#111215, #ECEDEE);
+    --color-background-body: light-dark(#F5F6F6, #111215);
+    --color-background-card: light-dark(#FFFFFF, #22252B);
+    --color-background-popover: light-dark(#FFFFFF, #22252B);
+    --color-background-muted: light-dark(#FCFCFC, #111215);
+    --color-background-surface: light-dark(#FCFCFC, #111215);
+    --color-overlay-hover: light-dark(#F5F6F6, #333740);
+    --color-tint-hover: light-dark(#F5F6F6, #333740);
+    --color-overlay-pressed: light-dark(#EAF1F5, #FFC334);
+    --color-overlay: light-dark(#176E7F, #ECEDEE);
+    --color-syntax-background: light-dark(#FCFCFC, #111215);
+    --color-background-gray: light-dark(#111215, #ECEDEE);
+    --color-border: light-dark(#DADBDD, #333740);
+    --color-border-emphasized: light-dark(#8F9299, #444955);
+    --color-border-gray: light-dark(#ECEDEE, #333740);
+    --color-border-blue: #176E7F;
+    --color-accent: light-dark(#176E7F, #FFC334);
+    --color-accent-muted: light-dark(#125A68, #F2B21F);
+    --color-neutral: light-dark(#9CB7C8, #333740);
+    --color-icon-accent: light-dark(#1F212D, #FFC334);
+    --color-success: light-dark(#45B96A, #7ACC94);
+    --color-icon-green: light-dark(#45B96A, #7ACC94);
+    --color-text-green: light-dark(#216D39, #7ACC94);
+    --color-success-muted: light-dark(#C9FFDA, #45B96A);
+    --color-background-green: light-dark(#C9FFDA, #45B96A);
+    --color-error: light-dark(#DE3A3A, #F66060);
+    --color-icon-red: light-dark(#DE3A3A, #F66060);
+    --color-text-red: light-dark(#860000, #F66060);
+    --color-error-muted: light-dark(#FFC9C9, #DE3A3A);
+    --color-background-red: light-dark(#FFC9C9, #DE3A3A);
+    --color-warning: light-dark(#F4CF60, #FFDF9A);
+    --color-icon-yellow: light-dark(#F4CF60, #FFDF9A);
+    --color-text-yellow: light-dark(#B38909, #FFDF9A);
+    --color-warning-muted: light-dark(#FFF9C2, #F4CF60);
+    --color-background-yellow: light-dark(#FFF9C2, #F4CF60);
+    --color-icon-blue: light-dark(#176E7F, #FFC334);
+    --color-background-blue: light-dark(#EAF1F5, #FFC334);
+    --color-syntax-punctuation: light-dark(#111215, #ECEDEE);
+    --color-syntax-keyword: light-dark(#176E7F, #FFC334);
+    --color-syntax-function: light-dark(#860000, #FFC334);
+    --color-syntax-string: light-dark(#216D39, #7ACC94);
+    --color-syntax-number: light-dark(#B38909, #FFDF9A);
+    --color-syntax-comment: light-dark(#696D77, #8F9299);
+    --color-syntax-operator: light-dark(#444955, #B4B6BB);
+    --color-on-accent: light-dark(#FFFFFF, #111215);
+    --font-family-body: 'Epilogue', system-ui, sans-serif;
+    --font-family-heading: 'Fraunces', system-ui, sans-serif;
   }
 
 }

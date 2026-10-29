@@ -122,6 +122,46 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.12.0: Lapland, Cappadocia and Arctic Night 2.0 (2026-10-29)
+
+Two new APC themes and a revised Arctic, from a re-import of the design system's tokens.
+Precast's own `app/` code did not change; the web app renders exactly as before on the five
+earlier ids unless a project is on `arctic`.
+
+**What changed.**
+
+- `apps/web/app/theme/apc.tokens.json` is the design project's current file (93,839 bytes,
+  nine palette collections). `pnpm theme:build` now emits seven themes, 367 declarations.
+- **Lapland** (`lapland`): indigo actions over cool greys, pale-blue accent, its own status
+  ramps; families Clarity City and Quicksand. **Cappadocia** (`cappadocia`): deep teal actions,
+  warm yellow accent, earthy secondaries; families Epilogue and Fraunces.
+- **Arctic is Arctic Night 2.0.** The id `arctic` stays, so `pnpm set-theme arctic` and existing
+  projects keep working, but its tokens are the revised palette (Fjord brand, four new
+  secondaries). A project on `arctic` changes colour on this release; the first Arctic's
+  collection is still in the file and can be pinned back by pointing the `arctic` entry in
+  `scripts/build-apc-theme.mjs` at `tokens: 'arctic'`, `prefix: 'ar'`.
+- `scripts/build-apc-theme.mjs`: each theme names its palette collection (`tokens`), the
+  typography group it reads families from (`typography`) and any family override (`fonts`),
+  because the new themes' typography groups only say which theme they reuse.
+- The token file also carries `kowloon` (AgentBase Studio's theme); it is not built. The
+  theme-source guard is now a subset check for that reason.
+- Lapland's light-mode button measures 4.49:1 (white on Electra 200, `#6962F6`), 0.01 short of
+  the 4.5:1 guard. Shipped by decision, with the pair recorded in `apc-theme.spec.ts`
+  (`DESIGN_SHORTFALLS`) at its measured value; the fix belongs in the design project.
+
+**Handled by `pnpm precast:update`.** `scripts/build-apc-theme.mjs`, `scripts/set-theme.mjs`,
+`CLAUDE.md`, `README.md` and the docs.
+
+**Manual steps.**
+
+1. Copy `apps/web/app/theme/apc.tokens.json` and `apps/web/app/theme/apc-theme.ts` from this
+   release (both under `apps/`, which the sync never writes), then run `pnpm theme:build` to
+   regenerate `apc-themes.css`.
+2. `apps/web/test/apc-theme.spec.ts` is advisory: port the subset check in `APC token source`
+   or the first test fails on the extra collections.
+3. If the project is on `arctic` and wants the first Arctic back, pin it as described above
+   before regenerating.
+
 ## v0.11.1: Astryx 0.7.4, and the JSX shim is gone (2026-10-28)
 
 A dependency bump in the web app and one build workaround removed. Precast's own `app/` code
