@@ -45,7 +45,7 @@ See [docs/TECH_STACK.md](docs/TECH_STACK.md) for the pinned versions of everythi
 
 ### 1. Connect my AgentBase
 
-You need the current Node LTS with pnpm (`.nvmrc` says `lts/*`; `nvm install` picks it up) and an AgentBase **Application**. Nothing else runs on your computer: no Docker, no database. The Application is how a project gets its model, reaches tools and is hosted; four values identify it, and they are all in AgentBase Studio: open **Applications**, create one named after the project (or open one you already use), and on its **Credentials** tab take the **Client ID**, **Copy secret** for the secret, and **Copy snippet** for the token URL (the first line of the snippet, ending in `/protocol/openid-connect/token`). The fourth is the **API base URL** of AgentBase itself, which your admin has.
+You need the current Node LTS with pnpm (`.nvmrc` says `lts/*`; `nvm install` picks it up) and an AgentBase **Application**. Nothing else runs on your computer: no Docker, no database. The Application is how a project gets its model, reaches tools and is hosted; four values identify it, and they are all in AgentBase Studio: open **Applications**, create one named after the project (or open one you already use), and on its **Precast** tab take the **Client ID**, the **client secret** (it has its own copy button), the **Token URL** (ending in `/protocol/openid-connect/token`) and the **AgentBase API base URL**. **Copy for Precast** copies all but the secret as one block.
 
 A new project asks for these at `pnpm bootstrap` (step 2). An existing project takes them with:
 

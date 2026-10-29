@@ -122,6 +122,21 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.12.2: `pnpm connect` points at the Precast tab (2026-10-30)
+
+When AgentBase rejects the client id or secret, or the token URL is wrong, `pnpm connect` now
+sends the person to the Application's **Precast** tab in AgentBase Studio, which shows the
+Client ID, the client secret with its own copy button, the Token URL and the AgentBase API base
+URL. It used to name the Credentials tab and its Copy secret and Copy snippet buttons. The
+`.env.example` comment above the AgentBase lines and the README's setup paragraph say the same.
+
+**Handled by `pnpm precast:update`.** `scripts/connect-agentbase.mjs`.
+
+**Manual steps.** `.env.example` is advisory: copy the new comment above `AGENTBASE_CLIENT_ID` if
+the project keeps Precast's wording. The README is the project's own: update its setup paragraph
+if it still has Precast's. `apps/web/test/connect-agentbase.spec.ts` now expects the
+Precast tab in the hint; port that line if the project keeps the spec.
+
 ## v0.12.1: the client secret can be pasted into `.env` by hand (2026-10-29)
 
 `pnpm bootstrap … --agentbase-client-secret=later` sets up the project without the Application's

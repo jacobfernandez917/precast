@@ -38,7 +38,7 @@ export const FIELDS = [
     env: 'AGENTBASE_TOKEN_URL',
     flag: 'agentbase-token-url',
     prompt:
-      'Token URL (from "Copy snippet" on the Application\'s Credentials tab; ends in /protocol/openid-connect/token)',
+      'Token URL (on the Application\'s Precast tab in AgentBase Studio; ends in /protocol/openid-connect/token)',
   },
   { env: 'AGENTBASE_CLIENT_ID', flag: 'agentbase-client-id', prompt: 'Application client id' },
   {
@@ -72,9 +72,9 @@ export class ConnectError extends Error {
 }
 
 const STUDIO_CREDENTIALS =
-  'In AgentBase Studio open Applications, then your application, then the Credentials tab: ' +
-  'the client id is shown there, "Copy secret" copies the secret, and "Copy snippet" copies a ' +
-  'command whose first line is the token URL.';
+  'In AgentBase Studio open Applications, then your application, then the Precast tab: it shows ' +
+  'the Client ID, the client secret (with its own copy button), the Token URL and the AgentBase ' +
+  'API base URL.';
 
 function networkCode(err) {
   return err?.cause?.code ?? err?.code ?? err?.message ?? 'no response';

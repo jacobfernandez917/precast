@@ -82,13 +82,13 @@ describe('APP-025 pnpm connect: proves the connection before writing it', () => 
     );
   });
 
-  it('a rejected id or secret says so and points at the Credentials tab, without the secret', async () => {
+  it('a rejected id or secret says so and points at the Precast tab, without the secret', async () => {
     const { fetch } = fakeFetch({ token: json({ error: 'invalid_client' }, 401) });
     const err = await mintToken({ ...tokenArgs(), fetch }).catch((e: unknown) => e as ConnectError);
     expect(err).toBeInstanceOf(ConnectError);
     expect(err.step).toBe('token');
     expect(err.message).toMatch(/client id or secret/);
-    expect(err.hint).toMatch(/Credentials tab/);
+    expect(err.hint).toMatch(/Precast tab/);
     expect(err.message + err.hint).not.toContain(SECRET);
   });
 
