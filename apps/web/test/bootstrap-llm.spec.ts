@@ -107,6 +107,15 @@ describe('bootstrap: AgentBase Models provider', () => {
     ).not.toContain('.env.example');
   });
 
+  it('lets the person put the secret into .env themselves (--agentbase-client-secret=later)', () => {
+    // The secret then never passes through a chat or a command line. Bootstrap must
+    // leave the empty line for it, skip what needs it, and say what to do next.
+    expect(src).toContain("=== 'later'");
+    expect(src).toContain('!(secretDeferred && f.secret)');
+    expect(src).toContain('AGENTBASE_CLIENT_SECRET= and save the file');
+    expect(src).toContain("database.mode === 'provision' && secretDeferred");
+  });
+
   it('does not demand a vendor key for the agentbase choice', () => {
     // envVar is null for this provider; the old unconditional reminder would
     // have printed "set null in .env".

@@ -122,6 +122,20 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.12.1: the client secret can be pasted into `.env` by hand (2026-10-29)
+
+`pnpm bootstrap … --agentbase-client-secret=later` sets up the project without the Application's
+client secret. The `AGENTBASE_CLIENT_SECRET=` line in `.env` stays empty for the person to fill in
+their editor, the database step is skipped (it needs the secret), and the closing output says what
+to do next: paste the secret, then `pnpm db:provision` and `pnpm poc`. The secret therefore never
+passes through a chat, a command line or a log. The two earlier ways still work: the
+`AGENTBASE_CLIENT_SECRET` environment variable, and the hidden prompt in a terminal.
+
+**Handled by `pnpm precast:update`.** `scripts/bootstrap.mjs`, `docs/SCRIPTS.md` and this file.
+
+**Manual steps.** None. `apps/web/test/bootstrap-llm.spec.ts` gained a case for the flag; port it
+if the project keeps that spec.
+
 ## v0.12.0: Lapland, Cappadocia and Arctic Night 2.0 (2026-10-29)
 
 Two new APC themes and a revised Arctic, from a re-import of the design system's tokens.

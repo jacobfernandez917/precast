@@ -43,6 +43,8 @@
  *   pnpm bootstrap my-project --llm-provider=agentbase \
  *     --agentbase-base-url=… --agentbase-token-url=… --agentbase-client-id=… \
  *     --agentbase-client-secret=… --agentbase-model=anthropic/claude-sonnet-5
+ *   # The secret may be left for the person to paste into .env themselves:
+ *   pnpm bootstrap my-project --llm-provider=agentbase … --agentbase-client-secret=later
  * Non-interactive theme selection (defaults to Stockholm when a name is passed
  * as an argument, since there is nobody at the prompt to answer):
  *   pnpm bootstrap my-project --theme=arctic
@@ -296,8 +298,18 @@ async function resolvePorts() {
  * from the Docker build context. `.env.example`, which IS committed, keeps the
  * empty placeholders.
  */
+/**
+ * `--agentbase-client-secret=later` means the person puts the secret into `.env`
+ * themselves after bootstrap, so it never passes through a chat or a command line.
+ * The `AGENTBASE_CLIENT_SECRET=` line `.env.example` ships stays empty for them to
+ * fill, nothing that needs the secret runs (the database is provisioned by
+ * `pnpm db:provision` afterwards), and the closing output says exactly what to do.
+ */
+let secretDeferred = false;
+
 async function resolveAgentBaseLlm(prompt) {
   const values = {};
+  secretDeferred = (flagVal('agentbase-client-secret') || '').trim().toLowerCase() === 'later';
 
   // Flags first, so CI / non-interactive runs work without a TTY. The secret may also come
   // from the environment, which is how the skill passes one pasted into the chat: a flag
@@ -307,8 +319,11 @@ async function resolveAgentBaseLlm(prompt) {
     const fromEnv = field.secret ? process.env[field.env]?.trim() : '';
     if (fromFlag || fromEnv) values[field.env] = fromFlag || fromEnv;
   }
+  if (secretDeferred) delete values.AGENTBASE_CLIENT_SECRET;
 
-  const missing = AGENTBASE_LLM_FIELDS.filter((f) => !f.optional && !values[f.env]);
+  const missing = AGENTBASE_LLM_FIELDS.filter(
+    (f) => !f.optional && !values[f.env] && !(secretDeferred && f.secret),
+  );
   if (missing.length === 0) return values;
 
   if (!prompt) {
@@ -608,7 +623,18 @@ async function main() {
   }
   if (agentBaseLlm) writeEnvValues(agentBaseLlm);
   if (database.mode === 'url') writeEnvValues({ DATABASE_URL: database.url });
-  if (database.mode === 'provision') {
+  if (secretDeferred) {
+    console.log(
+      '\nThe Application client secret is not in .env yet. Open .env, paste the secret after ' +
+        'AGENTBASE_CLIENT_SECRET= and save the file.' +
+        (database.mode === 'provision'
+          ? ' Then run `pnpm db:provision` to create the database, and `pnpm poc`.'
+          : ' Then `pnpm connect --check` confirms it.'),
+    );
+  }
+  if (database.mode === 'provision' && secretDeferred) {
+    console.log('\nSkipped the database for now: creating it needs the secret in .env first.');
+  } else if (database.mode === 'provision') {
     // 8. Provisioning talks to AgentBase (or the database server) and can fail for
     // reasons this script cannot fix (network, the agent restarting). The project
     // exists either way, so a failure here is reported and left to `pnpm db:provision`.
@@ -635,6 +661,10 @@ async function main() {
     );
   }
   console.log('\nNext steps:');
+  if (secretDeferred) {
+    console.log('  • Paste the Application client secret into .env (AGENTBASE_CLIENT_SECRET=) and save.');
+    if (database.mode === 'provision') console.log('  • Create the database:   pnpm db:provision');
+  }
   console.log('  • Set your project name + mission in docs/PROGRESS.md §1 and the README title.');
   if (!envCreated && !existsSync(join(rootDir, '.env'))) {
     console.log('  • Copy env:            cp .env.example .env');
