@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -40,6 +40,11 @@ const AgentCards = dynamic(() => import('./a2ui/AgentCards').then((m) => m.Agent
  * cannot stop it), and its answer belongs to the cleared conversation. A turn
  * that finishes after a reset changes nothing here, typed message or card press
  * alike (see `lib/chat-turns.ts`).
+ *
+ * SCROLLING: the card fills the screen, the turns scroll inside it, and the
+ * message box stays at its bottom. A new turn brings the log to its end. Cards
+ * load client-side and grow a turn after it lands, so the log follows that
+ * growth too, unless the reader has scrolled up to read.
  */
 interface Turn {
   question: string;
@@ -56,6 +61,32 @@ export function AgentChat() {
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const gate = useRef(createConversationGate());
+  const logRef = useRef<HTMLDivElement>(null);
+  const followEnd = useRef(true);
+
+  useEffect(() => {
+    followEnd.current = true;
+    const log = logRef.current;
+    if (log) log.scrollTop = log.scrollHeight;
+  }, [turns]);
+
+  useEffect(() => {
+    const log = logRef.current;
+    const content = log?.firstElementChild;
+    if (!log || !content) return;
+    const onScroll = () => {
+      followEnd.current = log.scrollHeight - log.scrollTop - log.clientHeight < 48;
+    };
+    const growth = new ResizeObserver(() => {
+      if (followEnd.current) log.scrollTop = log.scrollHeight;
+    });
+    log.addEventListener('scroll', onScroll);
+    growth.observe(content);
+    return () => {
+      log.removeEventListener('scroll', onScroll);
+      growth.disconnect();
+    };
+  }, []);
 
   function startNewConversation() {
     gate.current.reset();
@@ -119,8 +150,8 @@ export function AgentChat() {
   }
 
   return (
-    <Card>
-      <form onSubmit={sendMessage} className="flex flex-col gap-4">
+    <Card className="flex min-h-0 flex-1 flex-col">
+      <form onSubmit={sendMessage} className="flex min-h-0 flex-1 flex-col gap-4">
         <div className="flex items-start justify-between gap-4">
           <Heading level={2}>Agent chat (A2A)</Heading>
           {turns.length > 0 && (
@@ -140,7 +171,13 @@ export function AgentChat() {
           placeholder="example-agent"
         />
 
-        {turns.length > 0 && (
+        <div
+          ref={logRef}
+          role="log"
+          aria-label="Conversation"
+          tabIndex={0}
+          className="min-h-0 flex-1 overflow-y-auto"
+        >
           <div className="flex flex-col gap-3">
             {turns.map((turn, i) => (
               <div key={i} className="flex flex-col gap-2">
@@ -157,13 +194,15 @@ export function AgentChat() {
                 </div>
               </div>
             ))}
-            <Text type="supporting">
-              This agent remembers the turns above. Tell it your name, start over, then ask for it —
-              the thread resets, but what it saved about you carries across. Ask for a card to see
-              buttons it can draw.
-            </Text>
+            {turns.length > 0 && (
+              <Text type="supporting">
+                This agent remembers the turns above. Tell it your name, start over, then ask for it
+                — the thread resets, but what it saved about you carries across. Ask for a card to
+                see buttons it can draw.
+              </Text>
+            )}
           </div>
-        )}
+        </div>
 
         <div className="flex items-end gap-2">
           <div className="flex-1">

@@ -36,10 +36,11 @@ export function HomeChat() {
     );
   }
 
+  // Fills the rest of the screen, so the chat's own log scrolls and the page does not.
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <AccountBar email={data.user.email} />
       <AgentChat />
-    </>
+    </div>
   );
 }

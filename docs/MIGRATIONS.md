@@ -122,6 +122,38 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.12.4: the chat log scrolls and the message box stays on screen (2026-10-30)
+
+The home page grew with every turn, so a long conversation pushed the message box below the fold.
+
+**What changed.** The page fills the screen, the signed-in chat takes the remaining height, the
+turns scroll inside the chat card, and the message box stays at its bottom. A new turn brings the
+log to its end. A card that loads after its turn landed is followed too, unless the reader has
+scrolled up to read.
+
+**Handled by `pnpm precast:update`.** Nothing: the change is under `apps/`.
+
+**Manual steps.**
+
+1. `apps/web/app/page.tsx`: on `<main>`, replace `min-h-screen` with `h-dvh`.
+2. `apps/web/app/HomeChat.tsx`: wrap the signed-in `<AccountBar />` and `<AgentChat />` in
+   `<div className="flex min-h-0 flex-1 flex-col gap-6">`.
+3. `apps/web/app/AgentChat.tsx`: give the `Card` `className="flex min-h-0 flex-1 flex-col"` and
+   the form `min-h-0 flex-1`. Put the turns in an always-rendered
+   `<div ref={logRef} role="log" aria-label="Conversation" tabIndex={0} className="min-h-0 flex-1 overflow-y-auto">`
+   whose single child is the `flex flex-col gap-3` list, and copy the `logRef` and `followEnd`
+   refs and the two effects from upstream.
+4. Copy `apps/web/e2e/chat-scroll.spec.ts` (E2E-011). If your chat box has its own placeholder,
+   use it in the spec.
+
+**Advisory files touched.** None.
+
+**Verify.**
+
+```bash
+pnpm verify:poc && pnpm test:e2e
+```
+
 ## v0.12.3: a new project typechecks, tests and builds its images again (2026-10-30)
 
 Two faults in every project scaffolded from v0.12.2, and one in every project's Dockerfiles since
