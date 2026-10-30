@@ -109,6 +109,20 @@ describe('docker: node LTS alpine base images', () => {
     }
   });
 
+  // node:lts-alpine moved to Node 26 on 2026-10-28, and Node 25 and newer ship without
+  // corepack: a bare `corepack enable` failed with exit 127 and no image built, so neither
+  // CI nor an AgentBase import could build one.
+  it.each(dockerfiles)('%s installs corepack before enabling it', (dockerfile) => {
+    const rel = dockerfile.replace(REPO_ROOT, '').replace(/^\//, '');
+    const body = stripComments(readFileSync(dockerfile, 'utf8'));
+    for (const line of body.split('\n').filter((l) => /\bcorepack enable\b/.test(l))) {
+      expect(
+        line,
+        `${rel} runs "corepack enable" without installing corepack, which Node 25+ images lack`,
+      ).toMatch(/npm install -g corepack(@\S+)? && corepack enable/);
+    }
+  });
+
   it('.nvmrc follows the LTS line, as the images do', () => {
     const nvmrc = readFileSync(join(REPO_ROOT, '.nvmrc'), 'utf8').trim();
     expect(nvmrc, 'the Dockerfiles build on node:lts-alpine, so .nvmrc must say lts/*').toBe(

@@ -4,7 +4,9 @@
 
 # ---- build: install the workspace and build Next (standalone output) ----
 FROM node:lts-alpine AS build
-RUN corepack enable
+# Node 25 and newer no longer bundle corepack, so install it first; it then provides the pnpm
+# version package.json pins in packageManager.
+RUN npm install -g corepack@latest && corepack enable
 WORKDIR /repo
 COPY . .
 RUN pnpm install --frozen-lockfile --ignore-scripts

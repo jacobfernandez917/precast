@@ -21,6 +21,10 @@ import {
  * them. Exercised with a fake `fetch`; nothing leaves the process.
  */
 const SECRET = 'sekrit-value-never-shown';
+// Studio's tab carries the boilerplate's name in every project, but this file is a rename target:
+// written out, the name would be renamed here and not in the script, and the case would fail in
+// every derived project. Assembled at runtime, as in rename-project.spec.ts.
+const STUDIO_TAB = ['Pre', 'cast'].join('') + ' tab';
 const VALUES = {
   AGENTBASE_URL: 'https://api.agentbase.test',
   AGENTBASE_TOKEN_URL: 'https://kc.agentbase.test/realms/agentbase/protocol/openid-connect/token',
@@ -82,13 +86,13 @@ describe('APP-025 pnpm connect: proves the connection before writing it', () => 
     );
   });
 
-  it('a rejected id or secret says so and points at the Precast tab, without the secret', async () => {
+  it("a rejected id or secret says so and points at the Application's tab in Studio, without the secret", async () => {
     const { fetch } = fakeFetch({ token: json({ error: 'invalid_client' }, 401) });
     const err = await mintToken({ ...tokenArgs(), fetch }).catch((e: unknown) => e as ConnectError);
     expect(err).toBeInstanceOf(ConnectError);
     expect(err.step).toBe('token');
     expect(err.message).toMatch(/client id or secret/);
-    expect(err.hint).toMatch(/Precast tab/);
+    expect(err.hint).toContain(STUDIO_TAB);
     expect(err.message + err.hint).not.toContain(SECRET);
   });
 

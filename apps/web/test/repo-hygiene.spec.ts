@@ -398,9 +398,11 @@ describe('SMOKE-017 — a fresh scaffold can actually boot', () => {
   // APP-030: found on a fresh scaffold. lint-staged on bootstrap's first commit
   // aborted the scaffold over one lint error, and its reformatting made a new
   // project's untouched files look customized to `precast:update`.
+  // The message's last word is matched loosely: this file is a rename target, and the
+  // boilerplate's name written here was renamed while bootstrap.mjs kept it.
   it("bootstrap's first commit skips lint-staged", () => {
     expect(bootstrap).toMatch(
-      /run\('git', \['commit', '-m', `chore: initialize \$\{name\} from Precast`\], \{\s*env: \{ SKIP_LINT_STAGED: '1' \},?\s*\}\)/,
+      /run\('git', \['commit', '-m', `chore: initialize \$\{name\} from [^`]+`\], \{\s*env: \{ SKIP_LINT_STAGED: '1' \},?\s*\}\)/,
     );
   });
 

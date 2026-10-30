@@ -122,6 +122,58 @@ says so** — silence means the entry is incomplete, not that there's nothing to
   **Verify.** The command(s) that prove the upgrade landed.
 -->
 
+## v0.12.3: a new project typechecks, tests and builds its images again (2026-10-30)
+
+Two faults in every project scaffolded from v0.12.2, and one in every project's Dockerfiles since
+`node:lts-alpine` became Node 26 on 2026-10-28.
+
+**What changed.**
+
+- Neither image built, in CI or in an AgentBase import. Node 25 and newer ship without corepack,
+  so the build stage's `RUN corepack enable` failed with exit 127. Both Dockerfiles now run
+  `npm install -g corepack@latest && corepack enable`; corepack then provides the pnpm that
+  `packageManager` pins.
+
+- The agents app failed to typecheck. Bootstrap runs `pnpm deps:update`, which updated
+  `@ai-sdk/openai-compatible` (3.0.81, built on `@ai-sdk/provider` 4.0.34) past the provider
+  `@mastra/core` 1.80.0 pins (4.0.29). Two copies of the provider types met in
+  `agentbase-model.ts`. `pnpm deps:update` now finishes by pinning `@ai-sdk/openai-compatible` and
+  `@ai-sdk/provider` exactly, to the release built on the provider the installed `@mastra/core`
+  ships, and stops with one line naming the version when no release matches. Precast itself is
+  pinned the same way: 3.0.63 and 4.0.22 for Mastra 1.78.0 (it had 3.0.14 on 4.0.3 beside 4.0.22,
+  and typechecked by luck).
+- `pnpm test` failed: `connect-agentbase.spec.ts` wrote the Studio tab's name out, the rename
+  rewrote it in the spec but not in the script's message, and the case failed (SMOKE-019 flagged
+  it too). The spec now assembles the name at runtime.
+
+**Handled by `pnpm precast:update`.** `scripts/update-deps.mjs`.
+
+**Manual steps.**
+
+1. After taking the new `scripts/update-deps.mjs`, run `pnpm deps:update` once; it pins the two AI
+   SDK packages in `apps/agents/package.json` for the Mastra you have. To pin by hand instead, set `@ai-sdk/provider` to the version your
+   `@mastra/core` lists as `npm:@ai-sdk/provider@4.x` in its `package.json`, and
+   `@ai-sdk/openai-compatible` to the release whose `@ai-sdk/provider` dependency is that version
+   (`npm view @ai-sdk/openai-compatible@3 version dependencies --json`). No `^`: an exact pin is
+   what keeps a later update from separating them.
+2. Copy `apps/agents/src/mastra/lib/ai-sdk-alignment.spec.ts` and `apps/web/test/update-deps.spec.ts`
+   (AGT-027, APP-034).
+3. In `apps/web/test/connect-agentbase.spec.ts`, if the case about the rejected id or secret expects
+   your project's name followed by "tab", make it expect the Studio tab's name assembled at runtime,
+   as upstream does.
+4. In `apps/agents/Dockerfile` and `apps/web/Dockerfile`, replace `RUN corepack enable` with
+   `RUN npm install -g corepack@latest && corepack enable`, and copy the new case in
+   `apps/web/test/docker-build.spec.ts` (APP-012). Do this before the next AgentBase import or
+   redeploy: until then the agents image does not build.
+
+**Advisory files touched.** None.
+
+**Verify.**
+
+```bash
+pnpm verify
+```
+
 ## v0.12.2: `pnpm connect` points at the Precast tab (2026-10-30)
 
 When AgentBase rejects the client id or secret, or the token URL is wrong, `pnpm connect` now
