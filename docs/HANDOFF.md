@@ -14,6 +14,8 @@
 
 **Fresh baseline.** This is a clean Precast checkout — a runnable, agent-native monorepo with neutral placeholders (`example-agent` / `summary-agent` / `example-tool`, a generic landing page + agent-chat demo). No domain logic yet. `pnpm build` / `typecheck` / `lint` / `test` are green out of the box.
 
+- **Two gated modes, one repository (2026-11-12).** `PRECAST_AGENT_MODE=project` is the default and loads only the existing crew. `PRECAST_AGENT_MODE=scaffold-builder` loads only `scaffold-builder`. Its sole tool runs a fixed Computer workflow in `Projects/<name>`: clone Precast → bootstrap (`--llm-provider=skip --db=later`) → `verify:poc` → build. The import manifest scopes Developer Computer needs to Mastra id `scaffold-builder`; normal project agents receive no Computer proposal.
+
 - The Mastra app (`apps/agents`) and Next app (`apps/web`) are intentionally **neutral placeholders**. Real agents/pages/schema come from the feed-forward docs in `templates/` + TECH_STACK.
 - Infra (Postgres/Redis) is **remote/managed** via the root `.env`, never run on the developer's computer. `pnpm poc` runs both apps as Node processes on `127.0.0.1`; there is no container runtime locally.
 - **Postgres-only** ([ADR-002](ADRS.md), supersedes ADR-001): `DATABASE_URL` rejects SQLite/libsql at boot. A provisioned managed Postgres is a bootstrap precondition — the stack will not start without one.
@@ -31,7 +33,9 @@ _Known carry-forwards:_
 
 ## 2. Next task (overwrite on each handoff)
 
-**Orchestrator-crew Phases 1–4 are DONE** (`docs/plans/orchestrator-crew-plan.md`); the ecosystem is mirrored (precast, precast-plugin `skills/scaffold/SKILL.md`, precast-ground-zero HANDOFF/PROGRESS/ADR-017). Two carry-forwards need a **running stack** to close, and neither is committed yet:
+**Precast scaffold-builder implementation is complete locally.** Next, deploy the same repository with `PRECAST_AGENT_MODE=scaffold-builder`, configure the imported agent's model, approve its scoped Developer Computer request from Raya, and run one live scaffold. Confirm the output appears in `Projects/<name>` and all four recorded steps succeed. No new builder repository is part of this flow.
+
+The earlier orchestrator-crew live telemetry checks remain carry-forwards:
 
 1. **Live-verify the telemetry stitch (P4 R2/R3).** With a real Postgres + a wired OTLP backend, boot a 2-member crew container and confirm the orchestrator→member in-process spans carry AgentBase's inbound `traceparent` and land in the backend correlated with `audit_calls` by trace id. The bundled container likely needs `node --import ./instrumentation.mjs` (ESM instrumentation ordering) — `apps/agents/src/mastra/telemetry/otel.ts` currently self-starts on first import, which covers `mastra dev`; harden the Dockerfile CMD if the live check shows inbound extraction is missed.
 2. **Live-verify the AgentBase Studio import drawer** (full-crew vs orchestrator-only) against an authenticated stack + a repo whose manifest carries `orchestration`.
@@ -107,8 +111,10 @@ docs/AGENT_SPINUP_PROMPTS.md ← prompts for building agents on Precast (templat
 docs/plans/                 ← LIVE plans directory (create as needed)
 docs/archive/               ← FROZEN, do-not-parse
 apps/agents/src/mastra/index.ts   ← Mastra instance (registers crewAgents(crew), storage, logger, server:45000)
-apps/agents/src/mastra/crew.ts    ← THE CREW — single source of truth for the roster + orchestrator (declare agents here)
-apps/agents/src/mastra/agents/    ← example-agent.ts + summary-agent.ts (neutral placeholder members) + orchestrator.ts (createOrchestrator — in-process Agent Network front door)
+apps/agents/src/mastra/crew.ts    ← mode gate: project crew by default; isolated builder only when explicitly selected
+apps/agents/src/mastra/agents/    ← project members + orchestrator + scaffold-builder.ts (fixed Computer workflow)
+apps/agents/src/mastra/tools/scaffold-project.ts ← validated clone/bootstrap/verify/build sequence; no arbitrary command input
+apps/agents/src/mastra/lib/agentbase-computer.ts ← governed Computer run/action client with signed Raya proof forwarding
 apps/agents/src/mastra/lib/crew.ts ← defineCrew()/crewAgents() — N=1 pass-through, activate at 2+, guards; drives registration (and Phase-2 manifest)
 apps/agents/src/mastra/lib/agentbase-model.ts ← resolveAgentModel() — org-admin-configured LLM per imported agent, else the agent's own fallback string
 apps/agents/src/mastra/lib/storage.ts ← getMastraStore() — the single shared PostgresStore (one connection pool)

@@ -1,6 +1,5 @@
-import { exampleAgent } from './agents/example-agent';
-import { summaryAgent } from './agents/summary-agent';
 import { defineCrew } from './lib/crew';
+import { resolvePrecastAgentMode } from './lib/agent-mode';
 
 /**
  * THE CREW — the single source of truth for this project's agent roster and its
@@ -21,8 +20,14 @@ import { defineCrew } from './lib/crew';
  * your project's real agents (designed from templates/AGENT_SPEC.md) — the crew
  * and everything downstream update automatically from this list.
  */
-export const crew = defineCrew({
-  members: [exampleAgent, summaryAgent],
-});
+const members =
+  resolvePrecastAgentMode() === 'scaffold-builder'
+    ? [(await import('./agents/scaffold-builder')).scaffoldBuilderAgent]
+    : [
+        (await import('./agents/example-agent')).exampleAgent,
+        (await import('./agents/summary-agent')).summaryAgent,
+      ];
+
+export const crew = defineCrew({ members });
 
 export { crewAgents } from './lib/crew';

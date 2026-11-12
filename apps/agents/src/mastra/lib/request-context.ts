@@ -30,10 +30,15 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 /** The header AgentBase sets, lowercased — matches `proxy.service.ts`. */
 export const ON_BEHALF_OF_HEADER = 'x-agentbase-on-behalf-of';
+export const RAYA_USER_DELEGATION_HEADER = 'x-raya-user-delegation';
+export const AGENTBASE_CHAIN_HEADER = 'x-agentbase-chain';
 
 export interface RequestContext {
   /** The end-user subject this turn acts for, e.g. `U03A8NAEH39`. */
   onBehalfOf?: string;
+  /** Signed Raya proof and AgentBase chain; opaque and forwarded only to AgentBase. */
+  rayaUserDelegation?: string;
+  agentbaseChain?: string;
   /**
    * The card `show_card` drew during this turn, as A2UI messages, waiting for the A2UI middleware
    * to attach it to the reply. Set by the tool, taken once by the middleware.
@@ -57,6 +62,17 @@ export function runWithRequestContext<T>(ctx: RequestContext, fn: () => T): T {
  */
 export function currentOnBehalfOf(): string | undefined {
   return storage.getStore()?.onBehalfOf;
+}
+
+export function currentAgentBaseProof(): {
+  rayaUserDelegation?: string;
+  agentbaseChain?: string;
+} {
+  const store = storage.getStore();
+  return {
+    rayaUserDelegation: store?.rayaUserDelegation,
+    agentbaseChain: store?.agentbaseChain,
+  };
 }
 
 /**
@@ -126,4 +142,23 @@ export function attachOnBehalfOf(
   }
 
   if (subject) headers.set(ON_BEHALF_OF_HEADER, subject);
+}
+
+/** Attach the signed turn proof only to the exact AgentBase origin. */
+export function attachAgentBaseProof(
+  headers: Headers,
+  url: string,
+  base: string | undefined,
+): void {
+  if (!base) return;
+  try {
+    if (new URL(url).origin !== new URL(base).origin) return;
+  } catch {
+    return;
+  }
+  const proof = currentAgentBaseProof();
+  if (proof.rayaUserDelegation) {
+    headers.set(RAYA_USER_DELEGATION_HEADER, proof.rayaUserDelegation);
+  }
+  if (proof.agentbaseChain) headers.set(AGENTBASE_CHAIN_HEADER, proof.agentbaseChain);
 }

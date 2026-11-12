@@ -1,6 +1,11 @@
 import { timingSafeEqual } from 'node:crypto';
 import type { AgentCard, SecurityScheme } from '@a2a-js/sdk';
-import { ON_BEHALF_OF_HEADER, runWithRequestContext } from '../lib/request-context';
+import {
+  AGENTBASE_CHAIN_HEADER,
+  ON_BEHALF_OF_HEADER,
+  RAYA_USER_DELEGATION_HEADER,
+  runWithRequestContext,
+} from '../lib/request-context';
 
 /**
  * Mastra Hono middleware with two jobs:
@@ -112,7 +117,9 @@ export function createAuthMiddleware() {
     // it explicitly. Absent header → an empty context, and behaviour is
     // unchanged from before OBO existed.
     const onBehalfOf = c.req.header(ON_BEHALF_OF_HEADER)?.trim() || undefined;
-    await runWithRequestContext({ onBehalfOf }, () => next());
+    const rayaUserDelegation = c.req.header(RAYA_USER_DELEGATION_HEADER)?.trim() || undefined;
+    const agentbaseChain = c.req.header(AGENTBASE_CHAIN_HEADER)?.trim() || undefined;
+    await runWithRequestContext({ onBehalfOf, rayaUserDelegation, agentbaseChain }, () => next());
 
     // 3. When auth is on, make the agent card advertise the bearer scheme.
     if (token && isAgentCardPath(c.req.path)) {

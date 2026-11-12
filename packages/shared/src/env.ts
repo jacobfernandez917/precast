@@ -21,6 +21,9 @@ const postgresUrl = (varName: string) =>
  * schema itself.
  */
 export const EnvSchema = z.object({
+  // One repository, two deliberately disjoint agent surfaces. Project mode is
+  // the existing boilerplate; scaffold-builder exposes only the privileged builder.
+  PRECAST_AGENT_MODE: z.enum(['project', 'scaffold-builder']).default('project'),
   // ── Mastra API (agents + Studio) ───────────────────────────────────────────
   MASTRA_PORT: z.coerce.number().default(45000),
   // 127.0.0.1: a local run is for this computer. The image sets 0.0.0.0 for AgentBase.

@@ -4,6 +4,30 @@
   "port": 45000,
   "authEnv": "AGENT_API_TOKEN",
   "requiredEnv": ["DATABASE_URL"],
+  "computer": {
+    "agents": ["scaffold-builder"],
+    "needs": {
+      "profile": "developer",
+      "paths": [
+        {
+          "prefix": "Projects",
+          "mode": "write",
+          "reason": "Create and verify a new project in the member's Projects folder."
+        }
+      ],
+      "domains": [],
+      "commandProfiles": [
+        {
+          "profile": "developer",
+          "reason": "Run the fixed Precast bootstrap, verification, and build commands."
+        }
+      ],
+      "authenticatedSites": null,
+      "externalWrite": null,
+      "secretAliases": [],
+      "rationale": "Scaffold and verify an explicitly requested Precast project on the member's Computer."
+    }
+  },
   "orchestration": {
     "orchestrator": "crew-orchestrator",
     "defaultImport": "orchestrator-only"

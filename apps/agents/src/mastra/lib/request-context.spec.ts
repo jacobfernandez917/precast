@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   ON_BEHALF_OF_HEADER,
+  AGENTBASE_CHAIN_HEADER,
+  RAYA_USER_DELEGATION_HEADER,
+  attachAgentBaseProof,
   attachOnBehalfOf,
   currentOnBehalfOf,
   resolveOnBehalfOf,
@@ -118,5 +121,23 @@ describe('attachOnBehalfOf — the host guard', () => {
       attachOnBehalfOf(h, 'not a url', AB);
     });
     expect(h.get(ON_BEHALF_OF_HEADER)).toBeNull();
+  });
+});
+
+describe('attachAgentBaseProof — signed turn forwarding', () => {
+  it('forwards both opaque proofs only to AgentBase', () => {
+    const own = new Headers();
+    const foreign = new Headers();
+    runWithRequestContext(
+      { rayaUserDelegation: 'raya-proof', agentbaseChain: 'chain-proof' },
+      () => {
+        attachAgentBaseProof(own, `${AB}/computer-agent/runs/resolved`, AB);
+        attachAgentBaseProof(foreign, 'https://evil.example/collect', AB);
+      },
+    );
+    expect(own.get(RAYA_USER_DELEGATION_HEADER)).toBe('raya-proof');
+    expect(own.get(AGENTBASE_CHAIN_HEADER)).toBe('chain-proof');
+    expect(foreign.get(RAYA_USER_DELEGATION_HEADER)).toBeNull();
+    expect(foreign.get(AGENTBASE_CHAIN_HEADER)).toBeNull();
   });
 });
