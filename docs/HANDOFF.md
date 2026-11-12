@@ -13,7 +13,8 @@
 ## 1. Current state (overwrite on each handoff)
 
 - **Fresh Computer bootstrap:** initial-commit identity falls back to `Project Scaffold <scaffold@localhost>` only for missing identity fields; existing Git configuration and author/committer environment overrides win. This fixes the failure reproduced inside the Developer image without changing member settings.
-- **Bundled mode startup verified:** both modes served exactly their expected agent cards against a separately provisioned managed database. Full `pnpm verify` passed after the factory fix. Managed reimport uses commit `576f139`; full real Computer scaffold remains pending Developer image publication and qualification.
+- **Live scaffold attempted, blocked at image admission (2026-11-13).** Source `ca2c3767-46e8-439c-99cb-4687a713fc9f` is SYNCED/RUNNING at code commit `685522c`, with a configured model and a separate managed memory database. Raya conversation `fbe14703-cd10-4d4b-b052-fcd6788f95da` approved grant `60d04996-0bc6-4c8d-b10c-6ce1c7492cc6`; final work `4b785f09-ffbd-452d-87ab-e17f7354153f` called the scaffold tool and reported `No signed developer image with a tool schema is promoted.` No builder Computer run or scaffold command was created. The real General Computer reached READY earlier and is now SUSPENDED.
+- **Validation:** both bundled modes served exactly their expected agent cards against managed Postgres; full `pnpm verify` and code CI passed. Fresh Developer-image desktop and initial-commit probes passed. Companion fixes are AgentBase `ab50cbbb` (per-agent identity + governance holds) and Raya `03ec2e0` (proposal rooms matched by stable subscribed agent ID); their focused unit and real-Postgres integration checks passed.
 
 **Fresh baseline.** This is a clean Precast checkout — a runnable, agent-native monorepo with neutral placeholders (`example-agent` / `summary-agent` / `example-tool`, a generic landing page + agent-chat demo). No domain logic yet. `pnpm build` / `typecheck` / `lint` / `test` are green out of the box.
 
@@ -36,7 +37,7 @@ _Known carry-forwards:_
 
 ## 2. Next task (overwrite on each handoff)
 
-**Live deployment is in progress (2026-11-13).** The existing repository is pushed to `develop`; LOCAL AgentBase has the new endpoints, and the real nonprod Computer was started successfully through Raya after repairing the Docker-to-SSM bridge. The worker currently prepares only the General image; Developer image promotion and matching model qualification are still required. The operator AWS SSO session is expired. Import `ca2c3767-46e8-439c-99cb-4687a713fc9f` uses `PRECAST_AGENT_MODE=scaffold-builder`; its first build failed in Docker's storage layer and is being retried. The builder proposal now requests exactly `github.com` and `registry.npmjs.org`, as commands inherit the approved network scope. Complete deployment, approve that scoped proposal, then verify all four steps in `Projects/<name>`. A complete live scaffold has not passed yet.
+**Finish the real Developer run after AWS sign-in renewal.** The attempted image upload failed because the `agentbase` AWS SSO token is expired. Renew that sign-in, publish/install the signed Developer image, promote its exact digest and tool schema, and qualify the configured model for Developer use before retrying the existing Raya conversation with project `raya-scaffold-live-20261113`. The worker currently prepares only General; no Developer image or qualification was registered. Prepared archive: `/tmp/precast-scaffold-live-1RUfjB/developer/rootfs.tar.zst` (865675926 bytes, SHA256 `79d02f394fa1774a44cd7e5943a9d2b013e2df786fbf57c7fada9dbf2d040e04`). Manifest, call evidence, and safe run IDs are alongside it; database credentials are in a separate owner-only file there. LOCAL's Docker-to-SSM bridge is the transient user unit `precast-scaffold-computer-bridge`. Verify clone → bootstrap → `verify:poc` → build on the real Computer before marking this complete. A complete live scaffold has not passed.
 
 The earlier orchestrator-crew live telemetry checks remain carry-forwards:
 
@@ -90,6 +91,8 @@ Return format:
 ```
 
 ## 4. File map for takeover (always-current)
+
+Scaffold follow-ups: `apps/agents/src/mastra/crew.spec.ts` covers scenario factory selection; `scripts/initial-commit-env.mjs` and `apps/web/test/initial-commit-env.spec.ts` cover initial commits on a fresh Computer. The live runtime uses the existing Precast repository, without a separate management repository.
 
 ```
 CLAUDE.md                   ← project brief + enforcement rules (auto-read by Claude Code)

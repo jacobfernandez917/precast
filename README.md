@@ -39,6 +39,8 @@ See [docs/TECH_STACK.md](docs/TECH_STACK.md) for the pinned versions of everythi
 
 ### One repository, gated agent modes
 
+Live validation (13 November 2026): the builder is deployed on LOCAL AgentBase and callable from Raya, and conversation-scoped Computer approval works. The scaffold attempt stops at `No signed developer image with a tool schema is promoted.` Developer publication and model qualification remain pending AWS sign-in renewal; no scaffold project was created. Resume details are in [docs/HANDOFF.md](docs/HANDOFF.md).
+
 On a fresh Computer without a Git identity, bootstrap uses `Project Scaffold <scaffold@localhost>` for the initial local commit. Configured member identities and explicit author overrides take precedence; Git configuration is never changed.
 
 Precast remains the single source repository. `PRECAST_AGENT_MODE=project` (the default) constructs and serves only the existing project crew. `PRECAST_AGENT_MODE=scaffold-builder` constructs and serves only `scaffold-builder`, which can create a new project in the Raya member's `Projects` folder after that member approves Developer Computer access. Mode-selection identifiers stay valid when bootstrap renames a project. Agent factories keep unused memory, tools, and MCP preflight inactive and avoid circular dynamic imports in Mastra's deployed bundle.

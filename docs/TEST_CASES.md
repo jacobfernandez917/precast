@@ -1,5 +1,7 @@
 # TEST_CASES.md — Test Catalog
 
+Live acceptance (2026-11-13): **blocked, not passed**. Real General Computer startup reached READY. The deployed builder's actual Raya conversation produced the approval requirement, approved its own room-scoped Developer grant, then invoked the scaffold tool through the configured model. Admission returned `No signed developer image with a tool schema is promoted.` Database verification found zero Computer runs for this builder, so clone/bootstrap/verify/build did not execute. Developer image desktop and Git identity probes and archive integrity passed locally. Full scaffold acceptance requires signed Developer publication, exact model qualification, and a successful real-Computer retry.
+
 `initial-commit-env.spec.ts`: a fresh Git repository can make its initial commit with the scaffold identity while retaining no `user.*` configuration; configured member identity and explicit author overrides take precedence. This covers the fresh Developer Computer bootstrap failure reproduced during live validation.
 
 > Test catalog for the boilerplate itself. When used to start a new project, replace this file with the project's own test cases.
