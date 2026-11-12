@@ -15,7 +15,16 @@
           "reason": "Create and verify a new project in the member's Projects folder."
         }
       ],
-      "domains": [],
+      "domains": [
+        {
+          "domain": "github.com",
+          "reason": "Clone the public Precast template over HTTPS."
+        },
+        {
+          "domain": "registry.npmjs.org",
+          "reason": "Install the lockfile dependencies from the approved npm registry."
+        }
+      ],
       "commandProfiles": [
         {
           "profile": "developer",

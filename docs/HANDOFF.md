@@ -33,7 +33,7 @@ _Known carry-forwards:_
 
 ## 2. Next task (overwrite on each handoff)
 
-**Precast scaffold-builder implementation is complete locally.** Next, deploy the same repository with `PRECAST_AGENT_MODE=scaffold-builder`, configure the imported agent's model, approve its scoped Developer Computer request from Raya, and run one live scaffold. Confirm the output appears in `Projects/<name>` and all four recorded steps succeed. No new builder repository is part of this flow.
+**Live deployment is in progress (2026-11-13).** The existing repository is pushed to `develop`; LOCAL AgentBase has the new endpoints, and the real nonprod Computer was started successfully through Raya after repairing the Docker-to-SSM bridge. The worker currently prepares only the General image; Developer image promotion and matching model qualification are still required. The operator AWS SSO session is expired. Import `ca2c3767-46e8-439c-99cb-4687a713fc9f` uses `PRECAST_AGENT_MODE=scaffold-builder`; its first build failed in Docker's storage layer and is being retried. The builder proposal now requests exactly `github.com` and `registry.npmjs.org`, as commands inherit the approved network scope. Complete deployment, approve that scoped proposal, then verify all four steps in `Projects/<name>`. A complete live scaffold has not passed yet.
 
 The earlier orchestrator-crew live telemetry checks remain carry-forwards:
 

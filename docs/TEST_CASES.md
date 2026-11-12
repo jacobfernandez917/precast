@@ -209,6 +209,8 @@
 
 ## Documentation Contract Tests
 
+Scaffold network scope: `agent-mode.spec.ts` checks that only `scaffold-builder` requests Computer access, with exactly the two public dependency hosts and no signed-in sites or secrets.
+
 | ID      | Description                                                                                                                                                                                                                                | Status                                         |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
 | DOC-001 | CLAUDE.md references all required docs                                                                                                                                                                                                     | Passing (`apps/web/test/repo-hygiene.spec.ts`) |

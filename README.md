@@ -41,7 +41,7 @@ See [docs/TECH_STACK.md](docs/TECH_STACK.md) for the pinned versions of everythi
 
 Precast remains the single source repository. `PRECAST_AGENT_MODE=project` (the default) serves the existing project crew and never loads the scaffold builder. `PRECAST_AGENT_MODE=scaffold-builder` serves only `scaffold-builder`, which can create a new project in the Raya member's `Projects` folder after that member approves Developer Computer access.
 
-The builder has no free-form command tool. Its workflow is fixed to clone this Precast repository, run the non-interactive bootstrap, run `pnpm verify:poc`, and run `pnpm build`. It creates no remote repository. AgentBase scopes the Computer proposal to the `scaffold-builder` agent id, so importing the same repository in normal project mode does not grant Computer access to the placeholder or project agents.
+The builder has no free-form command tool. Its workflow is fixed to clone this Precast repository, run the non-interactive bootstrap, run `pnpm verify:poc`, and run `pnpm build`. It creates no remote repository. Its Computer proposal requests only `github.com` and `registry.npmjs.org` for the template and dependencies. AgentBase scopes the Computer proposal to the `scaffold-builder` agent id, so importing the same repository in normal project mode does not grant Computer access to the placeholder or project agents.
 
 ---
 
