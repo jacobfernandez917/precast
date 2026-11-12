@@ -204,7 +204,6 @@ export class AgentBaseComputerClient {
     });
 
     const deadline = Date.now() + command.timeoutMs + 60_000;
-    let stdout = '';
     for (;;) {
       const result = await this.request<{
         action: ActionView;
@@ -213,7 +212,7 @@ export class AgentBaseComputerClient {
       }>(
         `/computer-agent/runs/${runId}/actions/${action.id}/command?stream=stdout&offset=0&maxBytes=262144`,
       );
-      stdout = outputText(result.output);
+      const stdout = outputText(result.output);
       if (['SUCCEEDED', 'FAILED', 'CANCELED'].includes(result.action.state)) {
         const stderrResult = await this.request<{ output?: unknown }>(
           `/computer-agent/runs/${runId}/actions/${action.id}/command?stream=stderr&offset=0&maxBytes=262144`,

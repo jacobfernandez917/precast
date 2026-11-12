@@ -209,7 +209,7 @@
 
 ## Documentation Contract Tests
 
-Scaffold network scope: `agent-mode.spec.ts` checks that only `scaffold-builder` requests Computer access, with exactly the two public dependency hosts and no signed-in sites or secrets.
+Scaffold network scope: `agent-mode.spec.ts` checks that only `scaffold-builder` requests Computer access, with exactly the two public dependency hosts and no signed-in sites or secrets. The agents lint gate also covers the Computer client's command-output polling.
 
 | ID      | Description                                                                                                                                                                                                                                | Status                                         |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
