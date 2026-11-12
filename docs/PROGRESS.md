@@ -1,5 +1,7 @@
 # PROGRESS.md — Context Memory
 
+- **2026-11-13 · Codex · bundled mode startup fix.** The first real managed import compiled but exited 13 because awaited dynamic imports formed a cycle through Mastra's shared entry chunk. Agent factories now construct only the selected scenario's agents, memory, and tools; project MCP preflight remains awaited only in project mode. Added scenario construction regression coverage. Live scaffold remains pending deployment and an approved Developer image.
+
 > **This file is the ultimate cross-tool context memory.** All coding agents MUST update this file on every meaningful change. If you finish work without updating PROGRESS.md, the work is **not** considered complete.
 
 **Last Updated:** 2026-08-11

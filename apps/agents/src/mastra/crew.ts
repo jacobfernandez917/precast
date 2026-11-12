@@ -1,5 +1,8 @@
 import { defineCrew } from './lib/crew';
 import { resolveAgentMode } from './lib/agent-mode';
+import { createExampleAgent } from './agents/example-agent';
+import { createSummaryAgent } from './agents/summary-agent';
+import { createScaffoldBuilderAgent } from './agents/scaffold-builder';
 
 /**
  * THE CREW — the single source of truth for this project's agent roster and its
@@ -16,17 +19,17 @@ import { resolveAgentMode } from './lib/agent-mode';
  * stays independently invocable. With a single member the orchestrator collapses
  * to that member (no routing hop) — it activates at 2+ members.
  *
- * `exampleAgent` and `summaryAgent` are neutral placeholders. Replace them with
+ * The example and summary agents are neutral placeholders. Replace them with
  * your project's real agents (designed from templates/AGENT_SPEC.md) — the crew
  * and everything downstream update automatically from this list.
  */
+// Factories preserve scenario isolation without awaited dynamic imports. Mastra
+// can extract shared code into the entry chunk; awaiting a child that imports
+// that chunk deadlocks module initialization in the deployed bundle.
 const members =
   resolveAgentMode() === 'scaffold-builder'
-    ? [(await import('./agents/scaffold-builder')).scaffoldBuilderAgent]
-    : [
-        (await import('./agents/example-agent')).exampleAgent,
-        (await import('./agents/summary-agent')).summaryAgent,
-      ];
+    ? [createScaffoldBuilderAgent()]
+    : [await createExampleAgent(), createSummaryAgent()];
 
 export const crew = defineCrew({ members });
 

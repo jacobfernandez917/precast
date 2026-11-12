@@ -23,12 +23,14 @@ const AGENT_ID = 'summary-agent';
  * Rule of thumb: attach memory to agents that hold a *conversation*, not to
  * agents that perform a *transformation*.
  */
-export const summaryAgent = new Agent({
-  id: AGENT_ID,
-  name: 'Summary Agent',
-  instructions:
-    'You are a placeholder assistant used to verify multi-agent wiring. ' +
-    'Summarize whatever text you are given in one short sentence.',
-  model: resolveAgentModel(AGENT_ID),
-  tools: { exampleTool },
-});
+export function createSummaryAgent() {
+  return new Agent({
+    id: AGENT_ID,
+    name: 'Summary Agent',
+    instructions:
+      'You are a placeholder assistant used to verify multi-agent wiring. ' +
+      'Summarize whatever text you are given in one short sentence.',
+    model: resolveAgentModel(AGENT_ID),
+    tools: { exampleTool },
+  });
+}
