@@ -39,6 +39,8 @@ The earlier orchestrator-crew live telemetry checks remain carry-forwards:
 
 CI's first scaffold-builder run passed both Docker image builds and E2E, but its lint gate identified an unused initial command-output assignment. That assignment has been removed; command output is now scoped to each polling iteration.
 
+The repository rename guard also caught placeholder-bearing mode identifiers that bootstrap would turn into invalid hyphenated TypeScript. These are now `AgentMode` and `resolveAgentMode`; the guard remains enforced.
+
 1. **Live-verify the telemetry stitch (P4 R2/R3).** With a real Postgres + a wired OTLP backend, boot a 2-member crew container and confirm the orchestrator→member in-process spans carry AgentBase's inbound `traceparent` and land in the backend correlated with `audit_calls` by trace id. The bundled container likely needs `node --import ./instrumentation.mjs` (ESM instrumentation ordering) — `apps/agents/src/mastra/telemetry/otel.ts` currently self-starts on first import, which covers `mastra dev`; harden the Dockerfile CMD if the live check shows inbound extraction is missed.
 2. **Live-verify the AgentBase Studio import drawer** (full-crew vs orchestrator-only) against an authenticated stack + a repo whose manifest carries `orchestration`.
 

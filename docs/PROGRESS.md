@@ -110,6 +110,8 @@ You MUST update PROGRESS.md when you:
 
 <!-- Newest first. The progress-stamp hook appends <auto-journal> markers here. -->
 
+- **2026-11-13 · Codex · preserve bootstrap rename safety ·** CI's existing SMOKE-019 guard caught mode-selection identifiers containing the boilerplate name. A hyphenated project rename would invalidate them. Renamed the type and resolver to `AgentMode` and `resolveAgentMode`; mode behavior and the guard are unchanged.
+
 - **2026-11-13 · Codex · scaffold CI lint correction ·** The first pushed scaffold revision passed both image builds and browser E2E. Its lint gate found the command client's initial `stdout` assignment was overwritten before use. Scoped output to each polling iteration without changing command handling.
 
 - **2026-11-13 · Codex · live scaffold deployment prerequisites ·** Pushed the existing repository to `develop` and initiated its LOCAL AgentBase import in scaffold-builder mode. Started the actual nonprod Computer through signed-in Raya after repairing its Docker gateway connection to the existing SSM tunnel. Worker readiness reports only General; Developer image/model qualification and renewed operator AWS SSO remain outstanding. Added the two explicit network hosts the clone and package install require (`github.com`, `registry.npmjs.org`); no signed-in sites, secrets or general public-web access are requested. The first import failed in Docker's snapshot storage layer; the same source is being retried. Full live scaffold remains unverified.

@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { resolvePrecastAgentMode } from './agent-mode';
+import { resolveAgentMode } from './agent-mode';
 
 describe('PRECAST_AGENT_MODE', () => {
   it('keeps the existing project crew as the safe default', () => {
-    expect(resolvePrecastAgentMode(undefined)).toBe('project');
-    expect(resolvePrecastAgentMode('project')).toBe('project');
+    expect(resolveAgentMode(undefined)).toBe('project');
+    expect(resolveAgentMode('project')).toBe('project');
   });
 
   it('enables the isolated scaffold builder only by explicit mode', () => {
-    expect(resolvePrecastAgentMode('scaffold-builder')).toBe('scaffold-builder');
-    expect(() => resolvePrecastAgentMode('builder')).toThrow(/PRECAST_AGENT_MODE/);
+    expect(resolveAgentMode('scaffold-builder')).toBe('scaffold-builder');
+    expect(() => resolveAgentMode('builder')).toThrow(/PRECAST_AGENT_MODE/);
   });
 
   it('limits Computer and network access to the builder and its two public dependency hosts', () => {

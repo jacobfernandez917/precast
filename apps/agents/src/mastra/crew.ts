@@ -1,5 +1,5 @@
 import { defineCrew } from './lib/crew';
-import { resolvePrecastAgentMode } from './lib/agent-mode';
+import { resolveAgentMode } from './lib/agent-mode';
 
 /**
  * THE CREW — the single source of truth for this project's agent roster and its
@@ -21,7 +21,7 @@ import { resolvePrecastAgentMode } from './lib/agent-mode';
  * and everything downstream update automatically from this list.
  */
 const members =
-  resolvePrecastAgentMode() === 'scaffold-builder'
+  resolveAgentMode() === 'scaffold-builder'
     ? [(await import('./agents/scaffold-builder')).scaffoldBuilderAgent]
     : [
         (await import('./agents/example-agent')).exampleAgent,

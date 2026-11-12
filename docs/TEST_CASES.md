@@ -209,7 +209,7 @@
 
 ## Documentation Contract Tests
 
-Scaffold network scope: `agent-mode.spec.ts` checks that only `scaffold-builder` requests Computer access, with exactly the two public dependency hosts and no signed-in sites or secrets. The agents lint gate also covers the Computer client's command-output polling.
+Scaffold network scope: `agent-mode.spec.ts` checks that only `scaffold-builder` requests Computer access, with exactly the two public dependency hosts and no signed-in sites or secrets. The agents lint gate also covers the Computer client's command-output polling. SMOKE-019 covers mode identifiers when bootstrap renames a project.
 
 | ID      | Description                                                                                                                                                                                                                                | Status                                         |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
