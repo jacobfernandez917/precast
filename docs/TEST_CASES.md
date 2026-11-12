@@ -1,5 +1,7 @@
 # TEST_CASES.md — Test Catalog
 
+`initial-commit-env.spec.ts`: a fresh Git repository can make its initial commit with the scaffold identity while retaining no `user.*` configuration; configured member identity and explicit author overrides take precedence. This covers the fresh Developer Computer bootstrap failure reproduced during live validation.
+
 > Test catalog for the boilerplate itself. When used to start a new project, replace this file with the project's own test cases.
 
 ---

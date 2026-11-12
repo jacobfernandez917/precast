@@ -39,6 +39,8 @@ See [docs/TECH_STACK.md](docs/TECH_STACK.md) for the pinned versions of everythi
 
 ### One repository, gated agent modes
 
+On a fresh Computer without a Git identity, bootstrap uses `Project Scaffold <scaffold@localhost>` for the initial local commit. Configured member identities and explicit author overrides take precedence; Git configuration is never changed.
+
 Precast remains the single source repository. `PRECAST_AGENT_MODE=project` (the default) constructs and serves only the existing project crew. `PRECAST_AGENT_MODE=scaffold-builder` constructs and serves only `scaffold-builder`, which can create a new project in the Raya member's `Projects` folder after that member approves Developer Computer access. Mode-selection identifiers stay valid when bootstrap renames a project. Agent factories keep unused memory, tools, and MCP preflight inactive and avoid circular dynamic imports in Mastra's deployed bundle.
 
 The builder has no free-form command tool. Its workflow is fixed to clone this Precast repository, run the non-interactive bootstrap, run `pnpm verify:poc`, and run `pnpm build`, returning the output of each completed step. It creates no remote repository. Its Computer proposal requests only `github.com` and `registry.npmjs.org` for the template and dependencies. AgentBase scopes the Computer proposal to the `scaffold-builder` agent id, so importing the same repository in normal project mode does not grant Computer access to the placeholder or project agents.

@@ -12,6 +12,9 @@
 
 ## 1. Current state (overwrite on each handoff)
 
+- **Fresh Computer bootstrap:** initial-commit identity falls back to `Project Scaffold <scaffold@localhost>` only for missing identity fields; existing Git configuration and author/committer environment overrides win. This fixes the failure reproduced inside the Developer image without changing member settings.
+- **Bundled mode startup verified:** both modes served exactly their expected agent cards against a separately provisioned managed database. Full `pnpm verify` passed after the factory fix. Managed reimport uses commit `576f139`; full real Computer scaffold remains pending Developer image publication and qualification.
+
 **Fresh baseline.** This is a clean Precast checkout — a runnable, agent-native monorepo with neutral placeholders (`example-agent` / `summary-agent` / `example-tool`, a generic landing page + agent-chat demo). No domain logic yet. `pnpm build` / `typecheck` / `lint` / `test` are green out of the box.
 
 - **Two gated modes, one repository (2026-11-12).** `PRECAST_AGENT_MODE=project` is the default and constructs only the existing crew. `PRECAST_AGENT_MODE=scaffold-builder` constructs only `scaffold-builder`. Static factory imports avoid a live-discovered Mastra chunk cycle; project MCP preflight still runs only in project mode. Its sole tool runs a fixed Computer workflow in `Projects/<name>`: clone Precast → bootstrap (`--llm-provider=skip --db=later`) → `verify:poc` → build. The import manifest scopes Developer Computer needs to Mastra id `scaffold-builder`; normal project agents receive no Computer proposal.

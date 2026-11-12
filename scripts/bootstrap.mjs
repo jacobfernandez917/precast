@@ -72,6 +72,7 @@ import { ensureLocalSecrets, restrictEnvFile } from './local-secrets.mjs';
 import { createPrompt } from './connect-agentbase.mjs';
 import { APC_THEMES, DEFAULT_THEME } from './build-apc-theme.mjs';
 import { THEME_IDS, setTheme } from './set-theme.mjs';
+import { initialCommitEnv } from './initial-commit-env.mjs';
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_BRANCH = 'develop';
@@ -662,7 +663,9 @@ async function main() {
   }
   console.log('\nNext steps:');
   if (secretDeferred) {
-    console.log('  • Paste the Application client secret into .env (AGENTBASE_CLIENT_SECRET=) and save.');
+    console.log(
+      '  • Paste the Application client secret into .env (AGENTBASE_CLIENT_SECRET=) and save.',
+    );
     if (database.mode === 'provision') console.log('  • Create the database:   pnpm db:provision');
   }
   console.log('  • Set your project name + mission in docs/PROGRESS.md §1 and the README title.');
@@ -818,7 +821,7 @@ function resetGit(name) {
   // lint-staged would reformat files after the stamp (so "update it" later calls
   // them customized) and a single lint error would abort the person's scaffold.
   run('git', ['commit', '-m', `chore: initialize ${name} from Precast`], {
-    env: { SKIP_LINT_STAGED: '1' },
+    env: { ...initialCommitEnv(rootDir), SKIP_LINT_STAGED: '1' },
   });
 }
 

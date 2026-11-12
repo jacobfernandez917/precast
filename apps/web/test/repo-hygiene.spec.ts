@@ -402,7 +402,7 @@ describe('SMOKE-017 — a fresh scaffold can actually boot', () => {
   // boilerplate's name written here was renamed while bootstrap.mjs kept it.
   it("bootstrap's first commit skips lint-staged", () => {
     expect(bootstrap).toMatch(
-      /run\('git', \['commit', '-m', `chore: initialize \$\{name\} from [^`]+`\], \{\s*env: \{ SKIP_LINT_STAGED: '1' \},?\s*\}\)/,
+      /run\('git', \['commit', '-m', `chore: initialize \$\{name\} from [^`]+`\], \{\s*env: \{[^}]*\bSKIP_LINT_STAGED: '1' \},?\s*\}\)/,
     );
   });
 
