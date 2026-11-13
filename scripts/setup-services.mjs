@@ -232,7 +232,7 @@ export async function setupServices({
     body: JSON.stringify({
       model: grant.modelId,
       messages: [{ role: 'user', content: 'Reply with exactly PRECAST_GEMINI_OK' }],
-      max_tokens: 32,
+      max_tokens: 1024,
       stream: false,
     }),
   });

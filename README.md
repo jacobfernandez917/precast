@@ -39,6 +39,8 @@ See [docs/TECH_STACK.md](docs/TECH_STACK.md) for the pinned versions of everythi
 
 ### One repository, gated agent modes
 
+The connected setup's Gemini check allows 1024 output tokens so reasoning-capable models can return a visible verification response. A failed model check stops before any database request.
+
 Connected scaffolding is optional: explicitly request **Hannibal Postgres and Gemini**. It requires the operator setting, an approved database host, and the member-approved `precast_project_setup` secret alias bound to one project Application and exact listings. Ordinary scaffolding stays deferred and requests no secret. See [Connected scaffolding](docs/INTEGRATION_AGENTBASE.md#connected-scaffolding).
 
 Live validation (13 November 2026): the full scaffold flow passed through Raya on a real Computer: clone → bootstrap → verification → build, followed by the successful conversation reply. Output: `Projects/raya-scaffold-live-20261113-endtoend`. Signed Developer image `20261113.precast.5` passed attended qualification. Only builder mode gets the bounded 15-minute server window; project mode keeps three minutes. The generated app's database and model connection remain for setup. See [docs/HANDOFF.md](docs/HANDOFF.md).

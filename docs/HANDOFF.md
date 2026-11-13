@@ -12,6 +12,8 @@
 
 ## 1. Current state (overwrite on each handoff)
 
+- **Connected live retry:** builder `3e3088c` is deployed and both project subscriptions were created on the Computer. The 32-token Gemini check exhausted its budget in reasoning and stopped before requesting a database. A 1024-token real call returned `PRECAST_GEMINI_OK`; the template check now uses that budget. Developer external-write qualification passed three model-directed synthetic HTTPS POST trials; disposable resources were erased. Preserve the failed folder before a fresh same-name retry. No new builder image is needed for this script-only template correction.
+
 - **Connected scaffold implementation:** optional `hannibal-gemini` setup subscribes the project's own Application, proves a Gemini call, asks Hannibal once, saves owner-only credentials and verifies Postgres through an encrypted receipt at the hosted builder. Request, operator and member/credential gates apply. Computer egress stays HTTPS-only. Focused checks pass; deployment and live connected acceptance remain pending. Prior deferred acceptance remains passed.
 
 - **Fresh Computer bootstrap:** initial-commit identity falls back to `Project Scaffold <scaffold@localhost>` only for missing identity fields; existing Git configuration and author/committer environment overrides win. This fixes the failure reproduced inside the Developer image without changing member settings.
@@ -38,6 +40,8 @@ _Known carry-forwards:_
 ---
 
 ## 2. Next task (overwrite on each handoff)
+
+Push the template budget correction, preserve the failed connected folder, and retry the full Raya flow against the unchanged deployed builder. Require five zero exits, both actual service calls, scoped-role database verification and Raya's final reply.
 
 **Finish connected acceptance.** Deploy this revision, restore the existing LOCAL Hannibal runtime after its earlier failed deployment, prepare a project Application/credential and approved member grant, then require real Gemini/Postgres calls, five zero command exits and Raya's final reply. Preserve prior projects and existing exposure.
 

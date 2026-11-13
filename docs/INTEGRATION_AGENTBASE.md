@@ -23,6 +23,19 @@ trusted RDS TLS and `SELECT 1` before verification/build. Only public results re
 Computer egress stays HTTPS-only; running the generated app there needs separately approved
 database connectivity. Service setup does not start the app or expose a public preview.
 
+### Public preview options reviewed, 13 November 2026
+
+| Option                                                                                          | Assessment for this application                                                                                                                                                                                                                        |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [Wormhole](https://github.com/MuhammadHananAsghar/wormhole/blob/main/edge/src/tunnel.ts)        | The reviewed relay buffers HTTP responses and applies a 30-second timeout. Streaming chat and long agent calls need changes before using it.                                                                                                           |
+| [Cloudflare Quick Tunnels](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/) | Free and no account required, but explicitly no SSE support.                                                                                                                                                                                           |
+| [localhost.run](https://localhost.run/)                                                         | Free, no signup and temporary HTTPS addresses through SSH. Live application streaming remains untested here.                                                                                                                                           |
+| [srv.us](https://github.com/xmit-dev/srv.us)                                                    | Free, no account and addresses derived from an SSH key. Its [relay code](https://github.com/xmit-dev/srv.us/blob/main/backend/main.go) copies byte streams directly, making it a candidate for a streaming preview; live validation is still required. |
+
+This research did not replace the existing LOCAL exposure or install a tunnel on the Computer.
+Any future Computer preview needs a separately approved tunnel command/destination and correct
+public-origin sign-in settings. Expose the web interface only; agent calls stay behind AgentBase.
+
 > **What this is.** A verified integration note describing how an agent built on the **Precast** boilerplate (Mastra API app) is registered and invoked on **AgentBase**. The compatibility claims here were confirmed by booting the Precast `example-agent`, fetching its live A2A card, and running that card through AgentBase's actual registration validator.
 
 **Last Updated:** 2026-08-04

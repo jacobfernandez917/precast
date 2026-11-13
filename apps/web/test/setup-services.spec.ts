@@ -49,7 +49,12 @@ function fixture() {
   writeFileSync(join(root, '.env'), 'DATABASE_URL=postgresql://user:pass@your-postgres-host/db\n');
   return root;
 }
-function server({ uncertain = false, modelAvailable = true, subscriptionActive = true } = {}) {
+function server({
+  uncertain = false,
+  modelAvailable = true,
+  subscriptionActive = true,
+  geminiFailure = false,
+} = {}) {
   let provisionCalls = 0;
   const fetch = vi.fn(
     async (input: Parameters<typeof globalThis.fetch>[0], init: RequestInit = {}) => {
@@ -85,8 +90,12 @@ function server({ uncertain = false, modelAvailable = true, subscriptionActive =
       const agentUrl = `${grant.apiUrl}/proxy/a2a/${grant.hannibalOrg}/${grant.hannibalSlug}`;
       if (url.endsWith('/.well-known/agent.json'))
         return response({ url: agentUrl, skills: [{ id: 'provisionDatabaseTool' }] });
-      if (url.endsWith('/chat/completions'))
-        return response({ choices: [{ message: { content: 'PRECAST_GEMINI_OK' } }] });
+      if (url.endsWith('/chat/completions')) {
+        expect(body.max_tokens).toBe(1024);
+        return geminiFailure
+          ? new Response(JSON.stringify({ code: 'llm_empty_response' }), { status: 502 })
+          : response({ choices: [{ message: { content: 'PRECAST_GEMINI_OK' } }] });
+      }
       expect(url).toBe(agentUrl);
       provisionCalls++;
       if (uncertain) throw new Error('lost reply database-secret');
@@ -158,6 +167,21 @@ describe('TOOL-016 connected scaffold service boundaries', () => {
     await expect(call()).rejects.toThrow('database_outcome_needs_review');
     expect(upstream.provisionCalls).toBe(1);
     expect(upstream.fetch.mock.calls.length).toBe(count);
+  });
+  it('does not request a database or save credentials after a failed model check', async () => {
+    const root = fixture(),
+      upstream = server({ geminiFailure: true });
+    await expect(
+      setupServices({
+        root,
+        projectName: name,
+        grant: JSON.stringify(grant),
+        publicKey,
+        fetch: upstream.fetch,
+      }),
+    ).rejects.toThrow('gemini_call_failed');
+    expect(upstream.provisionCalls).toBe(0);
+    expect(readFileSync(join(root, '.env'), 'utf8')).not.toContain(grant.clientSecret);
   });
   it.each([{ modelAvailable: false }, { subscriptionActive: false }])(
     'never provisions when access is unavailable: %j',
