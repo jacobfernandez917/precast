@@ -42,7 +42,9 @@ See [docs/TECH_STACK.md](docs/TECH_STACK.md) for the pinned versions of everythi
 The web chat streams elapsed-time updates while an A2A turn runs, then delivers its sanitized
 answer. Existing JSON clients keep their response contract; sign-in, rate limits and server-derived
 conversation ownership apply before a stream opens. The current upstream A2A call returns the
-answer at completion, so this is progress streaming rather than token-by-token output.
+answer at completion, so this is progress streaming rather than token-by-token output. Public
+preview acceptance passed a two-minute real agent/tool turn through the chat UI; current
+preview access and lifecycle details are in [the handoff](docs/HANDOFF.md).
 
 The connected setup's Gemini check allows 1024 output tokens so reasoning-capable models can return a visible verification response. A failed model check stops before any database request.
 

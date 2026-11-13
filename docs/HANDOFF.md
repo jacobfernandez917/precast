@@ -12,6 +12,13 @@
 
 ## 1. Current state (overwrite on each handoff)
 
+- **Extended public UI test passed:** a real Gemini turn containing a 120-second deterministic
+  tool completed in **127407 ms**, with **26** live progress events, the UI counter through
+  120 seconds and the final answer visible. The original tool and fixture environment were
+  restored again, agents rebuilt, the tunnel reconnected to the same URL and a normal real
+  tool call with JSON compatibility passed in 6442 ms. Code CI `43393207804` passed verify,
+  E2E and both images. The preview expiry below remains unchanged.
+
 - **srv.us preview passed (2026-11-13):** the existing connected app runs on the real Developer Computer at https://ssc4pd3mnfawg6t26wvwtx6sua.srv.us until **23:35 PHT / 15:35 UTC today**. Public sign-up, authenticated UI chat and a real Gemini turn containing a deterministic 45-second echo tool passed: 49999 ms, ten incremental elapsed-time events, first at 702 ms. Restored the original tool and fixture environment, rebuilt agents, forced SSH reconnection to the same URL and passed another real tool call with JSON compatibility in 6710 ms. Postgres trusted TLS and the restricted role were verified inside the Computer. Full `pnpm verify` passed 12 tasks (web 390 passed/1 skipped, agents 171); focused checks passed 38. Progress events are live; the upstream answer arrives at completion. Companion AgentBase OD-223 provides an explicit bounded owner reservation and exact expiring relay/RDS networking. Keys and Application/database credentials stay private in the Computer.
 
 - **Connected Raya scaffold passed (2026-11-13).** Deployed builder `3e3088c` cloned template `5e95164` into `Projects/raya-scaffold-live-20261113-connected`. Computer run `63107f67-e301-45db-9768-9a90a790225f` completed all five steps with zero exits. The project's own Application has both subscriptions active; the Computer made the real Gemini call and one audited Hannibal invocation. The hosted builder verified trusted RDS TLS, `SELECT 1`, the expected database/user and no superuser/role/database-creation privileges. Raya work `5433b827-fc65-4055-9c66-bbabc30a93fd` and native A2A task completed after 232786 ms. Exact template/package identity, web build ID, agent bundle and three normal Raya file views passed. The project is configured and built; no app preview or public tunnel was started. The original deferred project and failed model-check folder are retained.

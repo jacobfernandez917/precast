@@ -1,5 +1,10 @@
 # TEST_CASES.md — Test Catalog
 
+Public UI acceptance also passed a 127407 ms real Gemini/tool turn with 26 incremental
+status events and a visible final answer. The deterministic tool waited 120 seconds. The
+ordinary tool/environment were restored, agents rebuilt, the same URL reconnected and a
+normal real JSON tool call passed in 6442 ms. Code CI `43393207804`: all four jobs passed.
+
 `WEB-029`: `chat-stream.spec.ts` (10) and two added route cases pass. Covers early/incremental
 elapsed-time frames during a 45-second deferred turn, UTF-8/chunk boundaries, bounded input,
 safe terminal failures, cleanup on disconnect, unchanged JSON responses, server-derived identity
