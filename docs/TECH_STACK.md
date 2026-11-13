@@ -1,9 +1,20 @@
 # TECH_STACK.md — Tech Inventory
 
+**Public Computer preview (2026-11-13):** the existing web A2A route can return
+`text/event-stream` progress events every five seconds and one sanitized terminal result;
+JSON callers retain the original response. The client incrementally decodes bounded UTF-8
+frames. Upstream A2A still uses `message/send`, so answers arrive at completion. An explicitly
+requested preview can use project-local `ssh2` 1.17.0 and srv.us SSH reverse forwarding to
+the web loopback port. This is an operator setup, not a template dependency or default service.
+The Developer Computer needs a signed, expiring network exception for srv.us:22 and its exact
+approved RDS endpoint:5432; approved public HTTPS targets remain separately constrained.
+Private keys and Application/database credentials stay inside the Computer workspace.
+
 Connected scaffolding (2026-11-13) also uses `pg` ^8.23 at the hosted builder to verify
 the project role with the vendored RDS CA bundle, copied into the agents runtime image.
 An AES-256-GCM receipt with RSA-OAEP/SHA-256 key wrapping keeps database credentials out
-of model-visible output; the Computer's network stays HTTPS-only. No new service or repository.
+of model-visible output; ordinary scaffolding keeps the Computer's network HTTPS-only.
+The optional public preview exception is described above. No new service or repository.
 
 > **Authoritative source of truth for all tech-stack facts.** If this file disagrees with any other doc about a version, library, container image, or port, this file wins and the other doc has a bug.
 

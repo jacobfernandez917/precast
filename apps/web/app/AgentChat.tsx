@@ -10,6 +10,7 @@ import { Text } from '@astryxdesign/core/Text';
 import type { A2aTransport } from './lib/a2a-client';
 import { createConversationGate, interpretRouteReply } from './lib/chat-turns';
 import type { CardPress } from './a2ui/AgentCards';
+import { readChatResponse } from './lib/chat-stream';
 
 // Client-only: `@a2ui/react` extends HTMLElement at import, which has no server equivalent.
 const AgentCards = dynamic(() => import('./a2ui/AgentCards').then((m) => m.AgentCards), {
@@ -60,6 +61,7 @@ export function AgentChat() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const gate = useRef(createConversationGate());
   const logRef = useRef<HTMLDivElement>(null);
   const followEnd = useRef(true);
@@ -103,17 +105,21 @@ export function AgentChat() {
     if (isSending) return false;
     const token = gate.current.begin();
     setIsSending(true);
+    setElapsedSeconds(0);
     setError(null);
     try {
       const res = await fetch(`/api/a2a/${agentId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
         // Only the conversation id travels from the browser. Identity is the
         // server's business — sending a resourceId from here would be the bug
         // this whole seam exists to prevent.
         body: JSON.stringify({ ...body, ...(conversationId ? { conversationId } : {}) }),
       });
-      const outcome = interpretRouteReply(res.status, await res.text());
+      const response = await readChatResponse(res, (seconds) => {
+        if (gate.current.isCurrent(token)) setElapsedSeconds(seconds);
+      });
+      const outcome = interpretRouteReply(response.status, response.text);
       if (!gate.current.isCurrent(token)) return false;
 
       // Adopt the server's id even on a failed turn, so a retry stays in thread.
@@ -215,7 +221,7 @@ export function AgentChat() {
             />
           </div>
           <Button
-            label="Send"
+            label={isSending ? `Working…${elapsedSeconds ? ` ${elapsedSeconds}s` : ''}` : 'Send'}
             type="submit"
             variant="primary"
             isLoading={isSending}

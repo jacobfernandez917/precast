@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { pressText, readPressAction } from '@precast/a2ui';
-import { callAgent, type AgentRouteBody } from '../../../lib/a2a-client';
+import { callAgent } from '../../../lib/a2a-client';
 import { resolveAgentContext } from '../../../lib/agent-context';
 import { getSignedInUser } from '../../../lib/auth';
 import { chatTurnLimiter } from '../../../lib/rate-limit';
 import { log } from '../../../lib/logger';
+import { streamChatResult } from '../../../lib/chat-stream';
 
 /**
  * POST /api/a2a/:agentId
@@ -42,7 +43,7 @@ import { log } from '../../../lib/logger';
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ agentId: string }> },
-): Promise<NextResponse<AgentRouteBody | { error: string }>> {
+): Promise<Response> {
   const { agentId } = await params;
   log.info({ agentId }, 'POST /api/a2a — incoming agent call');
 
@@ -94,55 +95,60 @@ export async function POST(
     );
   }
 
-  try {
-    const { resourceId, threadId, conversationId } = resolveAgentContext(
-      user,
-      requestedConversation,
-    );
-
-    const reply = await callAgent(agentId, text, { threadId, resourceId, onBehalfOf: user.id });
-
-    if (reply.ok) {
-      log.info(
-        {
-          agentId,
-          via: reply.via,
-          press: Boolean(press),
-          cards: reply.a2ui.length,
-          taskState: reply.taskState,
-        },
-        'POST /api/a2a — agent replied',
+  const reply = async () => {
+    try {
+      const { resourceId, threadId, conversationId } = resolveAgentContext(
+        user,
+        requestedConversation,
       );
-      return NextResponse.json({
-        ok: true,
-        text: reply.text,
-        a2ui: reply.a2ui,
-        via: reply.via,
-        ...(reply.taskState ? { taskState: reply.taskState } : {}),
-        conversationId,
-      });
-    }
 
-    const status = reply.status >= 400 && reply.status <= 599 ? reply.status : 502;
-    log.error(
-      { agentId, via: reply.via, status, taskState: reply.taskState, error: reply.error },
-      'POST /api/a2a — agent call failed',
-    );
-    return NextResponse.json(
-      {
-        ok: false,
-        error: reply.error ?? 'The agent call failed.',
-        status,
-        via: reply.via,
-        conversationId,
-      },
-      { status },
-    );
-  } catch (err) {
-    log.error({ agentId, err: (err as Error)?.message }, 'POST /api/a2a — unexpected failure');
-    return NextResponse.json(
-      { ok: false, error: 'The agent call failed.', status: 500 },
-      { status: 500 },
-    );
-  }
+      const reply = await callAgent(agentId, text, { threadId, resourceId, onBehalfOf: user.id });
+
+      if (reply.ok) {
+        log.info(
+          {
+            agentId,
+            via: reply.via,
+            press: Boolean(press),
+            cards: reply.a2ui.length,
+            taskState: reply.taskState,
+          },
+          'POST /api/a2a — agent replied',
+        );
+        return NextResponse.json({
+          ok: true,
+          text: reply.text,
+          a2ui: reply.a2ui,
+          via: reply.via,
+          ...(reply.taskState ? { taskState: reply.taskState } : {}),
+          conversationId,
+        });
+      }
+
+      const status = reply.status >= 400 && reply.status <= 599 ? reply.status : 502;
+      log.error(
+        { agentId, via: reply.via, status, taskState: reply.taskState, error: reply.error },
+        'POST /api/a2a — agent call failed',
+      );
+      return NextResponse.json(
+        {
+          ok: false,
+          error: reply.error ?? 'The agent call failed.',
+          status,
+          via: reply.via,
+          conversationId,
+        },
+        { status },
+      );
+    } catch (err) {
+      log.error({ agentId, err: (err as Error)?.message }, 'POST /api/a2a — unexpected failure');
+      return NextResponse.json(
+        { ok: false, error: 'The agent call failed.', status: 500 },
+        { status: 500 },
+      );
+    }
+  };
+  return request.headers.get('accept')?.includes('text/event-stream')
+    ? streamChatResult(reply)
+    : reply();
 }

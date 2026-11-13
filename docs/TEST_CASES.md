@@ -1,5 +1,14 @@
 # TEST_CASES.md — Test Catalog
 
+`WEB-029`: `chat-stream.spec.ts` (10) and two added route cases pass. Covers early/incremental
+elapsed-time frames during a 45-second deferred turn, UTF-8/chunk boundaries, bounded input,
+safe terminal failures, cleanup on disconnect, unchanged JSON responses, server-derived identity
+and refusing anonymous requests before opening a stream. Full `pnpm verify`: 12 tasks passed;
+web 390 passed/1 skipped, agents 171 passed. Public srv.us acceptance passed: real sign-up
+and UI chat, 49999 ms Gemini/tool turn, ten live progress events (first at 702 ms), restored
+normal tool, same URL after reconnect and a fresh JSON tool call in 6710 ms. Exact evidence:
+AgentBase `docs/validation/precast-scaffold-2026-11-13.json` → `publicPreview`.
+
 Connected live acceptance (2026-11-13): **passed** on Computer run `63107f67-e301-45db-9768-9a90a790225f`, template `5e95164`, deployed builder `3e3088c`. Five zero command exits; both subscriptions ACTIVE; real Gemini response; exactly one audited Hannibal provisioning invocation; trusted RDS TLS/`SELECT 1`/scoped-role verification at the builder; successful verify/build and final Raya reply after 232786 ms. Exact project/template/build artifacts and three normal Raya file views passed for `Projects/raya-scaffold-live-20261113-connected`. The app is configured and built, not launched. Prior projects and failure evidence are retained.
 
 `TOOL-016` additionally checks the 1024-token Gemini allowance and that a model refusal stops before requesting a database or storing the project credential. Live diagnosis: 32 tokens yielded `llm_empty_response`; the same Application's 1024-token call returned the exact marker with 105 reasoning tokens. The corrected full connected retry passed.

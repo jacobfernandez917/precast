@@ -10,6 +10,7 @@ import { callAgent } from '../app/lib/a2a-client';
 import { resolveAgentContext } from '../app/lib/agent-context';
 import { getSignedInUser } from '../app/lib/auth';
 import { chatTurnLimiter } from '../app/lib/rate-limit';
+import { readChatResponse } from '../app/lib/chat-stream';
 
 /**
  * WEB-016: the route handler's press path. A press on a card reaches the agent as TEXT on the
@@ -52,6 +53,50 @@ beforeEach(() => {
 });
 
 describe('POST /api/a2a/:agentId — card presses', () => {
+  it('streams only the curated reply while retaining server-derived identity', async () => {
+    mockedCall.mockResolvedValueOnce({
+      ok: true,
+      text: 'Stream ready.',
+      a2ui: [],
+      status: 200,
+      via: 'direct',
+      raw: { privateToken: 'not-for-the-browser', contextId: 'r1:c1' },
+    });
+    const response = await POST(
+      new Request('http://web.test/api/a2a/example-agent', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
+        body: JSON.stringify({ text: 'Hello', resourceId: 'forged-user' }),
+      }),
+      { params: Promise.resolve({ agentId: 'example-agent' }) },
+    );
+    expect(response.headers.get('content-type')).toContain('text/event-stream');
+    const result = await readChatResponse(response, () => {});
+    expect(result.status).toBe(200);
+    expect(result.text).toContain('Stream ready.');
+    expect(result.text).not.toMatch(/not-for-the-browser|r1:c1|forged-user/);
+    expect(mockedCall.mock.calls[0]![2]).toEqual({
+      threadId: 'r1:c1',
+      resourceId: 'r1',
+      onBehalfOf: 'u-123',
+    });
+  });
+
+  it('refuses a signed-out streaming request before opening the stream or calling the agent', async () => {
+    mockedUser.mockResolvedValueOnce(null);
+    const response = await POST(
+      new Request('http://web.test/api/a2a/example-agent', {
+        method: 'POST',
+        headers: { accept: 'text/event-stream' },
+        body: JSON.stringify({ text: 'Hello' }),
+      }),
+      { params: Promise.resolve({ agentId: 'example-agent' }) },
+    );
+    expect(response.status).toBe(401);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(mockedCall).not.toHaveBeenCalled();
+  });
+
   it('sends a press to the agent as text carrying the action, on the same thread', async () => {
     const res = await post({
       action: {
