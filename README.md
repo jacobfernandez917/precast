@@ -39,7 +39,7 @@ See [docs/TECH_STACK.md](docs/TECH_STACK.md) for the pinned versions of everythi
 
 ### One repository, gated agent modes
 
-Live validation (13 November 2026): the real Computer completed clone, bootstrap, verification and build for `Projects/raya-scaffold-live-20261113-npm` on signed Developer image `20261113.precast.5`. The project and build artifacts were verified. Raya received a 504 at Mastra's default three-minute deadline while the build continued. Builder mode now has a bounded 15-minute server window; project mode keeps three minutes. Deployment and a clean conversational retry remain pending. See [docs/HANDOFF.md](docs/HANDOFF.md).
+Live validation (13 November 2026): the full scaffold flow passed through Raya on a real Computer: clone → bootstrap → verification → build, followed by the successful conversation reply. Output: `Projects/raya-scaffold-live-20261113-endtoend`. Signed Developer image `20261113.precast.5` passed attended qualification. Only builder mode gets the bounded 15-minute server window; project mode keeps three minutes. The generated app's database and model connection remain for setup. See [docs/HANDOFF.md](docs/HANDOFF.md).
 
 On a fresh Computer without a Git identity, bootstrap uses `Project Scaffold <scaffold@localhost>` for the initial local commit. Configured member identities and explicit author overrides take precedence; Git configuration is never changed.
 
