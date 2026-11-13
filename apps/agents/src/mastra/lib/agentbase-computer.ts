@@ -13,6 +13,7 @@ export interface ComputerCommand {
   argv: string[];
   cwd: string;
   timeoutMs: number;
+  memoryMiB?: number;
 }
 
 export interface ComputerCommandResult {
@@ -161,6 +162,7 @@ export class AgentBaseComputerClient {
       argv: command.argv,
       cwd: command.cwd,
       timeoutMs: command.timeoutMs,
+      ...(command.memoryMiB === undefined ? {} : { memoryMiB: command.memoryMiB }),
       waitMs: 10_000,
       profile: PROFILE,
     };

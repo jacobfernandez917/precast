@@ -1,5 +1,9 @@
 # PROGRESS.md — Context Memory
 
+- **2026-11-13 · Codex · qualified image and bounded scaffold memory.** Corrected image `20261113.precast.3` installed and passed all three real model-directed trials, including nested pnpm/npm execution and registry reads; recorded attended qualification and promoted its exact digest. General remains ready. After a separately canceled API-restart interruption, Raya run `7609b1f8-67f4-4c1b-a925-62f08e5d1589` cloned and downloaded dependencies but hit the 2 GB command memory limit (2193652 KiB observed). The fixed pnpm scaffold steps now request 3072 MiB within the existing 4096 MiB Computer limit, covered by a test that binds the allowance to both proposal digest and execution. Reimport and complete real scaffold retry remain pending.
+
+- **2026-11-13 · Codex · real Developer runs and corrected image.** AWS sign-in renewed. Published signed Developer images, preserved the General signer, and advanced the existing nonprod worker bootstrap without replacing the worker or adding capacity. Three real model-directed qualification trials passed for the first two images. Raya runs `7fe4562a-446e-427a-bc59-131cebc957aa` and `f5421949-9bef-4f1e-80f9-a998271917f6` cloned Precast but failed bootstrap, exposing a self-referential pnpm link and missing pnpm/npm on the restricted child-process PATH. Both images were retired; image `20261113.precast.3` fixes and build-checks both issues. Its installation is waiting for agent `58`'s open Computer session to close or permission to stop it. Exact-image qualification and the full scaffold retry remain pending. Earlier project folders are preserved; no complete scaffold success is claimed.
+
 - **2026-11-13 · Codex · deployed LOCAL and attempted real Raya scaffold.** Pushed changes to the existing repositories and deployed LOCAL AgentBase/Raya. Imported the builder at `685522c`, bound its model, provisioned separate managed memory, and verified conversation-scoped approval in Raya. The real General Computer reached READY and later suspended. The final model-backed Raya call invoked the scaffold tool but was refused before run creation: `No signed developer image with a tool schema is promoted.` Zero scaffold commands ran. Built and integrity-checked Developer image `20261113.precast.1`; local desktop + Git identity probes passed. Upload failed with expired AWS SSO; Developer installation/promotion and matching model qualification remain blockers. Fixed discovered Mastra chunk-cycle, bootstrap Git identity, Raya proposal room identity, and AgentBase per-agent Computer identity/hold seams. Full Precast verify and code CI passed; companion checks: 62 Raya Computer tests, 24 AgentBase Computer unit tests, 13 governance unit tests, 14 real-Postgres integration tests. An API restart interrupted one import finalization; its status was recovered with an audited change and a normal authenticated reimport, now SYNCED/RUNNING. No complete scaffold success is claimed.
 
 - **2026-11-13 · Codex · fresh Computer Git identity.** A real Developer-image probe reproduced Git's author-identity failure, which would stop bootstrap's first commit. Added an initial-commit-only fallback that preserves configured member and environment identities without writing Git settings, with fresh-repository commit coverage. Both bundled agent modes passed runtime discovery; managed import retry is in progress. AWS operator sign-in remains expired, so no real Developer admission or complete scaffold success is claimed.
@@ -8,8 +12,8 @@
 
 > **This file is the ultimate cross-tool context memory.** All coding agents MUST update this file on every meaningful change. If you finish work without updating PROGRESS.md, the work is **not** considered complete.
 
-**Last Updated:** 2026-08-11
-**Updated By:** Claude Code (orchestrator-crew Phases 1–4 + telemetry)
+**Last Updated:** 2026-11-13
+**Updated By:** Codex (real Raya scaffold deployment and validation)
 **Active Branch:** develop
 
 ---

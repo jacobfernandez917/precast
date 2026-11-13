@@ -73,6 +73,7 @@ export async function scaffoldProject(
       ],
       cwd: projectPath,
       timeoutMs: 30 * 60_000,
+      memoryMiB: 3072,
     },
     {
       id: 'verify',
@@ -81,6 +82,7 @@ export async function scaffoldProject(
       argv: ['run', 'verify:poc'],
       cwd: projectPath,
       timeoutMs: 20 * 60_000,
+      memoryMiB: 3072,
     },
     {
       id: 'build',
@@ -89,6 +91,7 @@ export async function scaffoldProject(
       argv: ['run', 'build'],
       cwd: projectPath,
       timeoutMs: 30 * 60_000,
+      memoryMiB: 3072,
     },
   ];
 
