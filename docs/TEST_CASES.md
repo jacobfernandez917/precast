@@ -1,6 +1,6 @@
 # TEST_CASES.md — Test Catalog
 
-PRD implementation verification (T-260): full verify passed all 12 tasks — agents 196, web 404 passed/one skipped, shared 24, A2UI 34. Live PDF/conversation/Computer/public-app acceptance remains pending.
+PRD verification (T-260): full verify passed all 12 tasks — agents 203, web 404 passed/one skipped, shared 24, A2UI 34. The real PDF and missing-only interview passed; the first Computer run passed product generation/services/typecheck, then failed build on ENOSPC. Full public app acceptance remains pending.
 
 - `AGT-036`: conversational preparation, one missing question in bootstrap order, supplied
   answers, explicit defaults, invalid names and honest deferred connections. Nine cases
@@ -180,8 +180,8 @@ Earlier acceptance attempt (2026-11-13, superseded by the successful runs above)
 | AGT-006 | `orchestration-manifest.spec.ts` — the committed `agentbase.import.json` `orchestration` block matches the code: `orchestrator` equals `ORCHESTRATOR_ID`, `members` stays omitted (AgentBase discovers them), `defaultImport` is a supported mode, and the emitter's regex reader resolves the same id the runtime imports (drift guard for `pnpm emit:import-manifest`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Passing                                            |
 
 | AGT-036 | `prepare-scaffold.spec.ts` — single-question setup order, supplied preferences, explicit defaults, safe names and honest deferred connections; automatic srv.us for connected execution | Passing (9 cases) |
-| AGT-037 | `prd-drafts.spec.ts`: exact current PDF source/hash, unreadable/partial/ambiguous refusals, retained source, pending/completed/discarded lifecycle and owner/room isolation | Passing (5 cases) |
-| AGT-038 | `prepare-scaffold.spec.ts`: skip explicit PRD preferences, ask only missing questions, recover pending draft ID across replies, human override and unsupported-scope refusal | Passing (3 cases) |
+| AGT-037 | `prd-drafts.spec.ts`: exact current PDF source/hash, unreadable/partial/ambiguous refusals, retained source, pending/completed/discarded lifecycle and owner/room isolation, automatic exact-source capture/reuse and blocking partial attachments | Passing (5 cases) |
+| AGT-038 | `prepare-scaffold.spec.ts`: skip explicit PRD preferences, ask only missing questions, recover and automatically analyse a captured pending draft across replies, human override and unsupported-scope refusal | Passing (4 cases) |
 | AGT-039 | `scaffold-project.spec.ts`, `agentbase-computer.spec.ts`: PRD gate and no plain fallback after a failed PRD read, before any run, exact bounded input digest/profile/path, product before services and sanitized result | Passing (4 cases) |
 | AGT-040 | `middleware/auth.spec.ts`: verified account/room determines builder resource and thread; body identity cannot cross accounts or conversations; connected-service OBO identities may differ or be absent | Passing (3 cases) |
 | AGT-041 | `read-prd.spec.ts`: inject the expected schema into the model prompt, validate its output, retain exact unready source before a failed model/schema call | Passing (2 cases); direct real Gemini schema-contract diagnostic also passed |

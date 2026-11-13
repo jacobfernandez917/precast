@@ -1,5 +1,7 @@
 # PROGRESS.md — Context Memory
 
+- **2026-11-13 · Codex · automatic PRD capture and real build progress (T-260).** Capture exact PDF text before the first builder model call; automatically analyse the pending draft in the planner if the model omitted the reader. Partial source remains blocked. The real Raya PDF interview asked only name/theme and retained the exact source hash. Developer run `969bc955-eb14-40da-abdc-4fe032937dd6` passed clone/bootstrap/product/services/typecheck at `6082918`; the build failed with ENOSPC. Its project/Application/database are retained. Full verify passed 12 tasks (agents 203, web 404/one skipped, shared 24, A2UI 34). Disk recovery, redeploy and full public app acceptance remain pending.
+
 - **2026-11-13 · Codex · PRD schema contract verified against real Gemini (T-260).** A second real PDF request reached the reader, but native structured output used wrong property names. Enabled Mastra's JSON-schema prompt injection and directly verified the actual model returns the required blueprint, Gemini/Postgres choices and missing name/theme. Retain the source as pending before analysis, recover it across replies and reject ordinary-scaffold fallback after a read failure. Completion/discard closes the pending state. Focused checks: 30 passed; typecheck passed. Full verify passed 12 tasks (agents 201, web 404/one skipped, shared 24, A2UI 34); reimport and full live app retry pending. No new PRD project/database yet.
 
 - **2026-11-13 · Codex · PRD live identity correction (T-260).** The first real PDF upload passed (one page, all text extracted) but the new memory binding rejected the turn before model/Computer work. Reproduced HTTP 500 when the connected-service OBO subject differs from the signed-in Raya subject. Corrected draft/resource/thread ownership to the verified Raya delegation subject; OBO remains the external-service identity. Added a regression for different and absent service subjects. The project Application/approvals are prepared, but no new project/database was created. Redeploy and full live retry remain pending.
@@ -147,6 +149,8 @@ You MUST update PROGRESS.md when you:
 ---
 
 ## 8. Session Log
+
+- **2026-11-13 · Codex · automatic PRD capture and real build progress (T-260).** Capture exact PDF text before the first builder model call; automatically analyse the pending draft in the planner if the model omitted the reader. Partial source remains blocked. The real Raya PDF interview asked only name/theme and retained the exact source hash. Developer run `969bc955-eb14-40da-abdc-4fe032937dd6` passed clone/bootstrap/product/services/typecheck at `6082918`; the build failed with ENOSPC. Its project/Application/database are retained. Full verify passed 12 tasks (agents 203, web 404/one skipped, shared 24, A2UI 34). Disk recovery, redeploy and full public app acceptance remain pending.
 
 <!-- Newest first. The progress-stamp hook appends <auto-journal> markers here. -->
 

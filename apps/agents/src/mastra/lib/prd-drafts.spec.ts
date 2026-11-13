@@ -6,6 +6,7 @@ import {
   savePrdDraft,
   pendingPrdDraft,
   settlePrdDraft,
+  capturePrdAttachment,
 } from './prd-drafts';
 import { runWithRequestContext } from './request-context';
 
@@ -34,7 +35,7 @@ vi.mock('./storage', () => ({
   }),
 }));
 
-function inRoom<T>(owner: string, room: string, fn: () => T): T {
+function inRoom<T>(owner: string, room: string, fn: () => T, inboundText?: string): T {
   const token = [
     'header',
     Buffer.from(
@@ -43,12 +44,40 @@ function inRoom<T>(owner: string, room: string, fn: () => T): T {
     'platform-verified',
   ].join('.');
   return runWithRequestContext(
-    { onBehalfOf: owner, rayaUserDelegation: token, agentbaseChain: 'verified-chain' },
+    { onBehalfOf: owner, rayaUserDelegation: token, agentbaseChain: 'verified-chain', inboundText },
     fn,
   );
 }
 afterEach(() => vi.unstubAllEnvs());
 describe('AGT-037 exact PRD source and scoped draft persistence', () => {
+  it('captures the PDF independently of model tool choice and keeps unreadable input blocked', async () => {
+    vi.stubEnv('DATABASE_URL', 'postgresql://test:test@db.invalid/test');
+    vi.stubEnv('MASTRA_DB_SCHEMA', 'test_scaffold');
+    const text =
+      '[Request from User]\nBuild this.\n\n[Attached: actions.pdf, 1 page]\nExact captured requirements';
+    const first = await inRoom('owner-one', 'auto-capture-room', capturePrdAttachment, text);
+    expect(first).toMatchObject({
+      sourceText: 'Exact captured requirements',
+      analysed: false,
+      sourceComplete: true,
+      state: 'pending',
+    });
+    expect((await inRoom('owner-one', 'auto-capture-room', capturePrdAttachment, text))?.id).toBe(
+      first?.id,
+    );
+    const invalid = await inRoom(
+      'owner-one',
+      'auto-capture-room',
+      capturePrdAttachment,
+      '[Attached: partial.pdf, first 1 of 4 pages]\nExcerpt',
+    );
+    expect(invalid).toMatchObject({
+      sourceComplete: false,
+      analysed: false,
+      analysis: { blueprint: null },
+    });
+    expect((await inRoom('owner-one', 'auto-capture-room', pendingPrdDraft))?.id).toBe(invalid?.id);
+  });
   it('keeps an unanalysed PRD pending until completion or explicit discard', async () => {
     vi.stubEnv('DATABASE_URL', 'postgresql://test:test@db.invalid/test');
     vi.stubEnv('MASTRA_DB_SCHEMA', 'test_scaffold');

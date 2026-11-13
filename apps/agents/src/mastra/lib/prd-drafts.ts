@@ -26,6 +26,9 @@ export interface PrdDraft {
   answers: string[];
   analysis: PrdAnalysis;
   state?: 'pending' | 'complete' | 'discarded';
+  analysed?: boolean;
+  sourceComplete?: boolean;
+  sourceError?: string;
 }
 
 export function attachedPrd(
@@ -114,4 +117,41 @@ export async function settlePrdDraft(id: string, state: 'complete' | 'discarded'
 
 export function readCurrentPrd(name?: string) {
   return attachedPrd(currentInboundText(), name);
+}
+
+export function hasCurrentPrdAttachment(): boolean {
+  const text = currentInboundText();
+  const current = text.slice(Math.max(0, text.lastIndexOf('\n[Request from ')));
+  return /^\[Attached: [^\n]*\.pdf\b/im.test(current);
+}
+
+export async function capturePrdAttachment(): Promise<PrdDraft | undefined> {
+  if (!hasCurrentPrdAttachment()) return undefined;
+  let source: { sourceName: string; sourceText: string; sourceHash: string };
+  let sourceError: string | undefined;
+  try {
+    source = readCurrentPrd();
+  } catch (error) {
+    sourceError = (error as Error).message;
+    source = { sourceName: 'Unreadable PRD.pdf', sourceText: '', sourceHash: '' };
+  }
+  const prior = await pendingPrdDraft();
+  if (!sourceError && prior?.sourceHash === source.sourceHash && prior.sourceComplete !== false)
+    return prior;
+  return savePrdDraft({
+    ...source,
+    answers: [],
+    analysed: false,
+    sourceComplete: !sourceError,
+    ...(sourceError ? { sourceError } : {}),
+    analysis: {
+      blueprint: null,
+      projectName: null,
+      model: null,
+      theme: null,
+      database: null,
+      missingQuestions: [sourceError ?? 'The PRD analysis must succeed before setup can continue.'],
+      unsupportedRequirements: [],
+    },
+  });
 }

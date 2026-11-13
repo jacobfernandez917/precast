@@ -8,6 +8,8 @@ vi.mock('@mastra/core/agent', () => ({
 vi.mock('../lib/agentbase-model', () => ({ resolveAgentModel: () => 'test-model' }));
 vi.mock('../lib/prd-drafts', async (original) => ({
   ...(await original<typeof import('../lib/prd-drafts')>()),
+  capturePrdAttachment: async () => undefined,
+  pendingPrdDraft: async () => undefined,
   readCurrentPrd: () => ({
     sourceName: 'actions.pdf',
     sourceText: 'Exact attached source',

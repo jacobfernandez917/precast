@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { prepareScaffold, prepareScaffoldWithPrd } from './prepare-scaffold';
+vi.mock('./read-prd', () => ({ readPrd: vi.fn() }));
+import { readPrd } from './read-prd';
 vi.mock('../lib/prd-drafts', () => ({ loadPrdDraft: vi.fn(), pendingPrdDraft: vi.fn() }));
 import { loadPrdDraft, pendingPrdDraft } from '../lib/prd-drafts';
 
@@ -118,6 +120,19 @@ describe('AGT-038 missing PRD questions only', () => {
   };
   const draft = (overrides: Record<string, unknown> = {}) =>
     vi.mocked(loadPrdDraft).mockResolvedValue({ analysis: { ...analysis, ...overrides } } as never);
+  it('analyses an automatically captured source before asking setup questions', async () => {
+    vi.mocked(loadPrdDraft).mockResolvedValue({
+      id: prdId,
+      analysed: false,
+      analysis: { blueprint: null },
+    } as never);
+    vi.mocked(readPrd).mockResolvedValue({ draftId: prdId, analysis } as never);
+    expect(await prepareScaffoldWithPrd({ prdId, projectName: 'action-desk' })).toMatchObject({
+      state: 'question',
+      field: 'theme',
+    });
+    expect(readPrd).toHaveBeenCalledWith({ draftId: prdId });
+  });
   it('recovers a pending PRD across replies instead of guessing a plain scaffold', async () => {
     vi.stubEnv('PRECAST_PRD_BUILD_ENABLED', '1');
     vi.mocked(pendingPrdDraft).mockResolvedValue({ id: prdId } as never);

@@ -2,6 +2,7 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { scaffoldProjectInput } from './scaffold-project';
 import { loadPrdDraft, pendingPrdDraft } from '../lib/prd-drafts';
+import { readPrd } from './read-prd';
 
 export const scaffoldPreferences = z.object({
   projectName: z.string().optional(),
@@ -91,7 +92,15 @@ export async function prepareScaffoldWithPrd(
     if (pending) input = { ...input, prdId: pending.id };
   }
   if (!input.prdId) return prepareScaffold(input);
-  const { analysis } = await loadPrdDraft(input.prdId);
+  const draft = await loadPrdDraft(input.prdId);
+  if (draft.sourceComplete === false)
+    return {
+      state: 'question',
+      field: 'product',
+      question:
+        'Could you attach one complete, readable PDF PRD so I can build from all of its requirements?',
+    };
+  const { analysis } = draft.analysed === false ? await readPrd({ draftId: draft.id }) : draft;
   if (analysis.unsupportedRequirements.length)
     return {
       state: 'question',

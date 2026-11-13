@@ -8,6 +8,7 @@ import {
   currentRayaScopeKey,
 } from '../lib/request-context';
 import { resolveAgentMode } from '../lib/agent-mode';
+import { capturePrdAttachment } from '../lib/prd-drafts';
 
 /**
  * Mastra Hono middleware with two jobs:
@@ -167,6 +168,7 @@ export function createAuthMiddleware() {
           const headers = new Headers(c.req.raw.headers);
           headers.delete('content-length');
           c.req.raw = new Request(c.req.raw, { headers, body: JSON.stringify(inboundBody) });
+          if (process.env.PRECAST_PRD_BUILD_ENABLED === '1') await capturePrdAttachment();
         }
         await next();
       },
