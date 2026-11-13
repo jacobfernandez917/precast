@@ -8,6 +8,7 @@ import { a2uiMiddleware } from './middleware/a2ui';
 import { telemetryMiddleware } from './middleware/telemetry';
 import { crew, crewAgents } from './crew';
 import { isAgentBaseLlmConfigured } from './lib/agentbase-model';
+import { resolveAgentMode, serverOptionsForMode } from './lib/agent-mode';
 
 // R2 — telemetry first. The production container has already started it from
 // the preload (`node --import ./telemetry.mjs`), which makes this a no-op there;
@@ -84,6 +85,7 @@ export const mastra = new Mastra({
     level: LOG_LEVEL_MAP[env.LOG_LEVEL],
   }),
   server: {
+    ...serverOptionsForMode(resolveAgentMode()),
     host: env.MASTRA_HOST,
     port: env.MASTRA_PORT,
     // One telemetry log record per A2A call (first, so a refused call is counted
