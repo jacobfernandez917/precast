@@ -39,7 +39,7 @@ See [docs/TECH_STACK.md](docs/TECH_STACK.md) for the pinned versions of everythi
 
 ### One repository, gated agent modes
 
-Live validation (13 November 2026): the builder is deployed on LOCAL AgentBase and callable from Raya, with conversation-scoped Developer Computer approval. Corrected signed image `20261113.precast.3` passed three real model-directed qualification trials. Real runs cloned Precast and downloaded dependencies; bootstrap exceeded the default 2 GB command memory allowance. The fixed bootstrap, verification and build steps now request 3 GB within the existing Computer limit, bound into each command's approved argument digest. A full scaffold retry remains pending. Resume details are in [docs/HANDOFF.md](docs/HANDOFF.md).
+Live validation (13 November 2026): the builder is deployed on LOCAL AgentBase and callable from Raya, with conversation-scoped Developer Computer approval. Signed image `20261113.precast.4` passed three model-directed trials and a project-cache probe. The fixed pnpm steps use a 3 GB command allowance and granted project storage. The large install passed; intentional dependency updates now refresh their lockfile under `CI=1`. A complete scaffold retry remains pending. See [docs/HANDOFF.md](docs/HANDOFF.md).
 
 On a fresh Computer without a Git identity, bootstrap uses `Project Scaffold <scaffold@localhost>` for the initial local commit. Configured member identities and explicit author overrides take precedence; Git configuration is never changed.
 

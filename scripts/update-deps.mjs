@@ -65,8 +65,10 @@ function main() {
   }
 
   run('pnpm', updateArgs);
-  run('pnpm', ['install']);
-  if (alignAiSdk()) run('pnpm', ['install']);
+  // This workflow intentionally updates manifests and the lockfile. CI=1 otherwise makes
+  // pnpm's follow-up install frozen, including after the provider-alignment edit below.
+  run('pnpm', ['install', '--no-frozen-lockfile']);
+  if (alignAiSdk()) run('pnpm', ['install', '--no-frozen-lockfile']);
 
   if (noVerify) {
     console.log(

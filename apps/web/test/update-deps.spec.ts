@@ -1,4 +1,17 @@
 import { describe, expect, it } from 'vitest';
+import { spawnSync } from 'node:child_process';
+import {
+  chmodSync,
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { alignedVersions, mastraProviderVersions } from '../../../scripts/update-deps.mjs';
 
 /**
@@ -65,4 +78,77 @@ describe('alignedVersions', () => {
       /ships no @ai-sdk\/provider 4\.x/,
     );
   });
+});
+
+it('finishes the intentional dependency update and provider alignment under CI=1', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dependency-update-ci-'));
+  const put = (relative: string, text: string) => {
+    const target = join(root, relative);
+    mkdirSync(join(target, '..'), { recursive: true });
+    writeFileSync(target, text);
+  };
+  try {
+    put('scripts/update-deps.mjs', '');
+    copyFileSync(
+      fileURLToPath(new URL('../../../scripts/update-deps.mjs', import.meta.url)),
+      join(root, 'scripts/update-deps.mjs'),
+    );
+    put(
+      'apps/agents/package.json',
+      JSON.stringify({
+        dependencies: {
+          '@mastra/core': '^1.0.0',
+          '@ai-sdk/openai-compatible': '^3.0.80',
+          '@ai-sdk/provider': '4.0.34',
+        },
+      }),
+    );
+    put(
+      'apps/agents/node_modules/@mastra/core/package.json',
+      JSON.stringify({ dependencies: { '@ai-sdk/provider-v7': 'npm:@ai-sdk/provider@4.0.29' } }),
+    );
+    put(
+      'apps/agents/node_modules/@ai-sdk/openai-compatible/package.json',
+      JSON.stringify({ version: '3.0.80' }),
+    );
+    put(
+      'bin/pnpm',
+      `#!${process.execPath}\nconst fs=require('node:fs');const args=process.argv.slice(2);fs.appendFileSync(process.env.PRECAST_UPDATE_TEST_LOG,JSON.stringify(args)+'\\n');if(process.env.CI==='1'&&args[0]==='install'&&!args.includes('--no-frozen-lockfile'))process.exit(17);\n`,
+    );
+    put(
+      'bin/npm',
+      `#!${process.execPath}\nprocess.stdout.write(${JSON.stringify(JSON.stringify(releases))});\n`,
+    );
+    chmodSync(join(root, 'bin/pnpm'), 0o755);
+    chmodSync(join(root, 'bin/npm'), 0o755);
+    const result = spawnSync(
+      process.execPath,
+      [join(root, 'scripts/update-deps.mjs'), '--no-verify'],
+      {
+        env: {
+          ...process.env,
+          CI: '1',
+          PATH: `${join(root, 'bin')}:${process.env.PATH}`,
+          PRECAST_UPDATE_TEST_LOG: join(root, 'commands.jsonl'),
+        },
+        encoding: 'utf8',
+      },
+    );
+    expect(result.status, result.stderr).toBe(0);
+    expect(
+      readFileSync(join(root, 'commands.jsonl'), 'utf8')
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line)),
+    ).toEqual([
+      ['update', '-r'],
+      ['install', '--no-frozen-lockfile'],
+      ['install', '--no-frozen-lockfile'],
+    ]);
+    const pkg = JSON.parse(readFileSync(join(root, 'apps/agents/package.json'), 'utf8'));
+    expect(pkg.dependencies['@ai-sdk/openai-compatible']).toBe('3.0.71');
+    expect(pkg.dependencies['@ai-sdk/provider']).toBe('4.0.29');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
