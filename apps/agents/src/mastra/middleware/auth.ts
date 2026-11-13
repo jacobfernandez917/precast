@@ -157,13 +157,7 @@ export function createAuthMiddleware() {
     await runWithRequestContext(
       { onBehalfOf, rayaUserDelegation, agentbaseChain, inboundText },
       async () => {
-        if (
-          inboundBody?.params?.message &&
-          c.req.raw &&
-          onBehalfOf &&
-          rayaUserDelegation &&
-          agentbaseChain
-        ) {
+        if (inboundBody?.params?.message && c.req.raw && rayaUserDelegation && agentbaseChain) {
           const identity = 'raya-scaffold:' + currentRayaScopeKey();
           inboundBody.params.message.contextId = identity;
           inboundBody.params.message.metadata = {

@@ -85,8 +85,7 @@ export function currentInboundText(): string {
 
 export function currentRayaScopeKey(): string {
   const proof = currentAgentBaseProof();
-  const owner = currentOnBehalfOf();
-  if (!owner || !proof.rayaUserDelegation || !proof.agentbaseChain)
+  if (!proof.rayaUserDelegation || !proof.agentbaseChain)
     throw new Error('Read the PRD from its signed-in Raya conversation.');
   // Authentication is the proxy's job. Decode its already verified header only
   // to scope storage; a message body never chooses the person or room.
@@ -101,9 +100,10 @@ export function currentRayaScopeKey(): string {
         Buffer.from(proof.rayaUserDelegation.split('.')[1] ?? '', 'base64url').toString('utf8'),
       ),
     );
-  if (claims.sub !== owner) throw new Error('The PRD conversation identity does not match.');
+  // OBO identifies a connected external-service account and can differ from the
+  // signed-in Raya subject. Only the verified delegation chooses draft ownership.
   return createHash('sha256')
-    .update(JSON.stringify([owner, claims.org_id, claims.scope]))
+    .update(JSON.stringify([claims.sub, claims.org_id, claims.scope]))
     .digest('hex');
 }
 

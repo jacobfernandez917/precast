@@ -36,7 +36,7 @@ test('E2E-018 PDF-derived product, persistent CRUD, account isolation and real s
     expect((await request.get(path)).status()).toBe(404);
   await createAccount(page);
   const title = `Follow up ${randomUUID()}`;
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill(title);
+  await page.getByRole('textbox', { name: /^Title/ }).fill(title);
   await page.getByRole('combobox', { name: 'Status', exact: true }).selectOption('Open');
   await page.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('Normal');
   await page.getByRole('button', { name: 'Add action', exact: true }).click();

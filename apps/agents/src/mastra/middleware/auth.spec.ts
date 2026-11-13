@@ -75,7 +75,7 @@ describe('assertAgentApiAuthConfigured', () => {
 });
 
 describe('AGT-040 scaffold memory follows verified Raya scope', () => {
-  async function scope(owner: string, room: string) {
+  async function scope(owner: string, room: string, serviceSubject: string | null = owner) {
     process.env.PRECAST_AGENT_MODE = 'scaffold-builder';
     delete process.env.AGENT_API_TOKEN;
     const proof = [
@@ -86,10 +86,10 @@ describe('AGT-040 scaffold memory follows verified Raya scope', () => {
       'verified-by-platform',
     ].join('.');
     const headers = new Headers({
-      'x-agentbase-on-behalf-of': owner,
       'x-raya-user-delegation': proof,
       'x-agentbase-chain': 'chain',
     });
+    if (serviceSubject) headers.set('x-agentbase-on-behalf-of', serviceSubject);
     const context = {
       req: {
         path: '/api/a2a/scaffold-builder',
@@ -128,6 +128,11 @@ describe('AGT-040 scaffold memory follows verified Raya scope', () => {
     const first = await scope('owner-one', 'room-one');
     expect((await scope('owner-two', 'room-one')).contextId).not.toBe(first.contextId);
     expect((await scope('owner-one', 'room-two')).contextId).not.toBe(first.contextId);
+  });
+  it('uses the signed-in Raya person when their connected-service subject differs or is absent', async () => {
+    const first = await scope('raya-person', 'room-one', 'external-service-subject');
+    expect(await scope('raya-person', 'room-one', null)).toEqual(first);
+    expect(await scope('raya-person', 'room-one', 'different-service-subject')).toEqual(first);
   });
 });
 
