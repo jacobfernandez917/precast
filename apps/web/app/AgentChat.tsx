@@ -54,7 +54,8 @@ interface Turn {
   via: A2aTransport;
 }
 
-export function AgentChat() {
+export function AgentChat({ presentation = 'demo' }: { presentation?: 'demo' | 'assistant' } = {}) {
+  const isAssistant = presentation === 'assistant';
   const [agentId, setAgentId] = useState('example-agent');
   const [message, setMessage] = useState('');
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -159,10 +160,10 @@ export function AgentChat() {
     <Card className="flex min-h-0 flex-1 flex-col">
       <form onSubmit={sendMessage} className="flex min-h-0 flex-1 flex-col gap-4">
         <div className="flex items-start justify-between gap-4">
-          <Heading level={2}>Agent chat (A2A)</Heading>
+          <Heading level={2}>{isAssistant ? 'Conversation' : 'Agent chat (A2A)'}</Heading>
           {turns.length > 0 && (
             <Button
-              label="Start over"
+              label={isAssistant ? 'New conversation' : 'Start over'}
               type="button"
               variant="secondary"
               onClick={startNewConversation}
@@ -170,12 +171,14 @@ export function AgentChat() {
           )}
         </div>
 
-        <TextInput
-          label="Agent"
-          value={agentId}
-          onChange={setAgentId}
-          placeholder="example-agent"
-        />
+        {!isAssistant && (
+          <TextInput
+            label="Agent"
+            value={agentId}
+            onChange={setAgentId}
+            placeholder="example-agent"
+          />
+        )}
 
         <div
           ref={logRef}
@@ -193,7 +196,9 @@ export function AgentChat() {
                 </div>
                 <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-3">
                   <Text type="supporting">
-                    Agent · {turn.via === 'agentbase' ? 'via AgentBase proxy' : 'direct A2A'}
+                    {isAssistant
+                      ? 'Assistant'
+                      : `Agent · ${turn.via === 'agentbase' ? 'via AgentBase proxy' : 'direct A2A'}`}
                   </Text>
                   <Text as="p">{turn.answer}</Text>
                   {turn.a2ui.length > 0 && <AgentCards messages={turn.a2ui} onPress={sendPress} />}
@@ -202,9 +207,9 @@ export function AgentChat() {
             ))}
             {turns.length > 0 && (
               <Text type="supporting">
-                This agent remembers the turns above. Tell it your name, start over, then ask for it
-                — the thread resets, but what it saved about you carries across. Ask for a card to
-                see buttons it can draw.
+                {isAssistant
+                  ? 'The assistant works with details you share in this conversation.'
+                  : 'This agent remembers the turns above. Tell it your name, start over, then ask for it — the thread resets, but what it saved about you carries across. Ask for a card to see buttons it can draw.'}
               </Text>
             )}
           </div>
@@ -217,7 +222,7 @@ export function AgentChat() {
               isLabelHidden
               value={message}
               onChange={setMessage}
-              placeholder="Type a message for the agent..."
+              placeholder={isAssistant ? 'Ask your assistant…' : 'Type a message for the agent...'}
             />
           </div>
           <Button

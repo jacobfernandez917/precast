@@ -12,7 +12,7 @@
 
 ## 1. Current state (overwrite on each handoff)
 
-- **PRD source capture hardened; first real product build reached disk limit (T-260, 2026-11-13).** The actual PDF is saved exactly (hash `4bc955c0b5529032ee7bafb53582cba67095d0801a774135208cef6c443c06cd`). Raya asked only name and theme, reusing the document's Gemini/Postgres choices. Developer run `969bc955-eb14-40da-abdc-4fe032937dd6` at template `6082918` passed clone, bootstrap, PRD product generation, real service setup and typecheck. The Next build failed with ENOSPC; no public preview was returned. The project and its database are retained. Attachment capture now happens before the builder model; the planner automatically analyses an unprocessed draft, so an omitted reader tool call cannot silently lose the document. Partial attachments remain blocking drafts. Full verify: 12 tasks passed (agents 203, web 404/one skipped, shared 24, A2UI 34). Resolve Computer disk capacity, deploy this hardening and rerun the full PDF → Computer → public acceptance.
+- **PRD full flow and public acceptance passed (T-260, 2026-11-13).** Builder/template `731a733` read the real PDF exactly, asked only name/theme, and completed seven commands plus the bounded PRD input write on the real Developer Computer. Run `9237c2c7-41b0-40f4-83ae-ca1751137532`, Raya work `f1acd593-5a65-4ce1-9573-be7921457acf` and native A2A task completed; the long turn took 252559 ms. Both subscriptions, the real Gemini call and exactly one Hannibal invocation passed. Public `E2E-018` passed persistent CRUD, two-account isolation and a real streamed assistant reply in 50.7 seconds. The first public attempt hit `ERR_NETWORK_CHANGED` when opening the second account; a full rerun passed. Current app: https://o6ocvgsysepyzkxzuxmstud4lq.srv.us, expiry **05:29 PHT on 14 November**. The first disk-full project's sources/database remain; only disposable caches were cleared (4.79 GB recovered). Full verify: 12 tasks passed (agents 203, web 404/one skipped, shared 24, A2UI 34); all four code CI jobs passed. Final product assistant presentation adjustment is being applied and rechecked on the same live app; no model/database reprovisioning is needed.
 
 - **Conversational setup deployed and passed (T-258, 2026-11-13).** Builder `830156b`
   uses `prepare-precast-project` to ask one missing bootstrap preference per turn: name,
@@ -79,7 +79,7 @@ _Known carry-forwards:_
 
 ## 2. Next task (overwrite on each handoff)
 
-**Finish T-260 live acceptance.** Resolve the Computer disk limit without deleting project sources or database state, deploy the automatic source capture, then attach the Action Desk fixture PDF through real Raya and answer only name/theme. Verify all seven commands and run `E2E-018` against the resulting srv.us URL. The first PRD run and database are retained; no public PRD app success is claimed yet.
+**Close T-260.** Apply the assistant presentation change to the existing running project, rebuild the web app, retain its srv.us URL/approval window, and rerun `E2E-018`. Save the curated validation report and push develop. The core seven-step flow and first complete public acceptance already passed; preserve the active owner preview.
 
 The earlier orchestrator-crew live telemetry checks remain carry-forwards:
 

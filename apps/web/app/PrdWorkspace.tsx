@@ -272,7 +272,7 @@ export function PrdWorkspace({ brief }: { brief: PrdBlueprint }) {
       >
         <Heading level={2}>{brief.title} assistant</Heading>
         <Text type="supporting">{brief.agentJob}</Text>
-        <AgentChat />
+        <AgentChat presentation="assistant" />
       </section>
     </div>
   );
