@@ -1,5 +1,10 @@
 # TECH_STACK.md — Tech Inventory
 
+Connected scaffolding (2026-11-13) also uses `pg` ^8.23 at the hosted builder to verify
+the project role with the vendored RDS CA bundle, copied into the agents runtime image.
+An AES-256-GCM receipt with RSA-OAEP/SHA-256 key wrapping keeps database credentials out
+of model-visible output; the Computer's network stays HTTPS-only. No new service or repository.
+
 > **Authoritative source of truth for all tech-stack facts.** If this file disagrees with any other doc about a version, library, container image, or port, this file wins and the other doc has a bug.
 
 **Last Updated:** 2026-10-28

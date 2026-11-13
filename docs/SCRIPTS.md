@@ -1,5 +1,9 @@
 # SCRIPTS.md — Operator Cheatsheet
 
+`pnpm setup:services` is the gated connected-scaffold stage. The builder invokes its Node
+script directly to preserve the approved secret descriptor; it requires explicit Hannibal/Gemini
+selection and a project-bound saved credential. See [connected scaffolding](INTEGRATION_AGENTBASE.md#connected-scaffolding).
+
 > Every script ends a failure with one line after `❌` or `✖` that says what happened and what to do next. `PRECAST_DEBUG=1` adds the full error.
 
 > Every `pnpm` script at the repo root, grouped by lifecycle.

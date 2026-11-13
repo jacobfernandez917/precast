@@ -12,6 +12,8 @@
 
 ## 1. Current state (overwrite on each handoff)
 
+- **Connected scaffold implementation:** optional `hannibal-gemini` setup subscribes the project's own Application, proves a Gemini call, asks Hannibal once, saves owner-only credentials and verifies Postgres through an encrypted receipt at the hosted builder. Request, operator and member/credential gates apply. Computer egress stays HTTPS-only. Focused checks pass; deployment and live connected acceptance remain pending. Prior deferred acceptance remains passed.
+
 - **Fresh Computer bootstrap:** initial-commit identity falls back to `Project Scaffold <scaffold@localhost>` only for missing identity fields; existing Git configuration and author/committer environment overrides win. This fixes the failure reproduced inside the Developer image without changing member settings.
 - **End-to-end Raya scaffold passed (2026-11-13).** The deployed builder at code `6a3dc9e` completed clone, bootstrap, `verify:poc` and build with four zero exits, and Raya returned the successful final reply after 238963 ms, beyond the former 180-second cutoff. Output `Projects/raya-scaffold-live-20261113-endtoend` has the requested package name, template commit `6a3dc9e`, a web build ID and the agent bundle; all three normal Raya file views returned 200. Signed Developer image `20261113.precast.5` is installed, promoted and attended-qualified with three model-directed trials, project-cache checks and a real npm registry read. Earlier image, memory, CI-lockfile and npm-configuration defects are fixed; v1–v4 are retired. Builder mode alone gets a bounded 15-minute server window; project mode keeps three minutes. General, existing nonprod capacity and prior project folders are preserved. No remote repository was created. Deployment scope is LOCAL/nonprod.
 - **Validation:** both bundled modes served exactly their expected agent cards against managed Postgres; full `pnpm verify` and code CI passed. Fresh Developer-image desktop and initial-commit probes passed. Companion fixes are AgentBase `ab50cbbb` (per-agent identity + governance holds) and Raya `03ec2e0` (proposal rooms matched by stable subscribed agent ID); their focused unit and real-Postgres integration checks passed.
@@ -36,6 +38,8 @@ _Known carry-forwards:_
 ---
 
 ## 2. Next task (overwrite on each handoff)
+
+**Finish connected acceptance.** Deploy this revision, restore the existing LOCAL Hannibal runtime after its earlier failed deployment, prepare a project Application/credential and approved member grant, then require real Gemini/Postgres calls, five zero command exits and Raya's final reply. Preserve prior projects and existing exposure.
 
 **No remaining scaffold deployment or validation task.** Evidence and operator helpers are under `/tmp/precast-scaffold-live-1RUfjB`; the maintained validation report is in AgentBase at `docs/validation/precast-scaffold-2026-11-13.json`. The generated project's model and managed Postgres connection were intentionally deferred by bootstrap; configure those before `pnpm poc`. Keep the existing LOCAL Computer transport available. Unrelated orchestrator telemetry checks remain below.
 

@@ -9,11 +9,12 @@ const POLL_MS = 2_000;
 export interface ComputerCommand {
   id: string;
   label: string;
-  executable: 'git' | 'pnpm';
+  executable: 'git' | 'pnpm' | 'node';
   argv: string[];
   cwd: string;
   timeoutMs: number;
   memoryMiB?: number;
+  secrets?: Array<{ alias: string; purpose: string }>;
 }
 
 export interface ComputerCommandResult {
@@ -163,6 +164,7 @@ export class AgentBaseComputerClient {
       cwd: command.cwd,
       timeoutMs: command.timeoutMs,
       ...(command.memoryMiB === undefined ? {} : { memoryMiB: command.memoryMiB }),
+      ...(command.secrets === undefined ? {} : { secrets: command.secrets }),
       waitMs: 10_000,
       profile: PROFILE,
     };

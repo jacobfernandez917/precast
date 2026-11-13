@@ -1,5 +1,28 @@
 # INTEGRATION_AGENTBASE.md — How Precast fits with AgentBase
 
+## Connected scaffolding
+
+Default scaffolding defers models and database setup. The optional `services: hannibal-gemini`
+stage requires builder mode, `PRECAST_SERVICE_SETUP_ENABLED=1` and `PRECAST_SETUP_DATABASE_HOST`.
+The member's Computer grant must explicitly approve `precast_project_setup` and the exact
+AgentBase API/token HTTPS domains. The base import proposal stays secret-free.
+
+Prepare a dedicated developer-owned project Application. Save a `static_bearer` credential
+whose JSON value has exactly these string keys: `projectName`, `applicationId`, `clientId`,
+`clientSecret`, `apiUrl`, `tokenUrl`, `modelSlug`, `modelId`, `modelListingId`, `modelOrg`,
+`hannibalSlug`, `hannibalListingId`, `hannibalOrg`, `databaseHost`, `expiresAt`.
+Use published pinned listings, HTTPS and an expiry within 24 hours. Restrict the credential
+to this member and builder, then bind it to the alias. No vendor key or database admin secret.
+Never place this JSON in chat or command arguments.
+
+The fixed Node stage receives it on a leased secret descriptor, subscribes the project
+Application, proves a Gemini completion and asks Hannibal once for a scoped database.
+Credentials go into owner-only `.env`. An uncertain database request requires review; a
+configured project reuses its database. A sealed receipt lets the hosted builder verify
+trusted RDS TLS and `SELECT 1` before verification/build. Only public results reach the model.
+Computer egress stays HTTPS-only; running the generated app there needs separately approved
+database connectivity. Service setup does not start the app or expose a public preview.
+
 > **What this is.** A verified integration note describing how an agent built on the **Precast** boilerplate (Mastra API app) is registered and invoked on **AgentBase**. The compatibility claims here were confirmed by booting the Precast `example-agent`, fetching its live A2A card, and running that card through AgentBase's actual registration validator.
 
 **Last Updated:** 2026-08-04

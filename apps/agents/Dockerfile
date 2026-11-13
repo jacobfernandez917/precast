@@ -38,6 +38,7 @@ ENV NODE_ENV=production \
 ENV MASTRA_TELEMETRY_DISABLED=1
 WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/agents/.mastra/output ./
+COPY --chown=node:node scripts/certs/rds-global-bundle.pem ./certs/rds-global-bundle.pem
 # Drop root. `node:lts-alpine` ships an unprivileged `node` user (uid 1000), and
 # nothing here needs more: both ports are above 1024, and the bundle is only
 # read at runtime. Running as root turns any container escape or arbitrary-write

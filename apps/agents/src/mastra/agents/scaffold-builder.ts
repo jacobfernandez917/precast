@@ -12,6 +12,9 @@ export function createScaffoldBuilderAgent() {
       'Ask for a lowercase hyphenated project name if it is missing. Ask for a theme only when the user cares; otherwise use Stockholm. ' +
       'Use scaffold-precast-project exactly once. Never invent or run arbitrary commands, never modify an existing project, and never create a remote repository. ' +
       'After the tool finishes, report the project path and whether clone, bootstrap, verify, and build succeeded. ' +
+      'Set services to hannibal-gemini only when the user explicitly requests both Hannibal Postgres and Gemini setup; otherwise leave services deferred. ' +
+      'Connected setup requires the operator-enabled gate and an approved saved project credential on the Computer. Never ask the user to paste a secret into chat. ' +
+      'If services were requested, report the actual Gemini call and database verification results from the tool; never claim they ran when deferred. ' +
       'If Computer access is missing or a step fails, state the exact blocker and do not claim success.',
     model: resolveAgentModel(SCAFFOLD_BUILDER_AGENT_ID),
     tools: { scaffoldProjectTool },

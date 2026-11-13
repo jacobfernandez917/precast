@@ -1,8 +1,14 @@
 import { createHash } from 'node:crypto';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { AgentBaseComputerClient, type ComputerCommandResult } from '../lib/agentbase-computer';
+import {
+  AgentBaseComputerClient,
+  type ComputerCommand,
+  type ComputerCommandResult,
+} from '../lib/agentbase-computer';
 import { currentAgentBaseProof } from '../lib/request-context';
+import { resolveAgentMode } from '../lib/agent-mode';
+import { createServiceVerifier } from '../lib/service-verification';
 
 export const SCAFFOLD_BUILDER_AGENT_ID = 'scaffold-builder';
 const TEMPLATE_REPOSITORY =
@@ -16,6 +22,7 @@ export const scaffoldProjectInput = z.object({
   theme: z
     .enum(['stockholm', 'prague', 'arctic', 'nova', 'melbourne', 'lapland', 'cappadocia'])
     .default('stockholm'),
+  services: z.enum(['deferred', 'hannibal-gemini']).default('deferred'),
 });
 
 const commandResultSchema = z.object({
@@ -32,12 +39,32 @@ export const scaffoldProjectOutput = z.object({
   theme: z.string(),
   state: z.literal('succeeded'),
   steps: z.array(commandResultSchema),
+  services: z
+    .object({
+      projectName: z.string(),
+      applicationId: z.string().uuid(),
+      model: z.string(),
+      geminiCallVerified: z.literal(true),
+      database: z.string(),
+      databaseVerified: z.literal(true),
+      verificationLocation: z.literal('builder-server'),
+    })
+    .optional(),
 });
 
 export async function scaffoldProject(
   input: z.infer<typeof scaffoldProjectInput>,
 ): Promise<z.infer<typeof scaffoldProjectOutput>> {
   const parsed = scaffoldProjectInput.parse(input);
+  const connected = parsed.services === 'hannibal-gemini';
+  if (
+    connected &&
+    (resolveAgentMode() !== 'scaffold-builder' || process.env.PRECAST_SERVICE_SETUP_ENABLED !== '1')
+  ) {
+    throw new Error(
+      'Connected scaffolding is not enabled for this builder. No project or service was created.',
+    );
+  }
   const proof = currentAgentBaseProof();
   if (!proof.rayaUserDelegation || !proof.agentbaseChain) {
     throw new Error(
@@ -45,10 +72,13 @@ export async function scaffoldProject(
     );
   }
   const projectPath = `Projects/${parsed.projectName}`;
+  const verifier = connected ? createServiceVerifier(parsed.projectName) : undefined;
   const seed = createHash('sha256')
-    .update(`${proof.agentbaseChain}\u0000${parsed.projectName}\u0000${parsed.theme}`)
+    .update(
+      `${proof.agentbaseChain}\u0000${parsed.projectName}\u0000${parsed.theme}\u0000${parsed.services}`,
+    )
     .digest('hex');
-  const commands = [
+  const commands: ComputerCommand[] = [
     {
       id: 'clone',
       label: 'Clone the Precast template',
@@ -94,15 +124,47 @@ export async function scaffoldProject(
       memoryMiB: 3072,
     },
   ];
+  if (verifier)
+    commands.splice(2, 0, {
+      id: 'services',
+      label: 'Connect the approved Hannibal Postgres and Gemini services',
+      executable: 'node',
+      cwd: projectPath,
+      timeoutMs: 10 * 60_000,
+      memoryMiB: 512,
+      argv: [
+        'scripts/setup-services.mjs',
+        '--services=hannibal-gemini',
+        `--project-name=${parsed.projectName}`,
+        `--verification-key=${verifier.publicKey}`,
+      ],
+      secrets: [
+        {
+          alias: 'PRECAST_PROJECT_SETUP'.toLowerCase(),
+          purpose: `Connect services only for ${parsed.projectName}`,
+        },
+      ],
+    });
 
   const client = new AgentBaseComputerClient(SCAFFOLD_BUILDER_AGENT_ID);
   const { run, lease } = await client.createRun(seed);
   const steps: ComputerCommandResult[] = [];
+  let services: z.infer<typeof scaffoldProjectOutput>['services'];
   try {
     await client.waitUntilRunning(run.id);
     const controlEpoch = await client.takeControl(run.id, lease.id);
     for (const command of commands) {
-      steps.push(await client.runCommand(run.id, lease.id, controlEpoch, command, seed));
+      const result = await client.runCommand(run.id, lease.id, controlEpoch, command, seed);
+      if (command.id === 'services' && verifier) {
+        services = await verifier.verify(result.stdout);
+        // Only the verified public summary reaches the model. The encrypted receipt stays internal.
+        steps.push({
+          ...result,
+          stdout:
+            'Project Application subscribed; Gemini call and scoped Postgres SELECT 1 verified.',
+          stderr: '',
+        });
+      } else steps.push(result);
     }
     await client.complete(run.id, lease.id, 'succeeded', `Created and verified ${projectPath}.`);
   } catch (error) {
@@ -116,6 +178,7 @@ export async function scaffoldProject(
     theme: parsed.theme,
     state: 'succeeded',
     steps,
+    ...(services ? { services } : {}),
   };
 }
 
