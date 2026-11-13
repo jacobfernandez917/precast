@@ -1,5 +1,14 @@
 # TEST_CASES.md — Test Catalog
 
+- `AGT-035`: explicit preview/operator/connected-service gates before any run; exact server
+  authorization before startup; sanitized script receipt and owner handoff; refusal returns
+  no URL. Three passing new cases, seven total scaffold tool cases.
+- `TOOL-017`: project/relay/Application/RDS/expiry approval validation, owner-only state,
+  symlink refusal, trusted Postgres identity and administrator-role refusal. Three passing cases.
+- Automatic preview live acceptance: pending deployment and a fresh full Raya Computer run.
+
+Full `pnpm verify`: all 12 tasks passed; web 393 passed/one skipped, agents 174 passed.
+
 Public UI acceptance also passed a 127407 ms real Gemini/tool turn with 26 incremental
 status events and a visible final answer. The deterministic tool waited 120 seconds. The
 ordinary tool/environment were restored, agents rebuilt, the same URL reconnected and a

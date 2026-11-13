@@ -12,6 +12,15 @@
 
 ## 1. Current state (overwrite on each handoff)
 
+- **Automatic connected preview implementation (T-257):** the existing builder accepts an
+  explicit `preview: "srv.us"` only with connected services and the separate preview gate.
+  A second saved owner approval binds the project, Application, exact RDS/HTTPS destinations
+  and expiry. The flow authorizes networking, starts the production app and SSH tunnel,
+  verifies public sign-in readiness and hands the bounded reservation to the owner before
+  returning a curated public URL. Deferred and non-preview flows retain their existing steps.
+  Full verification passed 12 tasks (web 393 passed/one skipped, agents 174); new script/tool
+  checks passed ten. Deployment and a fresh full Raya Computer acceptance are pending.
+
 - **Extended public UI test passed:** a real Gemini turn containing a 120-second deterministic
   tool completed in **127407 ms**, with **26** live progress events, the UI counter through
   120 seconds and the final answer visible. The original tool and fixture environment were
@@ -50,7 +59,12 @@ _Known carry-forwards:_
 
 ## 2. Next task (overwrite on each handoff)
 
-**No remaining srv.us preview or connected scaffold task.** Open https://ssc4pd3mnfawg6t26wvwtx6sua.srv.us, create an account or sign in, and chat. The preview depends on the current Computer session and expires at 23:35 PHT / 15:35 UTC on 2026-11-13; handback or shutdown ends it earlier. The persistent project is `Projects/raya-scaffold-live-20261113-connected`. Keep the existing LOCAL Computer transport and owner preview reservation available. A later session needs a fresh explicit reservation and network lease. Maintained evidence: AgentBase `docs/validation/precast-scaffold-2026-11-13.json` → `publicPreview`; private operator helpers: `/tmp/precast-scaffold-live-1RUfjB/srv-*`. Temporary delay code is removed. Original projects and unrelated carry-forwards remain intact.
+**Deploy and finish the fresh automatic preview acceptance.** Push this change, reimport
+only the existing builder, enable both preview gates in LOCAL/nonprod, prepare project-bound
+setup and preview approvals, then request one fresh connected scaffold with `preview: "srv.us"`
+in Raya. Verify six zero command exits, final Raya URL, public sign-up/chat, owner reservation
+and preserved prior projects. Record exact runtime and URL in AgentBase's maintained validation
+report. Private operator helpers remain under `/tmp/precast-scaffold-live-1RUfjB`.
 
 The earlier orchestrator-crew live telemetry checks remain carry-forwards:
 
@@ -104,6 +118,11 @@ Return format:
 ```
 
 ## 4. File map for takeover (always-current)
+
+Automatic previews: `scripts/start-project-preview.mjs` checks the saved project approval,
+trusted Postgres role and app readiness; `scripts/preview-tunnel.mjs` owns only the expiring
+srv.us SSH connection to the app's loopback web port. `scaffold-project.ts` and
+`agentbase-computer.ts` perform authorization and owner handoff through AgentBase.
 
 Preview streaming: `apps/web/app/lib/chat-stream.ts` sends elapsed-time/result frames and parses
 bounded incremental responses; `chat-stream.spec.ts` and `a2a-route.spec.ts` cover framing,

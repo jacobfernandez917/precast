@@ -251,4 +251,28 @@ export class AgentBaseComputerClient {
       }),
     });
   }
+
+  async projectPreview(
+    runId: string,
+    stage: 'authorize' | 'handoff',
+    input: {
+      leaseId: string;
+      projectPath: string;
+      applicationId: string;
+      controlEpoch: number;
+      url?: string;
+    },
+  ): Promise<{
+    provider: 'srv.us';
+    projectPath?: string;
+    applicationId?: string;
+    expiresAt: string;
+    url?: string;
+    signInRequired?: true;
+  }> {
+    return this.request(`/computer-agent/runs/${runId}/project-preview/${stage}`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
 }

@@ -39,6 +39,13 @@ See [docs/TECH_STACK.md](docs/TECH_STACK.md) for the pinned versions of everythi
 
 ### One repository, gated agent modes
 
+The scaffold builder can optionally start a connected app on the Raya Computer and return
+its verified public URL. Explicitly request Hannibal Postgres, Gemini and a srv.us preview;
+this selects `services: "hannibal-gemini"` and `preview: "srv.us"`. The builder and API preview
+flags and a separate saved project preview approval must be enabled by the operator. The
+public app keeps sign-in, the preview has a stated expiry, and stopping the Computer or
+handing back owner control ends it. Ordinary scaffolds leave public exposure off.
+
 The web chat streams elapsed-time updates while an A2A turn runs, then delivers its sanitized
 answer. Existing JSON clients keep their response contract; sign-in, rate limits and server-derived
 conversation ownership apply before a stream opens. The current upstream A2A call returns the

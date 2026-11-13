@@ -23,6 +23,7 @@ export const scaffoldProjectInput = z.object({
     .enum(['stockholm', 'prague', 'arctic', 'nova', 'melbourne', 'lapland', 'cappadocia'])
     .default('stockholm'),
   services: z.enum(['deferred', 'hannibal-gemini']).default('deferred'),
+  preview: z.enum(['off', 'srv.us']).default('off'),
 });
 
 const commandResultSchema = z.object({
@@ -50,6 +51,15 @@ export const scaffoldProjectOutput = z.object({
       verificationLocation: z.literal('builder-server'),
     })
     .optional(),
+  preview: z
+    .object({
+      provider: z.literal('srv.us'),
+      url: z.string().regex(/^https:\/\/[a-z2-7]{26}\.srv\.us$/),
+      expiresAt: z.string().datetime(),
+      signInRequired: z.literal(true),
+    })
+    .strict()
+    .optional(),
 });
 
 export async function scaffoldProject(
@@ -57,6 +67,16 @@ export async function scaffoldProject(
 ): Promise<z.infer<typeof scaffoldProjectOutput>> {
   const parsed = scaffoldProjectInput.parse(input);
   const connected = parsed.services === 'hannibal-gemini';
+  const previewRequested = parsed.preview === 'srv.us';
+  if (
+    previewRequested &&
+    (!connected ||
+      resolveAgentMode() !== 'scaffold-builder' ||
+      process.env.PRECAST_PROJECT_PREVIEW_ENABLED !== '1')
+  )
+    throw new Error(
+      'A public preview requires explicitly approved connected scaffolding and the enabled preview gate. No project was created.',
+    );
   if (
     connected &&
     (resolveAgentMode() !== 'scaffold-builder' || process.env.PRECAST_SERVICE_SETUP_ENABLED !== '1')
@@ -75,7 +95,7 @@ export async function scaffoldProject(
   const verifier = connected ? createServiceVerifier(parsed.projectName) : undefined;
   const seed = createHash('sha256')
     .update(
-      `${proof.agentbaseChain}\u0000${parsed.projectName}\u0000${parsed.theme}\u0000${parsed.services}`,
+      `${proof.agentbaseChain}\u0000${parsed.projectName}\u0000${parsed.theme}\u0000${parsed.services}\u0000${parsed.preview}`,
     )
     .digest('hex');
   const commands: ComputerCommand[] = [
@@ -150,6 +170,7 @@ export async function scaffoldProject(
   const { run, lease } = await client.createRun(seed);
   const steps: ComputerCommandResult[] = [];
   let services: z.infer<typeof scaffoldProjectOutput>['services'];
+  let preview: z.infer<typeof scaffoldProjectOutput>['preview'];
   try {
     await client.waitUntilRunning(run.id);
     const controlEpoch = await client.takeControl(run.id, lease.id);
@@ -166,7 +187,74 @@ export async function scaffoldProject(
         });
       } else steps.push(result);
     }
-    await client.complete(run.id, lease.id, 'succeeded', `Created and verified ${projectPath}.`);
+    if (previewRequested) {
+      if (!services) throw new Error('A public preview needs verified project services.');
+      const binding = {
+        leaseId: lease.id,
+        projectPath,
+        applicationId: services.applicationId,
+        controlEpoch,
+      };
+      const approval = await client.projectPreview(run.id, 'authorize', binding);
+      if (
+        approval.provider !== 'srv.us' ||
+        approval.projectPath !== projectPath ||
+        approval.applicationId !== services.applicationId ||
+        !Number.isFinite(Date.parse(approval.expiresAt))
+      )
+        throw new Error('The preview authorization did not match this connected project.');
+      const result = await client.runCommand(
+        run.id,
+        lease.id,
+        controlEpoch,
+        {
+          id: 'preview',
+          label: 'Start the connected app and its approved public preview',
+          executable: 'node',
+          cwd: projectPath,
+          timeoutMs: 5 * 60_000,
+          memoryMiB: 3072,
+          argv: [
+            'scripts/start-project-preview.mjs',
+            '--provider=srv.us',
+            `--project-name=${parsed.projectName}`,
+            `--expires-at=${approval.expiresAt}`,
+          ],
+          secrets: [
+            {
+              alias: 'PRECAST_PROJECT_PREVIEW'.toLowerCase(),
+              purpose: `Publish only the approved preview for ${parsed.projectName}`,
+            },
+          ],
+        },
+        seed,
+      );
+      const line = result.stdout
+        .split('\n')
+        .find((value) => value.startsWith('PRECAST_PROJECT_PREVIEW:'));
+      const report = z
+        .object({
+          projectName: z.literal(parsed.projectName),
+          projectPath: z.literal(projectPath),
+          applicationId: z.literal(services.applicationId),
+          provider: z.literal('srv.us'),
+          url: z.string().regex(/^https:\/\/[a-z2-7]{26}\.srv\.us$/),
+          expiresAt: z.literal(approval.expiresAt),
+          signInRequired: z.literal(true),
+        })
+        .strict()
+        .parse(JSON.parse(line?.slice('PRECAST_PROJECT_PREVIEW:'.length) ?? '{}'));
+      const ready = await client.projectPreview(run.id, 'handoff', { ...binding, url: report.url });
+      preview = scaffoldProjectOutput.shape.preview.unwrap().parse(ready);
+      if (preview.url !== report.url || preview.expiresAt !== approval.expiresAt)
+        throw new Error('The handed-over preview changed its URL or approval window.');
+      steps.push({
+        ...result,
+        stdout: 'The connected app is running with a verified public sign-in URL.',
+        stderr: '',
+      });
+    } else
+      await client.complete(run.id, lease.id, 'succeeded', `Created and verified ${projectPath}.`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await client.complete(run.id, lease.id, 'failed', message).catch(() => undefined);
@@ -179,6 +267,7 @@ export async function scaffoldProject(
     state: 'succeeded',
     steps,
     ...(services ? { services } : {}),
+    ...(preview ? { preview } : {}),
   };
 }
 
