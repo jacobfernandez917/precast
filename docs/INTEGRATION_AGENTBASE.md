@@ -2,8 +2,9 @@
 
 ## Connected scaffolding
 
-Default scaffolding defers models and database setup. The optional `services: hannibal-gemini`
-stage requires builder mode, `PRECAST_SERVICE_SETUP_ENABLED=1` and `PRECAST_SETUP_DATABASE_HOST`.
+The builder collects project name, model, theme and database choices one at a time. Selecting
+Gemini and managed Postgres enables `services: hannibal-gemini`; deferring either currently
+defers both connections and the preview. The connected stage requires builder mode, `PRECAST_SERVICE_SETUP_ENABLED=1` and `PRECAST_SETUP_DATABASE_HOST`.
 The member's Computer grant must explicitly approve `precast_project_setup` and the exact
 AgentBase API/token HTTPS domains. The base import proposal stays secret-free.
 
@@ -20,8 +21,12 @@ Application, proves a Gemini completion and asks Hannibal once for a scoped data
 Credentials go into owner-only `.env`. An uncertain database request requires review; a
 configured project reuses its database. A sealed receipt lets the hosted builder verify
 trusted RDS TLS and `SELECT 1` before verification/build. Only public results reach the model.
-Computer egress stays HTTPS-only; running the generated app there needs separately approved
-database connectivity. Service setup does not start the app or expose a public preview.
+Service setup alone keeps Computer egress HTTPS-only. Connected scaffolds then automatically
+start the app with srv.us, subject to `PRECAST_PROJECT_PREVIEW_ENABLED=1`, the API preview gate
+and the separate saved `precast_project_preview` approval for this project and owner. It binds
+the exact relay, database endpoint and expiry. The user is never asked to select a tunnel.
+Missing approval is a blocker, not a reason to fabricate a link. Explicit private builds may
+set `preview: off`; deferred builds do not start an app or request preview secrets.
 
 ### Public preview options reviewed, 13 November 2026
 

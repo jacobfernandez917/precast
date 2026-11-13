@@ -1,5 +1,7 @@
 # PROGRESS.md — Context Memory
 
+- **2026-11-13 · Codex · conversational scaffold setup (T-258).** Added a side-effect-free preparation tool that asks one missing name/model/theme/database preference per turn, skips supplied answers and uses defaults only on request. The existing execution defaults connected builds to srv.us without a tunnel question; operator and saved project approvals remain mandatory. Deferred connections remain honest and private. Focused checks: 17 passed; full verification passed all 12 tasks (agents 184, web 393/one skipped). Existing-builder deployment and live Raya interview pending; current Computer/app preserved.
+
 - **2026-11-13 · Codex · automatic preview full flow passed (T-257).** Builder/template `152a404` completed six commands in the real Raya Computer run `ec0fcdf1-ff6a-4ab3-83cd-7e22b255674b`. Gemini and exactly one audited Hannibal invocation passed; app startup verified trusted Postgres TLS and restricted role, started the app and srv.us tunnel, then API readiness checks reserved the owner preview. Raya work `ef1a4c13-37f4-49f1-856b-fb6476d8ef2d` and native A2A task completed after 239661 ms. Public sign-up, real streamed UI chat, anonymous refusal and private paths passed. URL: https://6ipicslqumvnweft4iojuqqdba.srv.us, expiry 03:00 PHT 14 November. Code CI passed all four jobs; full verify passed 12 tasks; companion API tests passed 36. First-attempt project/database retained after fixing stale CREATED-run refusal. No new repository or image; LOCAL/nonprod only. Full evidence lives in AgentBase's validation report under `automaticPreview`.
 
 - **2026-11-13 · Codex · gated automatic preview implemented (T-257).** Added opt-in srv.us previews to the existing connected scaffold. Separate builder/API flags, owner-bound saved preview approval, current Developer grant/lease/epoch, exact destinations and expiry gate the flow. It starts the existing production bundles, keeps keys/credentials private, verifies public sign-in and hands the reservation to the owner before returning the URL. Non-preview scaffolds retain their existing steps. Full verify passed 12 tasks (web 393 passed/one skipped, agents 174); new script/tool checks passed ten. Deployment and real full-flow acceptance are pending.
@@ -33,7 +35,7 @@
 > **This file is the ultimate cross-tool context memory.** All coding agents MUST update this file on every meaningful change. If you finish work without updating PROGRESS.md, the work is **not** considered complete.
 
 **Last Updated:** 2026-11-13
-**Updated By:** Codex (real Raya scaffold deployment and validation)
+**Updated By:** Codex (conversational scaffold refinement)
 **Active Branch:** develop
 
 ---
@@ -118,11 +120,11 @@ You MUST update PROGRESS.md when you:
 
 ## 6. Test Coverage
 
-| Area                | Tests                                            | Status  |
-| ------------------- | ------------------------------------------------ | ------- |
-| Agents (Vitest)     | `apps/agents/src/**` — placeholder example tool  | Passing |
-| Web/shared (Vitest) | `apps/web/test/**` — env schema + fitness guards | Passing |
-| E2E (Playwright)    | `apps/web/e2e/**` — home page                    | Passing |
+| Area                | Tests                                                                                       | Status  |
+| ------------------- | ------------------------------------------------------------------------------------------- | ------- |
+| Agents (Vitest)     | `apps/agents/src/**` — includes conversational preparation and gated execution (17 focused) | Passing |
+| Web/shared (Vitest) | `apps/web/test/**` — env schema + fitness guards                                            | Passing |
+| E2E (Playwright)    | `apps/web/e2e/**` — home page                                                               | Passing |
 
 ---
 
@@ -139,6 +141,8 @@ You MUST update PROGRESS.md when you:
 ## 8. Session Log
 
 <!-- Newest first. The progress-stamp hook appends <auto-journal> markers here. -->
+
+- **2026-11-13 · Codex · conversational scaffold setup (T-258).** Added a side-effect-free preparation tool that asks one missing name/model/theme/database preference per turn, skips supplied answers and uses defaults only on request. The existing execution defaults connected builds to srv.us without a tunnel question; operator and saved project approvals remain mandatory. Deferred connections remain honest and private. Focused checks: 17 passed; full verification passed all 12 tasks (agents 184, web 393/one skipped). Existing-builder deployment and live Raya interview pending; current Computer/app preserved.
 
 - **2026-11-13 · Codex · preserve bootstrap rename safety ·** CI's existing SMOKE-019 guard caught mode-selection identifiers containing the boilerplate name. A hyphenated project rename would invalidate them. Renamed the type and resolver to `AgentMode` and `resolveAgentMode`; mode behavior and the guard are unchanged.
 

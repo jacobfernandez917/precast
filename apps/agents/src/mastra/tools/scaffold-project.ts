@@ -23,7 +23,7 @@ export const scaffoldProjectInput = z.object({
     .enum(['stockholm', 'prague', 'arctic', 'nova', 'melbourne', 'lapland', 'cappadocia'])
     .default('stockholm'),
   services: z.enum(['deferred', 'hannibal-gemini']).default('deferred'),
-  preview: z.enum(['off', 'srv.us']).default('off'),
+  preview: z.enum(['off', 'srv.us']).default('srv.us'),
 });
 
 const commandResultSchema = z.object({
@@ -63,19 +63,18 @@ export const scaffoldProjectOutput = z.object({
 });
 
 export async function scaffoldProject(
-  input: z.infer<typeof scaffoldProjectInput>,
+  input: z.input<typeof scaffoldProjectInput>,
 ): Promise<z.infer<typeof scaffoldProjectOutput>> {
   const parsed = scaffoldProjectInput.parse(input);
   const connected = parsed.services === 'hannibal-gemini';
-  const previewRequested = parsed.preview === 'srv.us';
+  const previewRequested = connected && parsed.preview === 'srv.us';
   if (
     previewRequested &&
-    (!connected ||
-      resolveAgentMode() !== 'scaffold-builder' ||
+    (resolveAgentMode() !== 'scaffold-builder' ||
       process.env.PRECAST_PROJECT_PREVIEW_ENABLED !== '1')
   )
     throw new Error(
-      'A public preview requires explicitly approved connected scaffolding and the enabled preview gate. No project was created.',
+      'A public preview requires approved connected scaffolding and the enabled preview gate. No project was created.',
     );
   if (
     connected &&

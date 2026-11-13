@@ -121,17 +121,21 @@ describe('AGT-034 connected scaffold gates', () => {
 });
 
 describe('AGT-035 automatic public preview', () => {
-  it('refuses public exposure before creating a run when its separate gate or connected services are missing', async () => {
+  it('refuses the default public preview before creating a run when its separate gate is missing', async () => {
     vi.stubEnv('PRECAST_AGENT_MODE', 'scaffold-builder');
     vi.stubEnv('PRECAST_SERVICE_SETUP_ENABLED', '1');
-    await expect(scaffoldProject({ ...input, preview: 'srv.us' })).rejects.toThrow(/preview gate/);
-    vi.stubEnv('PRECAST_PROJECT_PREVIEW_ENABLED', '1');
-    await expect(
-      scaffoldProject({ ...input, services: 'deferred', preview: 'srv.us' }),
-    ).rejects.toThrow(/preview gate/);
+    await expect(scaffoldProject({ ...input, preview: undefined })).rejects.toThrow(/preview gate/);
     expect(calls.createRun).not.toHaveBeenCalled();
   });
-  it('starts the app only after exact authorization, hands it to the owner, and returns a curated verified URL', async () => {
+  it('keeps a default deferred scaffold private without preview approval or secret access', async () => {
+    const result = await scaffoldProject({ projectName: 'deferred-project' });
+    expect(calls.commands.map((c) => c.id)).toEqual(['clone', 'bootstrap', 'verify', 'build']);
+    expect(calls.commands.every((c) => c.secrets === undefined)).toBe(true);
+    expect(calls.projectPreview).not.toHaveBeenCalled();
+    expect(result.preview).toBeUndefined();
+    expect(result.services).toBeUndefined();
+  });
+  it('starts the connected app by default after exact authorization and returns the verified owner preview', async () => {
     vi.stubEnv('PRECAST_AGENT_MODE', 'scaffold-builder');
     vi.stubEnv('PRECAST_SERVICE_SETUP_ENABLED', '1');
     vi.stubEnv('PRECAST_PROJECT_PREVIEW_ENABLED', '1');
@@ -150,7 +154,7 @@ describe('AGT-035 automatic public preview', () => {
             signInRequired: true,
           },
     );
-    const result = await scaffoldProject({ ...input, preview: 'srv.us' });
+    const result = await scaffoldProject({ ...input, preview: undefined });
     expect(calls.commands.map((c) => c.id)).toEqual([
       'clone',
       'bootstrap',

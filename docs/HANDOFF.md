@@ -12,6 +12,16 @@
 
 ## 1. Current state (overwrite on each handoff)
 
+- **Conversational setup implemented (T-258, 2026-11-13).** The existing builder now uses
+  `prepare-precast-project` to ask one missing bootstrap preference per turn: name, model,
+  theme, database. It skips supplied answers and uses defaults only when requested.
+  Selecting Gemini and managed Postgres maps to the existing connected flow; srv.us is
+  automatic, with no tunnel question. Existing operator and saved owner approvals remain
+  mandatory. Deferring either connection keeps both and the preview deferred. Focused
+  preparation/execution checks: 17 passed; full verification passed all 12 tasks (agents
+  184 passed, web 393 passed/one skipped). Deployment and live conversation verification
+  are pending; the current running preview below is preserved.
+
 - **Automatic connected preview passed (T-257, 2026-11-13).** The existing builder at
   `152a404` completed a fresh full Raya run with six successful commands for
   `Projects/raya-scaffold-auto-20261113-v2`. The project Application has active subscriptions;
@@ -64,13 +74,12 @@ _Known carry-forwards:_
 
 ## 2. Next task (overwrite on each handoff)
 
-**No remaining automatic preview implementation or acceptance work.** Use the current URL
-above and create an account or sign in. Keep this owner-controlled Computer session running;
-handback, shutdown or expiry ends the preview. Future projects require their own saved setup
-and preview approvals, plus both enabled preview flags. Evidence: AgentBase
-`docs/validation/precast-scaffold-2026-11-13.json` → `automaticPreview`; private operator files:
-`/tmp/precast-scaffold-live-1RUfjB/auto-*`. Earlier projects and unrelated carry-forwards remain.
-
+**Deploy and verify conversational setup.** Run full verification, push `develop`, reimport
+only the existing builder and exercise a fresh multi-turn Raya conversation. Preserve the
+current owner-controlled Computer and running preview; the interview itself must create no
+Computer run or database. The six-step connected execution already passed below; its default
+preview behavior is covered by the updated orchestration test. Project-specific saved setup
+and preview approvals are still required before a future connected build.
 
 The earlier orchestrator-crew live telemetry checks remain carry-forwards:
 
@@ -124,6 +133,12 @@ Return format:
 ```
 
 ## 4. File map for takeover (always-current)
+
+Conversational setup: `apps/agents/src/mastra/tools/prepare-scaffold.ts` returns the next
+single question or ready execution request without side effects; its spec covers question
+order, supplied answers, explicit defaults, invalid names and deferred connections.
+`agents/scaffold-builder.ts` controls the dialogue; `tools/scaffold-project.ts` defaults
+connected builds to srv.us while retaining the existing gates.
 
 Automatic previews: `scripts/start-project-preview.mjs` checks the saved project approval,
 trusted Postgres role and app readiness; `scripts/preview-tunnel.mjs` owns only the expiring

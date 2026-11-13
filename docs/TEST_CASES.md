@@ -1,8 +1,11 @@
 # TEST_CASES.md — Test Catalog
 
-- `AGT-035`: explicit preview/operator/connected-service gates before any run; exact server
+- `AGT-036`: conversational preparation, one missing question in bootstrap order, supplied
+  answers, explicit defaults, invalid names and honest deferred connections. Nine cases
+  passing in `prepare-scaffold.spec.ts`; no Computer or secret access.
+- `AGT-035`: default connected preview/operator gates before any run; exact server
   authorization before startup; sanitized script receipt and owner handoff; refusal returns
-  no URL. Three passing new cases, seven total scaffold tool cases.
+  no URL. Four passing preview cases, eight total scaffold tool cases. Deferred defaults stay private.
 - `TOOL-017`: project/relay/Application/RDS/expiry approval validation, owner-only state,
   symlink refusal, trusted Postgres identity and administrator-role refusal. Three passing cases.
 - Automatic preview live acceptance: **passed** on real Raya run
@@ -11,7 +14,7 @@
   completion in 239661 ms. Public sign-up and streamed UI chat passed. AgentBase report:
   `docs/validation/precast-scaffold-2026-11-13.json` → `automaticPreview`.
 
-Full `pnpm verify`: all 12 tasks passed; web 393 passed/one skipped, agents 174 passed.
+Full `pnpm verify` after conversational refinement: all 12 tasks passed; web 393 passed/one skipped, agents 184 passed.
 
 Public UI acceptance also passed a 127407 ms real Gemini/tool turn with 26 incremental
 status events and a visible final answer. The deterministic tool waited 120 seconds. The
@@ -166,6 +169,8 @@ Earlier acceptance attempt (2026-11-13, superseded by the successful runs above)
 | AGT-004 | Retired in v0.10.0 with `default-model.ts`; the boot warning now reads `isAgentBaseLlmConfigured()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Removed                                            |
 | AGT-005 | `lib/crew.spec.ts` — `defineCrew()`/`crewAgents()`: at 2+ members a distinct `crew-orchestrator` is built with each member wired as an in-process sub-agent (Agent Network); at N=1 it collapses to the sole member (no orchestrator, no extra card); guards reject an empty crew, a member squatting the reserved `crew-orchestrator` id, duplicate member ids, and a nested crew (a member that is itself an orchestrator). `crewAgents()` registers members + orchestrator de-duplicated when active, and just the sole member at N=1.                                                                                                                                                                                                                                                                                                                                                                     | Passing                                            |
 | AGT-006 | `orchestration-manifest.spec.ts` — the committed `agentbase.import.json` `orchestration` block matches the code: `orchestrator` equals `ORCHESTRATOR_ID`, `members` stays omitted (AgentBase discovers them), `defaultImport` is a supported mode, and the emitter's regex reader resolves the same id the runtime imports (drift guard for `pnpm emit:import-manifest`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Passing                                            |
+
+| AGT-036 | `prepare-scaffold.spec.ts` — single-question setup order, supplied preferences, explicit defaults, safe names and honest deferred connections; automatic srv.us for connected execution | Passing (9 cases) |
 
 ---
 

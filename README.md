@@ -39,12 +39,17 @@ See [docs/TECH_STACK.md](docs/TECH_STACK.md) for the pinned versions of everythi
 
 ### One repository, gated agent modes
 
-The scaffold builder can optionally start a connected app on the Raya Computer and return
-its verified public URL. Explicitly request Hannibal Postgres, Gemini and a srv.us preview;
-this selects `services: "hannibal-gemini"` and `preview: "srv.us"`. The builder and API preview
-flags and a separate saved project preview approval must be enabled by the operator. The
-public app keeps sign-in, the preview has a stated expiry, and stopping the Computer or
-handing back owner control ends it. Ordinary scaffolds leave public exposure off. The full flow has been
+Ask the scaffold builder to create a project. It follows Precast's setup conversationally:
+project name → model connection → visual theme → database, asking one missing question at a
+time and remembering your answers. You can provide choices up front or explicitly ask for
+defaults (approved Gemini, Stockholm and managed Postgres); there is no required bundled prompt.
+
+Connected builds automatically start the app on the Raya Computer and return its verified
+srv.us URL and expiry. You do not need to ask for a tunnel or choose a provider. The builder
+and API preview flags and saved project approvals must already be enabled by the operator.
+The public app keeps sign-in; stopping the Computer, handing back owner control or expiry
+ends the preview. You can explicitly request a private build. Deferring either connection
+currently defers both connections and the public preview. The full connected flow has been
 verified through Raya on a real Computer, including public sign-up and a real Gemini chat.
 
 The web chat streams elapsed-time updates while an A2A turn runs, then delivers its sanitized
@@ -56,7 +61,7 @@ preview access and lifecycle details are in [the handoff](docs/HANDOFF.md).
 
 The connected setup's Gemini check allows 1024 output tokens so reasoning-capable models can return a visible verification response. A failed model check stops before any database request.
 
-Connected scaffolding is optional: explicitly request **Hannibal Postgres and Gemini**. It requires the operator setting, an approved database host, and the member-approved `precast_project_setup` secret alias bound to one project Application and exact listings. Ordinary scaffolding stays deferred and requests no secret. See [Connected scaffolding](docs/INTEGRATION_AGENTBASE.md#connected-scaffolding).
+Choose Gemini and a managed Postgres database in the conversation to enable connected scaffolding. Hannibal provides the database behind the scenes. This requires the operator setting, an approved database host, and the member-approved `precast_project_setup` secret alias bound to one project Application and exact listings. Deferred scaffolding requests no secret. See [Connected scaffolding](docs/INTEGRATION_AGENTBASE.md#connected-scaffolding).
 
 Live validation (13 November 2026): both deferred and connected flows passed through Raya on a real Computer. Connected output is `Projects/raya-scaffold-live-20261113-connected`: clone → bootstrap → real Gemini/Hannibal setup → verification → build, all five exits zero, with Raya's successful final reply. Both project subscriptions are active; trusted Postgres TLS, `SELECT 1` and the restricted database role were verified by the hosted builder. The project is configured and built; its app has not been launched or exposed publicly. The earlier `Projects/raya-scaffold-live-20261113-endtoend` remains intact. Signed Developer image `20261113.precast.5` passed attended qualification, including three synthetic external-write trials. Only builder mode gets the bounded 15-minute server window; project mode keeps three minutes. See [docs/HANDOFF.md](docs/HANDOFF.md).
 

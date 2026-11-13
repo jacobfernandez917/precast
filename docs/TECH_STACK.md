@@ -1,8 +1,9 @@
 # TECH_STACK.md — Tech Inventory
 
 **Automatic connected previews (2026-11-13, T-257):** root devDependency `ssh2` 1.17.0
-supports the optional srv.us SSH reverse connection. It is installed with each scaffold's
-lockfile but starts only for explicit, owner-approved previews. The app remains bound to
+supports the srv.us SSH reverse connection. Connected scaffolds now include the preview
+automatically after conversational setup; explicit private builds can opt out. It is installed
+with each scaffold's lockfile and starts only with saved owner approval and enabled gates. The app remains bound to
 loopback and uses the existing managed Postgres, Better Auth, Gemini gateway and production
 bundles. The separate saved preview approval and API/builder flags are mandatory. No new
 remote repository, database service or signed Computer image is introduced.
@@ -10,8 +11,8 @@ remote repository, database service or signed Computer image is introduced.
 **Public Computer preview (2026-11-13):** the existing web A2A route can return
 `text/event-stream` progress events every five seconds and one sanitized terminal result;
 JSON callers retain the original response. The client incrementally decodes bounded UTF-8
-frames. Upstream A2A still uses `message/send`, so answers arrive at completion. An explicitly
-requested preview can use project-local `ssh2` 1.17.0 and srv.us SSH reverse forwarding to
+frames. Upstream A2A still uses `message/send`, so answers arrive at completion. An approved connected
+preview uses project-local `ssh2` 1.17.0 and srv.us SSH reverse forwarding to
 the web loopback port. The earlier manual operator setup is superseded by the gated automatic flow above.
 The Developer Computer needs a signed, expiring network exception for srv.us:22 and its exact
 approved RDS endpoint:5432; approved public HTTPS targets remain separately constrained.
@@ -25,7 +26,7 @@ The optional public preview exception is described above. No new service or repo
 
 > **Authoritative source of truth for all tech-stack facts.** If this file disagrees with any other doc about a version, library, container image, or port, this file wins and the other doc has a bug.
 
-**Last Updated:** 2026-10-28
+**Last Updated:** 2026-11-13
 
 ---
 
