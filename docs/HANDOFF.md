@@ -12,7 +12,7 @@
 
 ## 1. Current state (overwrite on each handoff)
 
-- **PRD full flow and public acceptance passed (T-260, 2026-11-13).** Builder/template `731a733` read the real PDF exactly, asked only name/theme, and completed seven commands plus the bounded PRD input write on the real Developer Computer. Run `9237c2c7-41b0-40f4-83ae-ca1751137532`, Raya work `f1acd593-5a65-4ce1-9573-be7921457acf` and native A2A task completed; the long turn took 252559 ms. Both subscriptions, the real Gemini call and exactly one Hannibal invocation passed. Public `E2E-018` passed persistent CRUD, two-account isolation and a real streamed assistant reply in 50.7 seconds. The first public attempt hit `ERR_NETWORK_CHANGED` when opening the second account; a full rerun passed. Current app: https://o6ocvgsysepyzkxzuxmstud4lq.srv.us, expiry **05:29 PHT on 14 November**. The first disk-full project's sources/database remain; only disposable caches were cleared (4.79 GB recovered). Full verify: 12 tasks passed (agents 203, web 404/one skipped, shared 24, A2UI 34); all four code CI jobs passed. Final product assistant presentation adjustment is being applied and rechecked on the same live app; no model/database reprovisioning is needed.
+- **PRD workflow deployed and passed end to end (T-260, 2026-11-13).** The existing builder/template `731a733` read the actual PDF exactly, asked only missing name/theme, and completed seven commands plus one bounded PRD input write on the real Developer Computer. Run `9237c2c7-41b0-40f4-83ae-ca1751137532`, Raya work `f1acd593-5a65-4ce1-9573-be7921457acf` and its native A2A task completed; the long turn took **252559 ms**. Both subscriptions, real Gemini and exactly one audited Hannibal invocation passed. Final web presentation `1b4ead6` was applied to the same project with verified source hashes and a successful web-only build/restart, preserving the agent bundles, database, URL and approval window. Public `E2E-018` passed again in **54.5 seconds**: account creation, persistent CRUD, two-account isolation and real streamed assistant output. Full verify passed all 12 tasks (agents 203, web 404/one skipped, shared 24, A2UI 34); both code revisions passed all four CI jobs. Current app: https://o6ocvgsysepyzkxzuxmstud4lq.srv.us, expiry **05:29 PHT on 14 November**. Keep the Computer running. Evidence: `docs/validation/prd-scaffold-2026-11-13.json`. The earlier disk-full project/database are retained; only disposable caches were cleared (4.79 GB). One initial public test hit a browser network interruption; two subsequent complete runs passed. No new repository, image or AgentBase/Raya source change.
 
 - **Conversational setup deployed and passed (T-258, 2026-11-13).** Builder `830156b`
   uses `prepare-precast-project` to ask one missing bootstrap preference per turn: name,
@@ -34,7 +34,7 @@
   TLS and its restricted role, then automatically started the app and srv.us tunnel. The API
   verified public sign-in and handed the bounded preview to the owner. Raya and its native
   A2A task completed after 239661 ms. Public sign-up and real UI chat with SSE passed.
-  Open https://6ipicslqumvnweft4iojuqqdba.srv.us (expires **03:00 PHT on 14 November**).
+  Historical preview: https://6ipicslqumvnweft4iojuqqdba.srv.us (ended when the Computer was stopped for later work).
   Flags and a separate saved project approval remain mandatory; ordinary scaffolds do not
   expose a public app. Full verify passed 12 tasks (web 393 passed/one skipped, agents 174),
   code CI all four jobs, script/tool checks ten; companion API checks passed 36.
@@ -79,7 +79,7 @@ _Known carry-forwards:_
 
 ## 2. Next task (overwrite on each handoff)
 
-**Close T-260.** Apply the assistant presentation change to the existing running project, rebuild the web app, retain its srv.us URL/approval window, and rerun `E2E-018`. Save the curated validation report and push develop. The core seven-step flow and first complete public acceptance already passed; preserve the active owner preview.
+**T-260 is complete.** No implementation or required acceptance remains. Preserve the active approved preview until its expiry or a user request to stop it. Current PRD generation supports private record apps and an assistant using chat-supplied details; required unsupported capabilities are clarified. A nonblocking display follow-up is recorded in the validation report: one first interview reply included an opaque identifier before its correct single question. Later question/final reply were clean.
 
 The earlier orchestrator-crew live telemetry checks remain carry-forwards:
 
@@ -134,7 +134,7 @@ Return format:
 
 ## 4. File map for takeover (always-current)
 
-PRD flow: `middleware/auth.ts` automatically captures the actual attachment before the model; `tools/prepare-scaffold.ts` analyses a still-unprocessed draft through `tools/read-prd.ts`; `lib/prd-drafts.ts` persists the exact source/hash and analysis under the scoped builder memory schema. `prepare-scaffold.ts` merges supplied PRD preferences with human replies and returns one next question. `scaffold-project.ts` uploads only a bounded PRD input into the fresh project; `scripts/apply-prd.mjs` validates its source/hash, refuses customized/symlinked outputs and writes the specs plus `project-brief.ts`. `packages/shared/src/prd.ts` owns the product/record contracts. `PrdWorkspace.tsx`, `api/project-records/route.ts` and `lib/prd-records.ts` implement signed-in CRUD; `e2e/prd-workspace.spec.ts` is the real public acceptance test. `middleware/auth.ts` binds builder memory to verified person/room, preserving project-mode behavior.
+PRD flow: `middleware/auth.ts` automatically captures the actual attachment before the model; `tools/prepare-scaffold.ts` analyses a still-unprocessed draft through `tools/read-prd.ts`; `lib/prd-drafts.ts` persists the exact source/hash and analysis under the scoped builder memory schema. `prepare-scaffold.ts` merges supplied PRD preferences with human replies and returns one next question. `scaffold-project.ts` uploads only a bounded PRD input into the fresh project; `scripts/apply-prd.mjs` validates its source/hash, refuses customized/symlinked outputs and writes the specs plus `project-brief.ts`. `packages/shared/src/prd.ts` owns the product/record contracts. `PrdWorkspace.tsx`, `api/project-records/route.ts` and `lib/prd-records.ts` implement signed-in CRUD; `e2e/prd-workspace.spec.ts` is the real public acceptance test. `middleware/auth.ts` binds builder memory to verified person/room, preserving project-mode behavior. `AgentChat.tsx` has a plain assistant presentation for PRD products; its default template demo remains available. `docs/validation/prd-scaffold-2026-11-13.json` records the core/template revision, final web delta and actual public acceptance separately.
 
 Conversational setup: `apps/agents/src/mastra/tools/prepare-scaffold.ts` returns the next
 single question or ready execution request without side effects; its spec covers question

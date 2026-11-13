@@ -1,0 +1,235 @@
+{
+  "task": "T-260",
+  "validatedAt": "2026-11-13T15:53:30.355Z",
+  "environment": "LOCAL/nonprod; real Raya Developer Computer",
+  "repository": "https://github.com/jacobfernandez917/precast",
+  "branch": "develop",
+  "builderCodeCommit": "731a733b5ac1ebab5bbba9755eef6f7640fec40f",
+  "originalTemplateCommit": "731a733b5ac1ebab5bbba9755eef6f7640fec40f",
+  "webPresentationCommit": "1b4ead67dc55d4add35d80796f46b7740bd14ebb",
+  "input": {
+    "fixture": "docs/fixtures/action-desk-prd.md",
+    "uploadedAs": "Action-Desk-PRD.pdf",
+    "pages": 1,
+    "pagesRead": 1,
+    "completeExtractedTextRetained": true,
+    "sourceHash": "4bc955c0b5529032ee7bafb53582cba67095d0801a774135208cef6c443c06cd",
+    "generatedPrdMatchesAttachment": true,
+    "draftState": "complete",
+    "analysisPersisted": true
+  },
+  "conversation": {
+    "surface": "actual Raya web UI via authorized automated Chrome",
+    "roomId": "fbe14703-cd10-4d4b-b052-fcd6788f95da",
+    "turns": [
+      {
+        "workId": "93520da8-65aa-491d-b00f-0a1ec276e5f0",
+        "input": "Real PDF attachment and request to build",
+        "askedFor": "projectName"
+      },
+      {
+        "workId": "00eb0d08-22ed-4d21-997b-c8128518d873",
+        "input": "raya-prd-action-desk-20261113-v2",
+        "askedFor": "theme"
+      },
+      {
+        "workId": "f1acd593-5a65-4ce1-9573-be7921457acf",
+        "input": "Stockholm",
+        "result": "Completed product build and actual public URL"
+      }
+    ],
+    "oneMissingQuestionPerTurn": true,
+    "reusedDocumentChoices": ["Gemini", "managed Postgres"],
+    "askedAboutTunnel": false,
+    "workId": "f1acd593-5a65-4ce1-9573-be7921457acf",
+    "nativeA2aTaskId": "88308b01-4506-42b3-a2df-db5327a9db9e",
+    "nativeA2aState": "completed",
+    "elapsedMs": 252559
+  },
+  "computer": {
+    "id": "6a3896e9-1fef-4f24-82dc-7c38fd044076",
+    "profile": "developer",
+    "imageDigest": "sha256:174dd8081bfe7ac122663915444be744c4951eee870450c19aa2f0161af48e97",
+    "runId": "9237c2c7-41b0-40f4-83ae-ca1751137532",
+    "state": "SUCCEEDED",
+    "startedAt": "2026-11-13T15:39:51.080Z",
+    "endedAt": "2026-11-13T15:43:33.227Z",
+    "projectPath": "Projects/raya-prd-action-desk-20261113-v2",
+    "commands": [
+      {
+        "step": "clone",
+        "actionId": "2ce75a48-46ab-4401-bc6d-d33848ddacfd",
+        "state": "SUCCEEDED",
+        "exitCode": 0,
+        "durationMs": 1643
+      },
+      {
+        "step": "bootstrap",
+        "actionId": "3352512f-b6b6-409b-ae88-9e81c395309b",
+        "state": "SUCCEEDED",
+        "exitCode": 0,
+        "durationMs": 86802
+      },
+      {
+        "step": "product",
+        "actionId": "6cc27689-7f4c-4907-8693-5302e4513c0e",
+        "state": "SUCCEEDED",
+        "exitCode": 0,
+        "durationMs": 2239
+      },
+      {
+        "step": "services",
+        "actionId": "d906293a-e945-4db3-aa9c-7071710c1de7",
+        "state": "SUCCEEDED",
+        "exitCode": 0,
+        "durationMs": 10630
+      },
+      {
+        "step": "verify",
+        "actionId": "425155b7-2856-4481-a513-d87c5f1edfa4",
+        "state": "SUCCEEDED",
+        "exitCode": 0,
+        "durationMs": 16649
+      },
+      {
+        "step": "build",
+        "actionId": "dd65d9ea-70d3-49bb-8b10-09b13cf861e5",
+        "state": "SUCCEEDED",
+        "exitCode": 0,
+        "durationMs": 82279
+      },
+      {
+        "step": "preview",
+        "actionId": "f5309bf1-1618-4220-8866-85f5ca883f0c",
+        "state": "SUCCEEDED",
+        "exitCode": 0,
+        "durationMs": 9701
+      }
+    ],
+    "boundedPrdFileWriteSucceeded": true,
+    "noNewRemoteRepository": true
+  },
+  "product": {
+    "title": "Action Desk",
+    "collections": ["actions"],
+    "documents": [
+      "docs/PRD.md",
+      "docs/DATA_MODEL.md",
+      "docs/AGENT_SPEC.md",
+      "docs/DESIGN_SYSTEM.md",
+      "docs/PRD_ACCEPTANCE.md"
+    ],
+    "webBuildId": "2GdOrvnh-ENfKrPpfr_wX",
+    "webPresentationUpdate": {
+      "commit": "1b4ead67dc55d4add35d80796f46b7740bd14ebb",
+      "sourceFiles": [
+        {
+          "path": "apps/web/app/AgentChat.tsx",
+          "sha256": "a1987fb4b98629f3ad6777e04e00fab9fdae83ad88284932aa3f1e15f8410cdd",
+          "workerActionId": "1dc0ed22-115d-412c-8efb-bec82f3804f3"
+        },
+        {
+          "path": "apps/web/app/PrdWorkspace.tsx",
+          "sha256": "4c6f057fb236bf90d8d67618cc567d5291101caca173096c1085d3da790ed478",
+          "workerActionId": "51564417-9cf5-446c-8c38-fb0adc58568f"
+        }
+      ],
+      "operatorCommandId": "cmd-7c54aa72-49f2-4fa1-a6fe-24416eaf4bcf",
+      "command": "node scripts/poc.mjs web",
+      "state": "exited",
+      "exitCode": 0,
+      "scope": "Refresh only the web app in the existing approved owner preview; original seven-step flow and agent bundles remain at builder/template commit."
+    }
+  },
+  "services": {
+    "applicationId": "93375cdb-ec70-481a-a3b5-64d58f0b24e9",
+    "activeSubscriptions": [
+      {
+        "id": "f034f5d0-890b-478a-bb4b-fbd5a27799a5",
+        "listingId": "db49e85a-0ec4-462a-b295-af744661a9e7"
+      },
+      {
+        "id": "1b1a7058-8051-4598-b73d-2cb22c3046c4",
+        "listingId": "07cb85ff-dca6-49a6-97cf-ec756905d32f"
+      }
+    ],
+    "realGeminiCallVerified": true,
+    "successfulModelAuditCallIds": [
+      "ab36f28a-9b2f-4c5b-88ee-c635099af532",
+      "82df4c72-87e9-4b3e-bc23-f5de28efb564",
+      "cf58c6d0-7c7f-43d8-b754-1deebfc874f0"
+    ],
+    "hannibalInvocations": 1,
+    "hannibalAuditCallId": "809f69fb-a7a2-45a7-924a-0548181fef74",
+    "databaseVerification": [
+      "Trusted RDS TLS",
+      "SELECT 1",
+      "Expected project database and user",
+      "No superuser, create-role or create-database privileges"
+    ]
+  },
+  "publicPreview": {
+    "provider": "srv.us",
+    "url": "https://o6ocvgsysepyzkxzuxmstud4lq.srv.us",
+    "expiresAt": "2026-11-13T21:29:40.779Z",
+    "expiresAtManila": "2026-11-14 05:29:40.779 PHT",
+    "signInRequired": true,
+    "ownerReservationReadyAt": "2026-11-13T15:43:34.813Z",
+    "finalPublicHttpStatus": 200,
+    "stopsWhenComputerStops": true
+  },
+  "verification": {
+    "fullVerify": {
+      "tasks": 12,
+      "agents": 203,
+      "webPassed": 404,
+      "webSkipped": 1,
+      "shared": 24,
+      "a2ui": 34
+    },
+    "coreCodeCi": {
+      "runId": 43453081447,
+      "url": "https://github.com/jacobfernandez917/precast/actions/runs/43453081447",
+      "result": "All four jobs passed"
+    },
+    "webPresentationCodeCi": {
+      "runId": 43456601659,
+      "url": "https://github.com/jacobfernandez917/precast/actions/runs/43456601659",
+      "result": "All four jobs passed"
+    },
+    "publicAcceptance": {
+      "case": "E2E-018",
+      "result": "passed",
+      "durationMs": 55971.615999999995,
+      "testDurationMs": 54531,
+      "checks": [
+        "Real public sign-up",
+        "Anonymous record refusal",
+        "Private configuration paths return 404",
+        "Create/edit/reload/search/delete own records",
+        "Second account cannot list, update or delete another account record",
+        "Real Gemini tool call through actual streamed chat UI",
+        "Product assistant presentation on refreshed web build"
+      ]
+    },
+    "screenshot": "Private operator artifact; contains a disposable test account email and is not committed"
+  },
+  "recovery": {
+    "firstPrdRunId": "969bc955-eb14-40da-abdc-4fe032937dd6",
+    "firstPrdFailure": "ENOSPC during standalone web build",
+    "retainedFirstProjectAndDatabase": true,
+    "removedOnlyDisposableBuildCaches": true,
+    "recoveredBytes": 4790419456,
+    "firstPublicTestFailure": "Browser ERR_NETWORK_CHANGED while opening second account; complete rerun passed, followed by final refreshed-app acceptance"
+  },
+  "limits": [
+    "Current PRD app generation supports private per-account record collections and a conversational Gemini assistant.",
+    "The assistant uses details supplied in chat; it cannot independently read or mutate saved records.",
+    "Required team permissions, relationships, automation, payments, uploads and additional integrations require scope clarification.",
+    "Preview is bounded by saved approvals and the active Computer session."
+  ],
+  "observations": [
+    "One first interview reply included an opaque identifier before its otherwise correct single question; the next question and final build reply were clean. This is a nonblocking conversation-display follow-up."
+  ],
+  "secretsIncluded": false
+}
