@@ -252,6 +252,64 @@ export class AgentBaseComputerClient {
     });
   }
 
+  async writeProjectInput(
+    runId: string,
+    leaseId: string,
+    controlEpoch: number,
+    path: string,
+    content: string,
+    seed: string,
+  ): Promise<void> {
+    const projectName = path.split('/')[1];
+    if (
+      !projectName ||
+      !/^[a-z][a-z0-9-]{1,62}$/.test(projectName) ||
+      path !== `Projects/${projectName}/.precast/prd-build.json` ||
+      Buffer.byteLength(content) > 200_000
+    )
+      throw new Error('Invalid bounded PRD project input.');
+    const args = { path, content, profile: PROFILE };
+    const inputKey = stableKey(seed, 'prd-input');
+    const { action, decision } = await this.request<{
+      action: ActionView;
+      decision: { verdict: string };
+    }>(`/computer-agent/runs/${runId}/actions`, {
+      method: 'POST',
+      body: JSON.stringify({
+        leaseId,
+        operation: 'file_create',
+        retryClass: 'idempotent_write',
+        idempotencyKey: `precast:${inputKey}`,
+        target: {
+          path,
+          argumentDigest: argumentDigest(args),
+          actionDescription: 'Save the approved PRD build input in this new project',
+        },
+        provenance: { authorityFrom: 'member' },
+        controlEpoch,
+      }),
+    });
+    if (decision.verdict !== 'allow')
+      throw new Error('Saving the PRD is waiting for Computer approval.');
+    await this.request(`/computer-agent/runs/${runId}/actions/${action.id}/commit`, {
+      method: 'POST',
+      body: JSON.stringify({
+        leaseId,
+        controlEpoch,
+        stateHash: argumentDigest({ runId, actionId: action.id, path }),
+      }),
+    });
+    const result = await this.request<{ action: ActionView }>(
+      `/computer-agent/runs/${runId}/actions/${action.id}/execute`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ leaseId, arguments: args }),
+      },
+    );
+    if (result.action.state !== 'SUCCEEDED')
+      throw new Error('The PRD input was not saved successfully.');
+  }
+
   async projectPreview(
     runId: string,
     stage: 'authorize' | 'handoff',

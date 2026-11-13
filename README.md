@@ -56,6 +56,10 @@ The live Raya conversation check passed on 13 November: four setup questions in 
 answers retained, no tunnel question, and pause honored. See the
 [conversation validation report](docs/validation/scaffold-conversation-2026-11-13.json).
 
+Attach a readable PDF PRD and ask the Raya builder to create the app. With the PRD build gate enabled, it saves the exact extracted document, derives the product specification, and asks only missing or ambiguous questions, one at a time. Explicit choices in the PRD are reused; your replies can override them. It creates `docs/PRD.md`, the data/agent/design specs, and a working app before verification and build.
+
+The current PRD app supports private per-account collections, typed fields and allowed values, searchable create/edit/delete flows, durable Postgres and a product-specific Gemini assistant. The assistant works with details supplied in chat. Shared team permissions, relationships, automation, payments and additional external integrations require a scope clarification; the builder never silently claims them. Missing or truncated PDF text blocks the build. Connected PRD builds automatically return the approved srv.us preview.
+
 The web chat streams elapsed-time updates while an A2A turn runs, then delivers its sanitized
 answer. Existing JSON clients keep their response contract; sign-in, rate limits and server-derived
 conversation ownership apply before a stream opens. The current upstream A2A call returns the

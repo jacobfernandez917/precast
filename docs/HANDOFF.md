@@ -12,6 +12,8 @@
 
 ## 1. Current state (overwrite on each handoff)
 
+- **PRD attachment app building implemented (T-260, 2026-11-13).** The existing builder reads the current PDF's exact extracted text and saves a draft scoped to the verified human, organisation and Raya conversation. It derives a product blueprint, asks only missing questions, and blocks unsupported or unreadable/truncated requirements. The bounded product stage writes PRD/feed-forward docs and configures a working private record app with typed validation, Postgres persistence and a tailored assistant. Existing Computer/service/preview gates remain; `PRECAST_PRD_BUILD_ENABLED=1` enables this path. Builder memory is also scoped by the verified person and room, overriding caller-selected memory identities. Full verify passed 12 tasks: agents 195, web 404/one skipped, shared 24, A2UI 34. Deployment and real PDF → conversation → Computer → public app acceptance are pending. Prior preview and project data are retained until the live build needs the Computer.
+
 - **Conversational setup deployed and passed (T-258, 2026-11-13).** Builder `830156b`
   uses `prepare-precast-project` to ask one missing bootstrap preference per turn: name,
   model, theme, database. It skips supplied answers and uses defaults only when requested.
@@ -77,13 +79,7 @@ _Known carry-forwards:_
 
 ## 2. Next task (overwrite on each handoff)
 
-**No remaining conversational setup implementation or acceptance work.** In the existing
-Raya builder chat, ask to create a new project and answer the questions one at a time. Connected
-builds include srv.us automatically; they still need their own saved setup/preview approvals
-and enabled gates. The test conversation is paused before its database answer and created
-nothing. Keep the current owner-controlled Computer and public preview running; handback,
-shutdown or expiry ends the preview. The prior full execution evidence and unrelated
-carry-forwards remain below.
+**Deploy and run T-260.** Push the PRD implementation, reimport the existing LOCAL builder, attach the Action Desk fixture PDF through real Raya, answer only the missing folder name and theme, then verify all seven build commands and the public app. Run the committed `E2E-018` against its actual srv.us URL. Preserve prior project/database files; stop only the existing owner preview when the new build needs the Computer. Never claim the pending live acceptance as passed.
 
 The earlier orchestrator-crew live telemetry checks remain carry-forwards:
 
@@ -137,6 +133,8 @@ Return format:
 ```
 
 ## 4. File map for takeover (always-current)
+
+PRD flow: `tools/read-prd.ts` analyses the actual attached source; `lib/prd-drafts.ts` persists the exact source/hash and analysis under the scoped builder memory schema. `prepare-scaffold.ts` merges supplied PRD preferences with human replies and returns one next question. `scaffold-project.ts` uploads only a bounded PRD input into the fresh project; `scripts/apply-prd.mjs` validates its source/hash, refuses customized/symlinked outputs and writes the specs plus `project-brief.ts`. `packages/shared/src/prd.ts` owns the product/record contracts. `PrdWorkspace.tsx`, `api/project-records/route.ts` and `lib/prd-records.ts` implement signed-in CRUD; `e2e/prd-workspace.spec.ts` is the real public acceptance test. `middleware/auth.ts` binds builder memory to verified person/room, preserving project-mode behavior.
 
 Conversational setup: `apps/agents/src/mastra/tools/prepare-scaffold.ts` returns the next
 single question or ready execution request without side effects; its spec covers question

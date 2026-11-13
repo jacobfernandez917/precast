@@ -5,7 +5,9 @@ import {
   ON_BEHALF_OF_HEADER,
   RAYA_USER_DELEGATION_HEADER,
   runWithRequestContext,
+  currentRayaScopeKey,
 } from '../lib/request-context';
+import { resolveAgentMode } from '../lib/agent-mode';
 
 /**
  * Mastra Hono middleware with two jobs:
@@ -63,7 +65,7 @@ const BEARER_SCHEME: SecurityScheme = {
 
 /** Minimal slice of Hono's Context we rely on (avoids a direct `hono` dep). */
 interface MinimalContext {
-  req: { header: (name: string) => string | undefined; path: string };
+  req: { header: (name: string) => string | undefined; path: string; raw?: Request };
   json: (body: Record<string, unknown>, status: number) => Response;
   res: Response;
 }
@@ -119,7 +121,62 @@ export function createAuthMiddleware() {
     const onBehalfOf = c.req.header(ON_BEHALF_OF_HEADER)?.trim() || undefined;
     const rayaUserDelegation = c.req.header(RAYA_USER_DELEGATION_HEADER)?.trim() || undefined;
     const agentbaseChain = c.req.header(AGENTBASE_CHAIN_HEADER)?.trim() || undefined;
-    await runWithRequestContext({ onBehalfOf, rayaUserDelegation, agentbaseChain }, () => next());
+    let inboundText: string | undefined;
+    let inboundBody: {
+      params?: {
+        message?: {
+          parts?: Array<{ kind?: string; text?: string }>;
+          contextId?: string;
+          metadata?: Record<string, unknown>;
+        };
+      };
+    } | null = null;
+    if (
+      resolveAgentMode() === 'scaffold-builder' &&
+      c.req.path.startsWith('/api/a2a/') &&
+      c.req.raw?.method === 'POST'
+    ) {
+      const body = (await c.req.raw
+        .clone()
+        .json()
+        .catch(() => null)) as {
+        params?: {
+          message?: {
+            parts?: Array<{ kind?: string; text?: string }>;
+            contextId?: string;
+            metadata?: Record<string, unknown>;
+          };
+        };
+      } | null;
+      inboundBody = body;
+      inboundText = body?.params?.message?.parts
+        ?.filter((p) => p.kind === 'text' && typeof p.text === 'string')
+        .map((p) => p.text)
+        .join('\n');
+    }
+    await runWithRequestContext(
+      { onBehalfOf, rayaUserDelegation, agentbaseChain, inboundText },
+      async () => {
+        if (
+          inboundBody?.params?.message &&
+          c.req.raw &&
+          onBehalfOf &&
+          rayaUserDelegation &&
+          agentbaseChain
+        ) {
+          const identity = 'raya-scaffold:' + currentRayaScopeKey();
+          inboundBody.params.message.contextId = identity;
+          inboundBody.params.message.metadata = {
+            ...inboundBody.params.message.metadata,
+            resourceId: identity,
+          };
+          const headers = new Headers(c.req.raw.headers);
+          headers.delete('content-length');
+          c.req.raw = new Request(c.req.raw, { headers, body: JSON.stringify(inboundBody) });
+        }
+        await next();
+      },
+    );
 
     // 3. When auth is on, make the agent card advertise the bearer scheme.
     if (token && isAgentCardPath(c.req.path)) {

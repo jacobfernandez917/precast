@@ -53,4 +53,49 @@ describe('AgentBase Computer command binding', () => {
     expect(proposal.argumentDigest).toBe(argumentDigest(execution));
     expect(proposal.argumentDigest).not.toBe(argumentDigest({ ...execution, memoryMiB: 4096 }));
   });
+  it('binds exact bounded PRD contents and refuses a path outside the new project input', async () => {
+    const captured: Array<{ path: string; body: Record<string, unknown> }> = [];
+    const fetcher = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const path = String(url);
+      captured.push({ path, body: init?.body ? JSON.parse(String(init.body)) : {} });
+      return new Response(
+        JSON.stringify(
+          path.endsWith('/actions')
+            ? { action: { id: 'input-action' }, decision: { verdict: 'allow' } }
+            : { action: { state: 'SUCCEEDED' } },
+        ),
+      );
+    });
+    const client = new AgentBaseComputerClient(
+      'scaffold-builder',
+      'https://agentbase.test',
+      fetcher,
+    );
+    await expect(
+      client.writeProjectInput('run', 'lease', 2, 'Projects/../.env', 'secret', 'seed'),
+    ).rejects.toThrow(/Invalid bounded/);
+    expect(fetcher).not.toHaveBeenCalled();
+    await client.writeProjectInput(
+      'run',
+      'lease',
+      2,
+      'Projects/action-desk/.precast/prd-build.json',
+      '{"source":"exact"}',
+      'seed',
+    );
+    const proposed = captured.find((c) => c.path.endsWith('/actions'))!.body.target as Record<
+      string,
+      unknown
+    >;
+    const executed = captured.find((c) => c.path.endsWith('/execute'))!.body.arguments as Record<
+      string,
+      unknown
+    >;
+    expect(executed).toEqual({
+      path: 'Projects/action-desk/.precast/prd-build.json',
+      content: '{"source":"exact"}',
+      profile: 'developer',
+    });
+    expect(proposed.argumentDigest).toBe(argumentDigest(executed));
+  });
 });

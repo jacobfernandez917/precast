@@ -5,6 +5,8 @@ const calls = vi.hoisted(() => ({
   createRun: vi.fn(),
   verify: vi.fn(),
   projectPreview: vi.fn(),
+  writeProjectInput: vi.fn(),
+  loadPrdDraft: vi.fn(),
 }));
 vi.mock('../lib/agentbase-computer', () => ({
   AgentBaseComputerClient: class {
@@ -42,6 +44,7 @@ vi.mock('../lib/agentbase-computer', () => ({
     }
     complete = calls.complete;
     projectPreview = calls.projectPreview;
+    writeProjectInput = calls.writeProjectInput;
   },
 }));
 vi.mock('../lib/request-context', () => ({
@@ -50,6 +53,7 @@ vi.mock('../lib/request-context', () => ({
 vi.mock('../lib/service-verification', () => ({
   createServiceVerifier: () => ({ publicKey: 'public-key', verify: calls.verify }),
 }));
+vi.mock('../lib/prd-drafts', () => ({ loadPrdDraft: calls.loadPrdDraft }));
 import { scaffoldProject } from './scaffold-project';
 const input = {
   projectName: 'connected-project',
@@ -70,6 +74,62 @@ beforeEach(() => {
     database: 'project',
     databaseVerified: true,
     verificationLocation: 'builder-server',
+  });
+  calls.loadPrdDraft.mockResolvedValue({
+    sourceName: 'actions.pdf',
+    sourceText: 'Exact private PRD source',
+    sourceHash: 'a'.repeat(64),
+    answers: [],
+    analysis: {
+      blueprint: { title: 'Action Desk', collections: [{ id: 'actions', label: 'Actions' }] },
+      missingQuestions: [],
+      unsupportedRequirements: [],
+    },
+  });
+});
+
+describe('AGT-039 PRD Computer orchestration', () => {
+  const prdId = '00000000-0000-4000-8000-000000000001';
+  it('refuses a PRD app before creating a run without the gate and connected services', async () => {
+    vi.stubEnv('PRECAST_AGENT_MODE', 'scaffold-builder');
+    vi.stubEnv('PRECAST_SERVICE_SETUP_ENABLED', '1');
+    await expect(scaffoldProject({ ...input, prdId })).rejects.toThrow(/PRD app building/);
+    vi.stubEnv('PRECAST_PRD_BUILD_ENABLED', '1');
+    await expect(scaffoldProject({ ...input, prdId, services: 'deferred' })).rejects.toThrow(
+      /PRD app building/,
+    );
+    expect(calls.createRun).not.toHaveBeenCalled();
+  });
+  it('uploads the exact saved source after bootstrap, applies the product before services, and does not echo the source', async () => {
+    vi.stubEnv('PRECAST_AGENT_MODE', 'scaffold-builder');
+    vi.stubEnv('PRECAST_SERVICE_SETUP_ENABLED', '1');
+    vi.stubEnv('PRECAST_PRD_BUILD_ENABLED', '1');
+    calls.writeProjectInput.mockImplementation(async () =>
+      expect(calls.commands.map((c) => c.id)).toEqual(['clone', 'bootstrap']),
+    );
+    const result = await scaffoldProject({ ...input, prdId });
+    expect(calls.commands.map((c) => c.id)).toEqual([
+      'clone',
+      'bootstrap',
+      'product',
+      'services',
+      'verify',
+      'build',
+    ]);
+    expect(calls.writeProjectInput).toHaveBeenCalledWith(
+      'run',
+      'lease',
+      1,
+      'Projects/connected-project/.precast/prd-build.json',
+      expect.stringContaining('Exact private PRD source'),
+      expect.any(String),
+    );
+    expect(result.product).toMatchObject({
+      title: 'Action Desk',
+      sourceName: 'actions.pdf',
+      sourceHash: 'a'.repeat(64),
+    });
+    expect(JSON.stringify(result)).not.toContain('Exact private PRD source');
   });
 });
 afterEach(() => vi.unstubAllEnvs());

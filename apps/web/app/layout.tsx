@@ -3,10 +3,11 @@ import type { ReactNode } from 'react';
 import { Providers } from './providers';
 import { APC_THEME } from './theme/apc-theme';
 import './globals.css';
+import { projectBrief } from '@precast/shared';
 
 export const metadata: Metadata = {
-  title: 'Precast',
-  description: 'Precast — agent-ready TypeScript monorepo boilerplate.',
+  title: projectBrief?.title ?? 'Precast',
+  description: projectBrief?.mission ?? 'Precast — agent-ready TypeScript monorepo boilerplate.',
 };
 
 // Astryx themes support light/dark; let the browser render the matching UA

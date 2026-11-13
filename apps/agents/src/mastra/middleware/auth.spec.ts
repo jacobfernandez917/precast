@@ -74,6 +74,63 @@ describe('assertAgentApiAuthConfigured', () => {
   });
 });
 
+describe('AGT-040 scaffold memory follows verified Raya scope', () => {
+  async function scope(owner: string, room: string) {
+    process.env.PRECAST_AGENT_MODE = 'scaffold-builder';
+    delete process.env.AGENT_API_TOKEN;
+    const proof = [
+      'header',
+      Buffer.from(
+        JSON.stringify({ sub: owner, org_id: 'org', scope: { kind: 'dm', id: room } }),
+      ).toString('base64url'),
+      'verified-by-platform',
+    ].join('.');
+    const headers = new Headers({
+      'x-agentbase-on-behalf-of': owner,
+      'x-raya-user-delegation': proof,
+      'x-agentbase-chain': 'chain',
+    });
+    const context = {
+      req: {
+        path: '/api/a2a/scaffold-builder',
+        raw: new Request('https://agent.test/api/a2a/scaffold-builder', {
+          method: 'POST',
+          body: JSON.stringify({
+            params: {
+              message: {
+                contextId: 'another-persons-thread',
+                metadata: { resourceId: 'forged-owner' },
+                parts: [{ kind: 'text', text: 'Build my PRD.' }],
+              },
+            },
+          }),
+        }),
+        header: (name: string) => headers.get(name) ?? undefined,
+      },
+      json: (body: Record<string, unknown>, status: number) =>
+        new Response(JSON.stringify(body), { status }),
+      res: new Response(),
+    };
+    let forwarded:
+      { params: { message: { contextId: string; metadata: { resourceId: string } } } } | undefined;
+    await createAuthMiddleware()(context, async () => {
+      forwarded = await context.req.raw.json();
+    });
+    return forwarded!.params.message;
+  }
+  it('overrides caller-selected memory identity and keeps the same conversation stable', async () => {
+    const first = await scope('owner-one', 'room-one');
+    expect(first.metadata.resourceId).toBe(first.contextId);
+    expect(first.contextId).not.toMatch(/another-person|forged-owner/);
+    expect(await scope('owner-one', 'room-one')).toEqual(first);
+  });
+  it('separates accounts and conversations even when their body contextId is identical', async () => {
+    const first = await scope('owner-one', 'room-one');
+    expect((await scope('owner-two', 'room-one')).contextId).not.toBe(first.contextId);
+    expect((await scope('owner-one', 'room-two')).contextId).not.toBe(first.contextId);
+  });
+});
+
 /**
  * AGT-026: the bearer guards every Mastra route under /api, not only A2A. Found
  * on a fresh scaffold: `POST /api/tools/<tool>/execute` ran a tool, and the

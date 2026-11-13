@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const PORT = Number(process.env.E2E_PORT ?? 45001);
 const HOST = process.env.E2E_HOST ?? '127.0.0.1';
-const baseURL = `http://${HOST}:${PORT}`;
+const baseURL = process.env.PRD_E2E_BASE_URL ?? `http://${HOST}:${PORT}`;
 
 // Autonomous UI tests: Playwright builds and boots the Next dev server itself,
 // so `pnpm test:e2e` needs no manually-started app. CI reuses an already-running
@@ -18,12 +18,14 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  webServer: {
-    // `next dev` boots the full app (SSR + route handlers) with no pre-build,
-    // so `pnpm test:e2e` is self-contained.
-    command: `next dev -p ${PORT} -H ${HOST}`,
-    url: baseURL,
-    timeout: 120_000,
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: process.env.PRD_E2E_BASE_URL
+    ? undefined
+    : {
+        // `next dev` boots the full app (SSR + route handlers) with no pre-build,
+        // so `pnpm test:e2e` is self-contained.
+        command: `next dev -p ${PORT} -H ${HOST}`,
+        url: baseURL,
+        timeout: 120_000,
+        reuseExistingServer: !process.env.CI,
+      },
 });

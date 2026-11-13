@@ -1,4 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { createHash } from 'node:crypto';
+import { z } from 'zod';
 
 /**
  * OBO-1 — carry the calling end user's identity through a turn.
@@ -39,6 +41,8 @@ export interface RequestContext {
   /** Signed Raya proof and AgentBase chain; opaque and forwarded only to AgentBase. */
   rayaUserDelegation?: string;
   agentbaseChain?: string;
+  /** A2A text for reading the actual attached document rather than a model's paraphrase. */
+  inboundText?: string;
   /**
    * The card `show_card` drew during this turn, as A2UI messages, waiting for the A2UI middleware
    * to attach it to the reply. Set by the tool, taken once by the middleware.
@@ -73,6 +77,34 @@ export function currentAgentBaseProof(): {
     rayaUserDelegation: store?.rayaUserDelegation,
     agentbaseChain: store?.agentbaseChain,
   };
+}
+
+export function currentInboundText(): string {
+  return storage.getStore()?.inboundText ?? '';
+}
+
+export function currentRayaScopeKey(): string {
+  const proof = currentAgentBaseProof();
+  const owner = currentOnBehalfOf();
+  if (!owner || !proof.rayaUserDelegation || !proof.agentbaseChain)
+    throw new Error('Read the PRD from its signed-in Raya conversation.');
+  // Authentication is the proxy's job. Decode its already verified header only
+  // to scope storage; a message body never chooses the person or room.
+  const claims = z
+    .object({
+      sub: z.string(),
+      org_id: z.string(),
+      scope: z.object({ kind: z.enum(['dm', 'team']), id: z.string().min(1) }),
+    })
+    .parse(
+      JSON.parse(
+        Buffer.from(proof.rayaUserDelegation.split('.')[1] ?? '', 'base64url').toString('utf8'),
+      ),
+    );
+  if (claims.sub !== owner) throw new Error('The PRD conversation identity does not match.');
+  return createHash('sha256')
+    .update(JSON.stringify([owner, claims.org_id, claims.scope]))
+    .digest('hex');
 }
 
 /**

@@ -9,6 +9,7 @@ import {
 import { currentAgentBaseProof } from '../lib/request-context';
 import { resolveAgentMode } from '../lib/agent-mode';
 import { createServiceVerifier } from '../lib/service-verification';
+import { loadPrdDraft } from '../lib/prd-drafts';
 
 export const SCAFFOLD_BUILDER_AGENT_ID = 'scaffold-builder';
 const TEMPLATE_REPOSITORY =
@@ -24,6 +25,7 @@ export const scaffoldProjectInput = z.object({
     .default('stockholm'),
   services: z.enum(['deferred', 'hannibal-gemini']).default('deferred'),
   preview: z.enum(['off', 'srv.us']).default('srv.us'),
+  prdId: z.string().uuid().optional(),
 });
 
 const commandResultSchema = z.object({
@@ -60,6 +62,15 @@ export const scaffoldProjectOutput = z.object({
     })
     .strict()
     .optional(),
+  product: z
+    .object({
+      title: z.string(),
+      sourceName: z.string(),
+      sourceHash: z.string(),
+      collections: z.array(z.string()),
+      documents: z.array(z.string()),
+    })
+    .optional(),
 });
 
 export async function scaffoldProject(
@@ -67,6 +78,25 @@ export async function scaffoldProject(
 ): Promise<z.infer<typeof scaffoldProjectOutput>> {
   const parsed = scaffoldProjectInput.parse(input);
   const connected = parsed.services === 'hannibal-gemini';
+  const draft = parsed.prdId ? await loadPrdDraft(parsed.prdId) : undefined;
+  if (
+    draft &&
+    (resolveAgentMode() !== 'scaffold-builder' ||
+      process.env.PRECAST_PRD_BUILD_ENABLED !== '1' ||
+      !connected)
+  )
+    throw new Error(
+      'PRD app building requires the enabled builder gate and approved Gemini/Postgres connections. No project was created.',
+    );
+  if (
+    draft &&
+    (!draft.analysis.blueprint ||
+      draft.analysis.missingQuestions.length ||
+      draft.analysis.unsupportedRequirements.length)
+  )
+    throw new Error(
+      'Resolve the missing or unsupported PRD requirements before building. No project was created.',
+    );
   const previewRequested = connected && parsed.preview === 'srv.us';
   if (
     previewRequested &&
@@ -94,7 +124,7 @@ export async function scaffoldProject(
   const verifier = connected ? createServiceVerifier(parsed.projectName) : undefined;
   const seed = createHash('sha256')
     .update(
-      `${proof.agentbaseChain}\u0000${parsed.projectName}\u0000${parsed.theme}\u0000${parsed.services}\u0000${parsed.preview}`,
+      `${proof.agentbaseChain}\u0000${parsed.projectName}\u0000${parsed.theme}\u0000${parsed.services}\u0000${parsed.preview}\u0000${draft?.sourceHash ?? ''}`,
     )
     .digest('hex');
   const commands: ComputerCommand[] = [
@@ -164,6 +194,15 @@ export async function scaffoldProject(
         },
       ],
     });
+  if (draft)
+    commands.splice(2, 0, {
+      id: 'product',
+      label: 'Build the product from its PRD',
+      executable: 'node',
+      argv: ['scripts/apply-prd.mjs', `--project-name=${parsed.projectName}`],
+      cwd: projectPath,
+      timeoutMs: 60_000,
+    });
 
   const client = new AgentBaseComputerClient(SCAFFOLD_BUILDER_AGENT_ID);
   const { run, lease } = await client.createRun(seed);
@@ -174,6 +213,22 @@ export async function scaffoldProject(
     await client.waitUntilRunning(run.id);
     const controlEpoch = await client.takeControl(run.id, lease.id);
     for (const command of commands) {
+      if (command.id === 'product' && draft)
+        await client.writeProjectInput(
+          run.id,
+          lease.id,
+          controlEpoch,
+          `${projectPath}/.precast/prd-build.json`,
+          JSON.stringify({
+            projectName: parsed.projectName,
+            sourceName: draft.sourceName,
+            sourceText: draft.sourceText,
+            sourceHash: draft.sourceHash,
+            blueprint: draft.analysis.blueprint,
+            clarifications: draft.answers,
+          }),
+          seed,
+        );
       const result = await client.runCommand(run.id, lease.id, controlEpoch, command, seed);
       if (command.id === 'services' && verifier) {
         services = await verifier.verify(result.stdout);
@@ -267,6 +322,22 @@ export async function scaffoldProject(
     steps,
     ...(services ? { services } : {}),
     ...(preview ? { preview } : {}),
+    ...(draft?.analysis.blueprint
+      ? {
+          product: {
+            title: draft.analysis.blueprint.title,
+            sourceName: draft.sourceName,
+            sourceHash: draft.sourceHash,
+            collections: draft.analysis.blueprint.collections.map((c) => c.label),
+            documents: [
+              'docs/PRD.md',
+              'docs/DATA_MODEL.md',
+              'docs/AGENT_SPEC.md',
+              'docs/DESIGN_SYSTEM.md',
+            ],
+          },
+        }
+      : {}),
   };
 }
 

@@ -1,5 +1,7 @@
 # TECH_STACK.md — Tech Inventory
 
+**PRD record applications (T-260, 2026-11-13):** no new runtime dependency or service. `zod` validates bounded product blueprints and record values; the existing `pg` pool creates the project-specific `<project>_app.records` table. The builder's existing managed-memory schema stores `scaffold_prd_drafts`, bound to verified person/organisation/Raya room with a 24-hour expiry. Complete PDF text is limited to 40,000 characters. Product input writes use the existing Computer file action with an exact argument digest, followed by a fixed Node materialization step. No arbitrary generated code or commands are executed. Default project mode and the original placeholder app remain unchanged without a generated product brief. The PRD gate is separate from existing service/preview gates.
+
 **Automatic connected previews (2026-11-13, T-257):** root devDependency `ssh2` 1.17.0
 supports the srv.us SSH reverse connection. Connected scaffolds now include the preview
 automatically after conversational setup; explicit private builds can opt out. It is installed

@@ -124,7 +124,7 @@ export function resolvePostgresSsl(
 export const PROJECT_NAME = 'precast';
 
 /** What a project keeps in its database, each in a schema of its own. */
-export type ProjectSchemaPurpose = 'agents' | 'auth';
+export type ProjectSchemaPurpose = 'agents' | 'auth' | 'app';
 
 const PG_IDENTIFIER_MAX = 63;
 

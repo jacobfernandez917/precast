@@ -1,5 +1,11 @@
 # INTEGRATION_AGENTBASE.md — How Precast fits with AgentBase
 
+## PRD attachments through Raya
+
+Enable `PRECAST_PRD_BUILD_ENABLED=1` on the existing scaffold-builder deployment, alongside the service/preview gates. Attach a readable PDF and ask to build it. The builder reads the actual extracted source (no model paraphrase), retains its hash and conversation-scoped draft across replies, and uses explicit PRD preferences without asking them again. Partial or unreadable extraction blocks building. Only missing product/setup questions are asked, one at a time.
+
+The supported initial app is a private record-management workspace: named collections, typed fields/choices, search and CRUD backed by managed Postgres, plus a product-specific conversational assistant. Unsupported required behaviors must be resolved as an explicit scope clarification. Saved Application, service, Computer and preview approvals remain necessary. The fixed product step runs before service setup and cannot overwrite a customized project. It writes `docs/PRD.md`, data/agent/design specs and a validated product brief; no arbitrary model-authored code or command is executed. The public app's sign-in and per-account SQL ownership checks remain server-enforced.
+
 ## Connected scaffolding
 
 The builder collects project name, model, theme and database choices one at a time. Selecting
