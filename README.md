@@ -44,7 +44,8 @@ its verified public URL. Explicitly request Hannibal Postgres, Gemini and a srv.
 this selects `services: "hannibal-gemini"` and `preview: "srv.us"`. The builder and API preview
 flags and a separate saved project preview approval must be enabled by the operator. The
 public app keeps sign-in, the preview has a stated expiry, and stopping the Computer or
-handing back owner control ends it. Ordinary scaffolds leave public exposure off.
+handing back owner control ends it. Ordinary scaffolds leave public exposure off. The full flow has been
+verified through Raya on a real Computer, including public sign-up and a real Gemini chat.
 
 The web chat streams elapsed-time updates while an A2A turn runs, then delivers its sanitized
 answer. Existing JSON clients keep their response contract; sign-in, rate limits and server-derived

@@ -5,7 +5,11 @@
   no URL. Three passing new cases, seven total scaffold tool cases.
 - `TOOL-017`: project/relay/Application/RDS/expiry approval validation, owner-only state,
   symlink refusal, trusted Postgres identity and administrator-role refusal. Three passing cases.
-- Automatic preview live acceptance: pending deployment and a fresh full Raya Computer run.
+- Automatic preview live acceptance: **passed** on real Raya run
+  `ec0fcdf1-ff6a-4ab3-83cd-7e22b255674b`, six successful commands, one Hannibal invocation,
+  real Gemini, automatic app/tunnel startup, owner reservation and final Raya/native A2A
+  completion in 239661 ms. Public sign-up and streamed UI chat passed. AgentBase report:
+  `docs/validation/precast-scaffold-2026-11-13.json` → `automaticPreview`.
 
 Full `pnpm verify`: all 12 tasks passed; web 393 passed/one skipped, agents 174 passed.
 
