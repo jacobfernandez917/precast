@@ -12,15 +12,18 @@
 
 ## 1. Current state (overwrite on each handoff)
 
-- **Conversational setup implemented (T-258, 2026-11-13).** The existing builder now uses
-  `prepare-precast-project` to ask one missing bootstrap preference per turn: name, model,
-  theme, database. It skips supplied answers and uses defaults only when requested.
+- **Conversational setup deployed and passed (T-258, 2026-11-13).** Builder `830156b`
+  uses `prepare-precast-project` to ask one missing bootstrap preference per turn: name,
+  model, theme, database. It skips supplied answers and uses defaults only when requested.
   Selecting Gemini and managed Postgres maps to the existing connected flow; srv.us is
   automatic, with no tunnel question. Existing operator and saved owner approvals remain
   mandatory. Deferring either connection keeps both and the preview deferred. Focused
-  preparation/execution checks: 17 passed; full verification passed all 12 tasks (agents
-  184 passed, web 393 passed/one skipped). Deployment and live conversation verification
-  are pending; the current running preview below is preserved.
+  checks: 17 passed; full verify: 12 tasks passed (agents 184, web 393/one skipped); all
+  four code CI jobs passed. The existing LOCAL builder is SYNCED/RUNNING. A real five-turn
+  Raya conversation asked the four questions in order and honored pause. Zero new Computer
+  runs; the existing session and public preview (HTTP 200) are preserved. This acceptance
+  stopped before creating another project/database; the prior six-step execution below
+  remains the real connected-build evidence. Report: `docs/validation/scaffold-conversation-2026-11-13.json`.
 
 - **Automatic connected preview passed (T-257, 2026-11-13).** The existing builder at
   `152a404` completed a fresh full Raya run with six successful commands for
@@ -55,7 +58,7 @@
 
 **Fresh baseline.** This is a clean Precast checkout — a runnable, agent-native monorepo with neutral placeholders (`example-agent` / `summary-agent` / `example-tool`, a generic landing page + agent-chat demo). No domain logic yet. `pnpm build` / `typecheck` / `lint` / `test` are green out of the box.
 
-- **Two gated modes, one repository (2026-11-12).** `PRECAST_AGENT_MODE=project` is the default and constructs only the existing crew. `PRECAST_AGENT_MODE=scaffold-builder` constructs only `scaffold-builder`. Static factory imports avoid a live-discovered Mastra chunk cycle; project MCP preflight still runs only in project mode. Its sole tool runs a fixed Computer workflow in `Projects/<name>`: clone Precast → bootstrap (`--llm-provider=skip --db=later`) → `verify:poc` → build. The import manifest scopes Developer Computer needs to Mastra id `scaffold-builder`; normal project agents receive no Computer proposal.
+- **Two gated modes, one repository (2026-11-12).** `PRECAST_AGENT_MODE=project` is the default and constructs only the existing crew. `PRECAST_AGENT_MODE=scaffold-builder` constructs only `scaffold-builder`. Static factory imports avoid a live-discovered Mastra chunk cycle; project MCP preflight still runs only in project mode. Its execution tool runs a fixed Computer workflow in `Projects/<name>`: clone Precast → bootstrap (`--llm-provider=skip --db=later`) → `verify:poc` → build. The import manifest scopes Developer Computer needs to Mastra id `scaffold-builder`; normal project agents receive no Computer proposal.
 
 - The Mastra app (`apps/agents`) and Next app (`apps/web`) are intentionally **neutral placeholders**. Real agents/pages/schema come from the feed-forward docs in `templates/` + TECH_STACK.
 - Infra (Postgres/Redis) is **remote/managed** via the root `.env`, never run on the developer's computer. `pnpm poc` runs both apps as Node processes on `127.0.0.1`; there is no container runtime locally.
@@ -74,12 +77,13 @@ _Known carry-forwards:_
 
 ## 2. Next task (overwrite on each handoff)
 
-**Deploy and verify conversational setup.** Run full verification, push `develop`, reimport
-only the existing builder and exercise a fresh multi-turn Raya conversation. Preserve the
-current owner-controlled Computer and running preview; the interview itself must create no
-Computer run or database. The six-step connected execution already passed below; its default
-preview behavior is covered by the updated orchestration test. Project-specific saved setup
-and preview approvals are still required before a future connected build.
+**No remaining conversational setup implementation or acceptance work.** In the existing
+Raya builder chat, ask to create a new project and answer the questions one at a time. Connected
+builds include srv.us automatically; they still need their own saved setup/preview approvals
+and enabled gates. The test conversation is paused before its database answer and created
+nothing. Keep the current owner-controlled Computer and public preview running; handback,
+shutdown or expiry ends the preview. The prior full execution evidence and unrelated
+carry-forwards remain below.
 
 The earlier orchestrator-crew live telemetry checks remain carry-forwards:
 

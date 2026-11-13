@@ -3,6 +3,12 @@
 - `AGT-036`: conversational preparation, one missing question in bootstrap order, supplied
   answers, explicit defaults, invalid names and honest deferred connections. Nine cases
   passing in `prepare-scaffold.spec.ts`; no Computer or secret access.
+- Conversational live acceptance (T-258): five real Raya turns passed on builder `830156b`.
+  Name → model → theme → database, with one question each, answers retained, no tunnel
+  question, and pause honored. No new Computer run; existing session/public preview preserved
+  (HTTP 200). Rendered transcript inspected. This interview did not create another project
+  or database; default connected preview execution is covered by AGT-035. Evidence:
+  `docs/validation/scaffold-conversation-2026-11-13.json`.
 - `AGT-035`: default connected preview/operator gates before any run; exact server
   authorization before startup; sanitized script receipt and owner handoff; refusal returns
   no URL. Four passing preview cases, eight total scaffold tool cases. Deferred defaults stay private.

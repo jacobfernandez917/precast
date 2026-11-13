@@ -52,6 +52,10 @@ ends the preview. You can explicitly request a private build. Deferring either c
 currently defers both connections and the public preview. The full connected flow has been
 verified through Raya on a real Computer, including public sign-up and a real Gemini chat.
 
+The live Raya conversation check passed on 13 November: four setup questions in order,
+answers retained, no tunnel question, and pause honored. See the
+[conversation validation report](docs/validation/scaffold-conversation-2026-11-13.json).
+
 The web chat streams elapsed-time updates while an A2A turn runs, then delivers its sanitized
 answer. Existing JSON clients keep their response contract; sign-in, rate limits and server-derived
 conversation ownership apply before a stream opens. The current upstream A2A call returns the
@@ -63,7 +67,7 @@ The connected setup's Gemini check allows 1024 output tokens so reasoning-capabl
 
 Choose Gemini and a managed Postgres database in the conversation to enable connected scaffolding. Hannibal provides the database behind the scenes. This requires the operator setting, an approved database host, and the member-approved `precast_project_setup` secret alias bound to one project Application and exact listings. Deferred scaffolding requests no secret. See [Connected scaffolding](docs/INTEGRATION_AGENTBASE.md#connected-scaffolding).
 
-Live validation (13 November 2026): both deferred and connected flows passed through Raya on a real Computer. Connected output is `Projects/raya-scaffold-live-20261113-connected`: clone → bootstrap → real Gemini/Hannibal setup → verification → build, all five exits zero, with Raya's successful final reply. Both project subscriptions are active; trusted Postgres TLS, `SELECT 1` and the restricted database role were verified by the hosted builder. The project is configured and built; its app has not been launched or exposed publicly. The earlier `Projects/raya-scaffold-live-20261113-endtoend` remains intact. Signed Developer image `20261113.precast.5` passed attended qualification, including three synthetic external-write trials. Only builder mode gets the bounded 15-minute server window; project mode keeps three minutes. See [docs/HANDOFF.md](docs/HANDOFF.md).
+Live validation (13 November 2026): both deferred and connected flows passed through Raya on a real Computer. Connected output is `Projects/raya-scaffold-live-20261113-connected`: clone → bootstrap → real Gemini/Hannibal setup → verification → build, all five exits zero, with Raya's successful final reply. Both project subscriptions are active; trusted Postgres TLS, `SELECT 1` and the restricted database role were verified by the hosted builder. That earlier run configured and built the project; the later automatic-preview run also launched it and verified public access. The earlier `Projects/raya-scaffold-live-20261113-endtoend` remains intact. Signed Developer image `20261113.precast.5` passed attended qualification, including three synthetic external-write trials. Only builder mode gets the bounded 15-minute server window; project mode keeps three minutes. See [docs/HANDOFF.md](docs/HANDOFF.md).
 
 On a fresh Computer without a Git identity, bootstrap uses `Project Scaffold <scaffold@localhost>` for the initial local commit. Configured member identities and explicit author overrides take precedence; Git configuration is never changed.
 
