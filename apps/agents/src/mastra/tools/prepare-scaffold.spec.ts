@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { prepareScaffold, prepareScaffoldWithPrd } from './prepare-scaffold';
-vi.mock('../lib/prd-drafts', () => ({ loadPrdDraft: vi.fn() }));
-import { loadPrdDraft } from '../lib/prd-drafts';
+vi.mock('../lib/prd-drafts', () => ({ loadPrdDraft: vi.fn(), pendingPrdDraft: vi.fn() }));
+import { loadPrdDraft, pendingPrdDraft } from '../lib/prd-drafts';
 
 describe('AGT-036 conversational scaffold preparation', () => {
   it('asks only the first missing preference, in bootstrap order, without requesting a tunnel', () => {
@@ -118,6 +118,19 @@ describe('AGT-038 missing PRD questions only', () => {
   };
   const draft = (overrides: Record<string, unknown> = {}) =>
     vi.mocked(loadPrdDraft).mockResolvedValue({ analysis: { ...analysis, ...overrides } } as never);
+  it('recovers a pending PRD across replies instead of guessing a plain scaffold', async () => {
+    vi.stubEnv('PRECAST_PRD_BUILD_ENABLED', '1');
+    vi.mocked(pendingPrdDraft).mockResolvedValue({ id: prdId } as never);
+    draft();
+    try {
+      expect(await prepareScaffoldWithPrd({ projectName: 'action-desk' })).toMatchObject({
+        state: 'question',
+        field: 'theme',
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
   it('skips setup choices explicitly supplied by the PRD and retains its reference through execution', async () => {
     draft();
     expect(await prepareScaffoldWithPrd({ prdId })).toMatchObject({

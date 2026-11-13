@@ -3,7 +3,14 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { resolveAgentModel } from '../lib/agentbase-model';
 import { resolveAgentMode } from '../lib/agent-mode';
-import { loadPrdDraft, savePrdDraft, readCurrentPrd, prdAnalysisSchema } from '../lib/prd-drafts';
+import {
+  loadPrdDraft,
+  savePrdDraft,
+  readCurrentPrd,
+  prdAnalysisSchema,
+  pendingPrdDraft,
+  settlePrdDraft,
+} from '../lib/prd-drafts';
 
 export const readPrdTool = createTool({
   id: 'read-precast-prd',
@@ -13,16 +20,30 @@ export const readPrdTool = createTool({
     attachmentName: z.string().max(200).optional(),
     draftId: z.string().uuid().optional(),
     clarification: z.string().max(4000).optional(),
+    discard: z.boolean().optional(),
   }),
   outputSchema: z.object({
     draftId: z.string().uuid(),
     sourceName: z.string(),
     sourceHash: z.string(),
     analysis: prdAnalysisSchema,
+    discarded: z.boolean().optional(),
   }),
   execute: async (input) => {
     if (resolveAgentMode() !== 'scaffold-builder' || process.env.PRECAST_PRD_BUILD_ENABLED !== '1')
       throw new Error('PRD app building is not enabled for this builder.');
+    if (input.discard) {
+      const draft = input.draftId ? await loadPrdDraft(input.draftId) : await pendingPrdDraft();
+      if (!draft) throw new Error('There is no pending PRD to discard.');
+      await settlePrdDraft(draft.id, 'discarded');
+      return {
+        draftId: draft.id,
+        sourceName: draft.sourceName,
+        sourceHash: draft.sourceHash,
+        analysis: draft.analysis,
+        discarded: true,
+      };
+    }
     const prior = input.draftId ? await loadPrdDraft(input.draftId) : undefined;
     const source = prior ?? readCurrentPrd(input.attachmentName);
     const answers = [
@@ -36,6 +57,21 @@ export const readPrdTool = createTool({
         sourceHash: prior.sourceHash,
         analysis: prior.analysis,
       };
+    const initial =
+      prior ??
+      (await savePrdDraft({
+        ...source,
+        answers,
+        analysis: {
+          blueprint: null,
+          projectName: null,
+          model: null,
+          theme: null,
+          database: null,
+          missingQuestions: ['The PRD analysis must succeed before setup can continue.'],
+          unsupportedRequirements: [],
+        },
+      }));
     const reader = new Agent({
       id: 'prd-reader',
       name: 'PRD reader',
@@ -49,7 +85,10 @@ export const readPrdTool = createTool({
         document: source.sourceText,
         humanClarifications: answers,
       }),
-      { structuredOutput: { schema: prdAnalysisSchema }, modelSettings: { maxOutputTokens: 6000 } },
+      {
+        structuredOutput: { schema: prdAnalysisSchema, jsonPromptInjection: true },
+        modelSettings: { maxOutputTokens: 6000 },
+      },
     );
     const analysis = prdAnalysisSchema.parse(result.object);
     // A product title is not consent to invent a folder slug or a visual theme.
@@ -59,7 +98,7 @@ export const readPrdTool = createTool({
       analysis.theme = null;
     const saved = await savePrdDraft({
       ...source,
-      ...(prior ? { id: prior.id } : {}),
+      id: initial.id,
       answers,
       analysis,
     });

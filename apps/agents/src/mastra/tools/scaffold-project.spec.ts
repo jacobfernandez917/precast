@@ -7,6 +7,8 @@ const calls = vi.hoisted(() => ({
   projectPreview: vi.fn(),
   writeProjectInput: vi.fn(),
   loadPrdDraft: vi.fn(),
+  pendingPrdDraft: vi.fn(),
+  settlePrdDraft: vi.fn(),
 }));
 vi.mock('../lib/agentbase-computer', () => ({
   AgentBaseComputerClient: class {
@@ -53,7 +55,11 @@ vi.mock('../lib/request-context', () => ({
 vi.mock('../lib/service-verification', () => ({
   createServiceVerifier: () => ({ publicKey: 'public-key', verify: calls.verify }),
 }));
-vi.mock('../lib/prd-drafts', () => ({ loadPrdDraft: calls.loadPrdDraft }));
+vi.mock('../lib/prd-drafts', () => ({
+  loadPrdDraft: calls.loadPrdDraft,
+  pendingPrdDraft: calls.pendingPrdDraft,
+  settlePrdDraft: calls.settlePrdDraft,
+}));
 import { scaffoldProject } from './scaffold-project';
 const input = {
   projectName: 'connected-project',
@@ -65,6 +71,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   calls.commands.length = 0;
   calls.complete.mockResolvedValue(undefined);
+  calls.pendingPrdDraft.mockResolvedValue(undefined);
+  calls.settlePrdDraft.mockResolvedValue(undefined);
   calls.createRun.mockResolvedValue({ run: { id: 'run' }, lease: { id: 'lease' } });
   calls.verify.mockResolvedValue({
     projectName: input.projectName,
@@ -90,6 +98,12 @@ beforeEach(() => {
 
 describe('AGT-039 PRD Computer orchestration', () => {
   const prdId = '00000000-0000-4000-8000-000000000001';
+  it('never falls back to a plain scaffold when a PRD was not read successfully', async () => {
+    vi.stubEnv('PRECAST_PRD_BUILD_ENABLED', '1');
+    calls.pendingPrdDraft.mockResolvedValue({ id: prdId });
+    await expect(scaffoldProject(input)).rejects.toThrow(/pending PRD/);
+    expect(calls.createRun).not.toHaveBeenCalled();
+  });
   it('refuses a PRD app before creating a run without the gate and connected services', async () => {
     vi.stubEnv('PRECAST_AGENT_MODE', 'scaffold-builder');
     vi.stubEnv('PRECAST_SERVICE_SETUP_ENABLED', '1');

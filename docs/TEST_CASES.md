@@ -180,10 +180,11 @@ Earlier acceptance attempt (2026-11-13, superseded by the successful runs above)
 | AGT-006 | `orchestration-manifest.spec.ts` — the committed `agentbase.import.json` `orchestration` block matches the code: `orchestrator` equals `ORCHESTRATOR_ID`, `members` stays omitted (AgentBase discovers them), `defaultImport` is a supported mode, and the emitter's regex reader resolves the same id the runtime imports (drift guard for `pnpm emit:import-manifest`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Passing                                            |
 
 | AGT-036 | `prepare-scaffold.spec.ts` — single-question setup order, supplied preferences, explicit defaults, safe names and honest deferred connections; automatic srv.us for connected execution | Passing (9 cases) |
-| AGT-037 | `prd-drafts.spec.ts`: exact current PDF source/hash, unreadable/partial/ambiguous refusals, retained source and owner/room isolation | Passing (4 cases) |
-| AGT-038 | `prepare-scaffold.spec.ts`: skip explicit PRD preferences, ask only missing questions, retain draft ID, human override and unsupported-scope refusal | Passing (2 cases) |
-| AGT-039 | `scaffold-project.spec.ts`, `agentbase-computer.spec.ts`: PRD gate before any run, exact bounded input digest/profile/path, product before services and sanitized result | Passing (3 cases) |
+| AGT-037 | `prd-drafts.spec.ts`: exact current PDF source/hash, unreadable/partial/ambiguous refusals, retained source, pending/completed/discarded lifecycle and owner/room isolation | Passing (5 cases) |
+| AGT-038 | `prepare-scaffold.spec.ts`: skip explicit PRD preferences, ask only missing questions, recover pending draft ID across replies, human override and unsupported-scope refusal | Passing (3 cases) |
+| AGT-039 | `scaffold-project.spec.ts`, `agentbase-computer.spec.ts`: PRD gate and no plain fallback after a failed PRD read, before any run, exact bounded input digest/profile/path, product before services and sanitized result | Passing (4 cases) |
 | AGT-040 | `middleware/auth.spec.ts`: verified account/room determines builder resource and thread; body identity cannot cross accounts or conversations; connected-service OBO identities may differ or be absent | Passing (3 cases) |
+| AGT-041 | `read-prd.spec.ts`: inject the expected schema into the model prompt, validate its output, retain exact unready source before a failed model/schema call | Passing (2 cases); direct real Gemini schema-contract diagnostic also passed |
 
 ---
 

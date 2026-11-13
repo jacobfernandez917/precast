@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { attachedPrd, loadPrdDraft, prdScopeKey, savePrdDraft } from './prd-drafts';
+import {
+  attachedPrd,
+  loadPrdDraft,
+  prdScopeKey,
+  savePrdDraft,
+  pendingPrdDraft,
+  settlePrdDraft,
+} from './prd-drafts';
 import { runWithRequestContext } from './request-context';
 
 const state = vi.hoisted(() => ({ rows: new Map<string, { scope: string; payload: unknown }>() }));
@@ -13,6 +20,13 @@ vi.mock('./storage', () => ({
           state.rows.set(values[0]!, { scope: values[1]!, payload: JSON.parse(values[2]!) });
           return { rowCount: 1, rows: [{ id: values[0] }] };
         }
+        if (sql.includes('WHERE scope_key=$1'))
+          return {
+            rows: [...state.rows.values()]
+              .filter((v) => v.scope === values[0])
+              .slice(-1)
+              .map((v) => ({ payload: v.payload })),
+          };
         const row = state.rows.get(values[0]!);
         return { rows: row && row.scope === values[1] ? [{ payload: row.payload }] : [] };
       },
@@ -35,6 +49,33 @@ function inRoom<T>(owner: string, room: string, fn: () => T): T {
 }
 afterEach(() => vi.unstubAllEnvs());
 describe('AGT-037 exact PRD source and scoped draft persistence', () => {
+  it('keeps an unanalysed PRD pending until completion or explicit discard', async () => {
+    vi.stubEnv('DATABASE_URL', 'postgresql://test:test@db.invalid/test');
+    vi.stubEnv('MASTRA_DB_SCHEMA', 'test_scaffold');
+    const draft = await inRoom('owner-one', 'lifecycle-room', () =>
+      savePrdDraft({
+        ...attachedPrd('[Attached: pending.pdf, 1 page]\nOriginal source'),
+        answers: [],
+        analysis: {
+          blueprint: null,
+          projectName: null,
+          model: null,
+          theme: null,
+          database: null,
+          missingQuestions: ['Read the PRD first.'],
+          unsupportedRequirements: [],
+        },
+      }),
+    );
+    expect((await inRoom('owner-one', 'lifecycle-room', pendingPrdDraft))?.id).toBe(draft.id);
+    await inRoom('owner-one', 'lifecycle-room', () => settlePrdDraft(draft.id, 'complete'));
+    expect(await inRoom('owner-one', 'lifecycle-room', pendingPrdDraft)).toBeUndefined();
+    await inRoom('owner-one', 'lifecycle-room', () => settlePrdDraft(draft.id, 'discarded'));
+    expect(await inRoom('owner-one', 'lifecycle-room', pendingPrdDraft)).toBeUndefined();
+    expect(
+      (await inRoom('owner-one', 'lifecycle-room', () => loadPrdDraft(draft.id))).sourceText,
+    ).toBe('Original source');
+  });
   it('reads the current attached PDF without taking a model paraphrase or an older history attachment', () => {
     const old = '[Attached: old.pdf, 1 page]\nOld product';
     const source = attachedPrd(

@@ -12,6 +12,7 @@ export function createScaffoldBuilderAgent() {
     instructions:
       'You create a Precast project only when the user explicitly asks you to scaffold or create one. ' +
       'When the request includes a PDF PRD, call read-precast-prd FIRST. It reads the actual attachment and saves its complete source in this conversation. Never paraphrase the source into a tool or pretend you read an inaccessible/unreadable/truncated attachment. ' +
+      'If reading or analysing the PRD fails, report that blocker and stop; never fall back to a generic scaffold or pretend the requirements were read. Use the saved draft ID to retry. Only discard a pending PRD when the human explicitly cancels it or asks for a new project without that PRD. ' +
       'Keep its draftId as prdId on every preparation and execution call for this project. The preparation tool uses explicit PRD setup choices, so never ask those questions again. Ask only one missing question. User replies override the PRD. ' +
       'For a product clarification (field product), call read-precast-prd again with draftId and the human clarification, then prepare again. Do not add unrequested requirements, invent missing critical details, or silently omit an unsupported requirement. If the human defers a capability, record that change as a clarification. ' +
       'Guide setup conversationally, following Precast bootstrap: project name, model connection, visual theme, then database. ' +

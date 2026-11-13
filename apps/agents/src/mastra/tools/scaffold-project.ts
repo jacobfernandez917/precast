@@ -9,7 +9,7 @@ import {
 import { currentAgentBaseProof } from '../lib/request-context';
 import { resolveAgentMode } from '../lib/agent-mode';
 import { createServiceVerifier } from '../lib/service-verification';
-import { loadPrdDraft } from '../lib/prd-drafts';
+import { loadPrdDraft, pendingPrdDraft, settlePrdDraft } from '../lib/prd-drafts';
 
 export const SCAFFOLD_BUILDER_AGENT_ID = 'scaffold-builder';
 const TEMPLATE_REPOSITORY =
@@ -77,6 +77,10 @@ export async function scaffoldProject(
   input: z.input<typeof scaffoldProjectInput>,
 ): Promise<z.infer<typeof scaffoldProjectOutput>> {
   const parsed = scaffoldProjectInput.parse(input);
+  if (!parsed.prdId && process.env.PRECAST_PRD_BUILD_ENABLED === '1' && (await pendingPrdDraft()))
+    throw new Error(
+      'This conversation has a pending PRD. Read it successfully and include its draft ID, or explicitly discard it before a plain scaffold. No project was created.',
+    );
   const connected = parsed.services === 'hannibal-gemini';
   const draft = parsed.prdId ? await loadPrdDraft(parsed.prdId) : undefined;
   if (
@@ -314,6 +318,7 @@ export async function scaffoldProject(
     await client.complete(run.id, lease.id, 'failed', message).catch(() => undefined);
     throw error;
   }
+  if (draft) await settlePrdDraft(draft.id, 'complete');
   return {
     projectName: parsed.projectName,
     projectPath,

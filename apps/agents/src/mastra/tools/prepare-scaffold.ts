@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { scaffoldProjectInput } from './scaffold-project';
-import { loadPrdDraft } from '../lib/prd-drafts';
+import { loadPrdDraft, pendingPrdDraft } from '../lib/prd-drafts';
 
 export const scaffoldPreferences = z.object({
   projectName: z.string().optional(),
@@ -86,6 +86,10 @@ export function prepareScaffold(
 export async function prepareScaffoldWithPrd(
   input: z.input<typeof scaffoldPreferences>,
 ): Promise<z.infer<typeof preparationResult>> {
+  if (!input.prdId && process.env.PRECAST_PRD_BUILD_ENABLED === '1') {
+    const pending = await pendingPrdDraft();
+    if (pending) input = { ...input, prdId: pending.id };
+  }
   if (!input.prdId) return prepareScaffold(input);
   const { analysis } = await loadPrdDraft(input.prdId);
   if (analysis.unsupportedRequirements.length)

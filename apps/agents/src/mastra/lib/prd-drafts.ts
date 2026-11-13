@@ -25,6 +25,7 @@ export interface PrdDraft {
   sourceHash: string;
   answers: string[];
   analysis: PrdAnalysis;
+  state?: 'pending' | 'complete' | 'discarded';
 }
 
 export function attachedPrd(
@@ -73,7 +74,7 @@ export async function savePrdDraft(
   draft: Omit<PrdDraft, 'id'> & { id?: string },
 ): Promise<PrdDraft> {
   const scope = prdScopeKey();
-  const saved = { ...draft, id: draft.id ?? randomUUID() };
+  const saved = { ...draft, state: draft.state ?? 'pending', id: draft.id ?? randomUUID() };
   const db = await table();
   const result = await db.pool.query(
     `INSERT INTO ${db.table}(id,scope_key,payload,expires_at) VALUES($1,$2,$3,now()+interval '24 hours') ON CONFLICT(id) DO UPDATE SET payload=$3 WHERE ${db.table}.scope_key=$2 RETURNING id`,
@@ -94,6 +95,21 @@ export async function loadPrdDraft(id: string): Promise<PrdDraft> {
   if (!result.rows[0])
     throw new Error('That PRD is unavailable in this conversation. Attach it again.');
   return result.rows[0].payload as PrdDraft;
+}
+
+export async function pendingPrdDraft(): Promise<PrdDraft | undefined> {
+  const scope = prdScopeKey();
+  const db = await table();
+  const result = await db.pool.query(
+    `SELECT payload FROM ${db.table} WHERE scope_key=$1 AND expires_at>now() ORDER BY expires_at DESC LIMIT 1`,
+    [scope],
+  );
+  const draft = result.rows[0]?.payload as PrdDraft | undefined;
+  return draft && (!draft.state || draft.state === 'pending') ? draft : undefined;
+}
+
+export async function settlePrdDraft(id: string, state: 'complete' | 'discarded') {
+  return savePrdDraft({ ...(await loadPrdDraft(id)), state });
 }
 
 export function readCurrentPrd(name?: string) {
