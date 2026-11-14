@@ -187,3 +187,38 @@ describe('AGT-038 missing PRD questions only', () => {
     });
   });
 });
+
+describe('AGT-043 existing-only database planning', () => {
+  it('reuses the operator-approved database even when the PRD requests managed Postgres', () => {
+    vi.stubEnv('PRECAST_DATABASE_SETUP_MODE', 'existing');
+    try {
+      for (const database of ['managed-postgres', 'existing-postgres'] as const)
+        expect(
+          prepareScaffold({
+            projectName: 'reuse-project',
+            model: 'gemini',
+            theme: 'nova',
+            database,
+          }),
+        ).toMatchObject({
+          state: 'ready',
+          execution: { services: 'existing-postgres-gemini', preview: 'srv.us' },
+          note: expect.stringContaining('No database will be provisioned'),
+        });
+      expect(prepareScaffold({ projectName: 'reuse-project', useDefaults: true })).toMatchObject({
+        state: 'ready',
+        execution: { services: 'existing-postgres-gemini' },
+      });
+      expect(
+        prepareScaffold({
+          projectName: 'reuse-project',
+          model: 'gemini',
+          theme: 'nova',
+          database: 'later',
+        }),
+      ).toMatchObject({ state: 'ready', execution: { services: 'deferred', preview: 'off' } });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});

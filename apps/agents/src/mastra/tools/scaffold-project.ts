@@ -10,6 +10,7 @@ import { currentAgentBaseProof } from '../lib/request-context';
 import { resolveAgentMode } from '../lib/agent-mode';
 import { createServiceVerifier } from '../lib/service-verification';
 import { loadPrdDraft, pendingPrdDraft, settlePrdDraft } from '../lib/prd-drafts';
+import { resolveDatabaseSetupMode } from '../lib/database-setup-mode';
 
 export const SCAFFOLD_BUILDER_AGENT_ID = 'scaffold-builder';
 const TEMPLATE_REPOSITORY =
@@ -23,7 +24,7 @@ export const scaffoldProjectInput = z.object({
   theme: z
     .enum(['stockholm', 'prague', 'arctic', 'nova', 'melbourne', 'lapland', 'cappadocia'])
     .default('stockholm'),
-  services: z.enum(['deferred', 'hannibal-gemini']).default('deferred'),
+  services: z.enum(['deferred', 'hannibal-gemini', 'existing-postgres-gemini']).default('deferred'),
   preview: z.enum(['off', 'srv.us']).default('srv.us'),
   prdId: z.string().uuid().optional(),
 });
@@ -51,6 +52,8 @@ export const scaffoldProjectOutput = z.object({
       database: z.string(),
       databaseVerified: z.literal(true),
       verificationLocation: z.literal('builder-server'),
+      databaseReused: z.literal(true).optional(),
+      hannibalInvoked: z.literal(false).optional(),
     })
     .optional(),
   preview: z
@@ -81,7 +84,12 @@ export async function scaffoldProject(
     throw new Error(
       'This conversation has a pending PRD. Read it successfully and include its draft ID, or explicitly discard it before a plain scaffold. No project was created.',
     );
-  const connected = parsed.services === 'hannibal-gemini';
+  const connected = parsed.services !== 'deferred';
+  const reuse = parsed.services === 'existing-postgres-gemini';
+  if (connected && (resolveDatabaseSetupMode() === 'existing') !== reuse)
+    throw new Error(
+      'The requested database setup does not match the operator-approved mode. No project, subscription or database was created.',
+    );
   const draft = parsed.prdId ? await loadPrdDraft(parsed.prdId) : undefined;
   if (
     draft &&
@@ -125,7 +133,7 @@ export async function scaffoldProject(
     );
   }
   const projectPath = `Projects/${parsed.projectName}`;
-  const verifier = connected ? createServiceVerifier(parsed.projectName) : undefined;
+  const verifier = connected ? createServiceVerifier(parsed.projectName, reuse) : undefined;
   const seed = createHash('sha256')
     .update(
       `${proof.agentbaseChain}\u0000${parsed.projectName}\u0000${parsed.theme}\u0000${parsed.services}\u0000${parsed.preview}\u0000${draft?.sourceHash ?? ''}`,
@@ -180,14 +188,16 @@ export async function scaffoldProject(
   if (verifier)
     commands.splice(2, 0, {
       id: 'services',
-      label: 'Connect the approved Hannibal Postgres and Gemini services',
+      label: reuse
+        ? 'Connect Gemini and reuse the approved existing Postgres database'
+        : 'Connect the approved Hannibal Postgres and Gemini services',
       executable: 'node',
       cwd: projectPath,
       timeoutMs: 10 * 60_000,
       memoryMiB: 512,
       argv: [
         'scripts/setup-services.mjs',
-        '--services=hannibal-gemini',
+        `--services=${parsed.services}`,
         `--project-name=${parsed.projectName}`,
         `--verification-key=${verifier.publicKey}`,
       ],
@@ -239,8 +249,9 @@ export async function scaffoldProject(
         // Only the verified public summary reaches the model. The encrypted receipt stays internal.
         steps.push({
           ...result,
-          stdout:
-            'Project Application subscribed; Gemini call and scoped Postgres SELECT 1 verified.',
+          stdout: reuse
+            ? 'Project Application subscribed to Gemini only; real model call and scoped existing Postgres verified. No Hannibal call or database provisioning.'
+            : 'Project Application subscribed; Gemini call and scoped Postgres SELECT 1 verified.',
           stderr: '',
         });
       } else steps.push(result);

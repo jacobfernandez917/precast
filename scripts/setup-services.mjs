@@ -27,7 +27,12 @@ function requireValue(ok, stage) {
   if (!ok) throw new SetupError(stage);
 }
 
-export function parseSetupGrant(raw, projectName, now = Date.now()) {
+export function parseSetupGrant(raw, projectName, now = Date.now(), services = 'hannibal-gemini') {
+  requireValue(
+    ['hannibal-gemini', 'existing-postgres-gemini'].includes(services),
+    'invalid_setup_mode',
+  );
+  const reuse = services === 'existing-postgres-gemini';
   const grant = JSON.parse(raw);
   requireValue(grant && typeof grant === 'object' && !Array.isArray(grant), 'invalid_setup_grant');
   const keys = [
@@ -47,13 +52,19 @@ export function parseSetupGrant(raw, projectName, now = Date.now()) {
     'databaseHost',
     'expiresAt',
   ];
+  if (reuse) {
+    for (const key of ['hannibalSlug', 'hannibalListingId', 'hannibalOrg'])
+      keys.splice(keys.indexOf(key), 1);
+    keys.push('databaseUrl', 'databaseName');
+  }
+  const allowedKeys = [...keys, ...(reuse ? ['databaseCaPem'] : [])];
   requireValue(
-    Object.keys(grant).length === keys.length &&
+    Object.keys(grant).every((key) => allowedKeys.includes(key)) &&
       keys.every(
         (k) =>
           typeof grant[k] === 'string' &&
           grant[k].length > 0 &&
-          grant[k].length <= 2048 &&
+          grant[k].length <= (k === 'databaseUrl' ? 8192 : 2048) &&
           !/[\r\n\0]/.test(grant[k]),
       ),
     'invalid_setup_grant',
@@ -78,15 +89,58 @@ export function parseSetupGrant(raw, projectName, now = Date.now()) {
       new URL(grant.tokenUrl).pathname.endsWith('/protocol/openid-connect/token'),
     'invalid_setup_origin',
   );
-  for (const key of ['modelSlug', 'modelOrg', 'hannibalSlug', 'hannibalOrg'])
+  for (const key of ['modelSlug', 'modelOrg', ...(!reuse ? ['hannibalSlug', 'hannibalOrg'] : [])])
     requireValue(/^[a-z0-9][a-z0-9-]{1,127}$/.test(grant[key]), 'invalid_setup_target');
-  for (const key of ['applicationId', 'modelListingId', 'hannibalListingId'])
+  for (const key of ['applicationId', 'modelListingId', ...(!reuse ? ['hannibalListingId'] : [])])
     requireValue(/^[a-f0-9-]{36}$/.test(grant[key]), 'invalid_setup_target');
   requireValue(
     /^gemini-[a-z0-9.-]+$/.test(grant.modelId) &&
-      /^[a-z0-9.-]+\.rds\.amazonaws\.com$/.test(grant.databaseHost),
+      (reuse
+        ? /^(?:[a-z0-9.-]+\.rds\.amazonaws\.com|db\.[a-z0-9]{20}\.supabase\.co|aws-\d+-[a-z0-9-]+\.pooler\.supabase\.com)$/.test(
+            grant.databaseHost,
+          )
+        : /^[a-z0-9.-]+\.rds\.amazonaws\.com$/.test(grant.databaseHost)),
     'invalid_setup_target',
   );
+  if (reuse) {
+    const url = new URL(grant.databaseUrl);
+    const user = decodeURIComponent(url.username);
+    const role = url.hostname.endsWith('.pooler.supabase.com')
+      ? /^([a-z][a-z0-9_]{0,62})\.[a-z0-9]{20}$/.exec(user)?.[1]
+      : user;
+    requireValue(
+      ['postgres:', 'postgresql:'].includes(url.protocol) &&
+        url.hostname === grant.databaseHost &&
+        Number(url.port || 5432) === 5432 &&
+        url.password &&
+        /^[a-z][a-z0-9_]{0,62}$/.test(grant.databaseName) &&
+        !['template0', 'template1'].includes(grant.databaseName) &&
+        decodeURIComponent(url.pathname.slice(1)) === grant.databaseName &&
+        typeof role === 'string' &&
+        /^[a-z][a-z0-9_]{0,62}$/.test(role) &&
+        ![
+          'postgres',
+          'supabase_admin',
+          'authenticator',
+          'anon',
+          'authenticated',
+          'service_role',
+        ].includes(role) &&
+        [...url.searchParams.keys()].every((key) => key === 'sslmode') &&
+        (!url.searchParams.has('sslmode') ||
+          ['require', 'verify-ca', 'verify-full'].includes(url.searchParams.get('sslmode'))),
+      'existing_database_target_refused',
+    );
+    requireValue(
+      grant.databaseCaPem === undefined ||
+        (typeof grant.databaseCaPem === 'string' &&
+          grant.databaseCaPem.length <= 32768 &&
+          /^-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----\s*$/.test(
+            grant.databaseCaPem,
+          )),
+      'invalid_database_ca',
+    );
+  }
   return { ...grant, apiUrl: grant.apiUrl.replace(/\/+$/, '') };
 }
 
@@ -121,8 +175,10 @@ export async function setupServices({
   publicKey,
   fetch = globalThis.fetch,
   now = Date.now(),
+  services = 'hannibal-gemini',
 }) {
-  const grant = parseSetupGrant(rawGrant, projectName, now);
+  const reuse = services === 'existing-postgres-gemini';
+  const grant = parseSetupGrant(rawGrant, projectName, now, services);
   // Validate the verifier key before subscribing or provisioning anything.
   const verifier = createPublicKey({
     key: Buffer.from(publicKey, 'base64url'),
@@ -153,6 +209,13 @@ export async function setupServices({
         grant.modelListingId,
         grant.hannibalListingId,
         grant.databaseHost,
+        ...(reuse
+          ? [
+              services,
+              grant.databaseName,
+              createHash('sha256').update(grant.databaseUrl).digest('hex'),
+            ]
+          : []),
       ]),
     )
     .digest('hex');
@@ -202,23 +265,28 @@ export async function setupServices({
       m.orgSlug === grant.modelOrg,
   );
   requireValue(model, 'approved_gemini_unavailable');
-  const agent = await rpc('agentbase.get_agent', { slug: grant.hannibalSlug });
-  const agentUrl = `${grant.apiUrl}/proxy/a2a/${grant.hannibalOrg}/${grant.hannibalSlug}`;
-  requireValue(
-    agent.listingId === grant.hannibalListingId &&
-      agent.agentCardUrl === `${agentUrl}/.well-known/agent.json`,
-    'approved_hannibal_unavailable',
-  );
-  const cardResponse = await boundedFetch(agent.agentCardUrl, {
-    headers: { authorization: `Bearer ${token}` },
-  });
-  requireValue(cardResponse.ok, 'approved_hannibal_unavailable');
-  const card = await cardResponse.json();
-  requireValue(
-    card.url === agentUrl && card.skills?.some((s) => s.id === 'provisionDatabaseTool'),
-    'approved_hannibal_unavailable',
-  );
-  for (const listingId of [grant.modelListingId, grant.hannibalListingId]) {
+  let agentUrl;
+  if (!reuse) {
+    const agent = await rpc('agentbase.get_agent', { slug: grant.hannibalSlug });
+    agentUrl = `${grant.apiUrl}/proxy/a2a/${grant.hannibalOrg}/${grant.hannibalSlug}`;
+    requireValue(
+      agent.listingId === grant.hannibalListingId &&
+        agent.agentCardUrl === `${agentUrl}/.well-known/agent.json`,
+      'approved_hannibal_unavailable',
+    );
+    const cardResponse = await boundedFetch(agent.agentCardUrl, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    requireValue(cardResponse.ok, 'approved_hannibal_unavailable');
+    const card = await cardResponse.json();
+    requireValue(
+      card.url === agentUrl && card.skills?.some((s) => s.id === 'provisionDatabaseTool'),
+      'approved_hannibal_unavailable',
+    );
+  }
+  for (const listingId of reuse
+    ? [grant.modelListingId]
+    : [grant.modelListingId, grant.hannibalListingId]) {
     const subscription = await rpc('agentbase.subscribe', { listingId });
     requireValue(
       subscription.status === 'ACTIVE' || subscription.subscription?.status === 'ACTIVE',
@@ -259,7 +327,11 @@ export async function setupServices({
       ) + '\n',
       { mode: 0o600 },
     );
-  let connectionString = state?.status === 'configured' ? before.DATABASE_URL : undefined;
+  let connectionString = reuse
+    ? grant.databaseUrl
+    : state?.status === 'configured'
+      ? before.DATABASE_URL
+      : undefined;
   if (!connectionString) {
     // A lost reply is uncertain. A retry must not create a second database.
     saveState({ status: 'database_request_started' });
@@ -280,9 +352,16 @@ export async function setupServices({
       Number(database.port || 5432) === 5432 &&
       database.username &&
       database.password &&
-      !['', '/postgres', '/template0', '/template1'].includes(database.pathname),
+      !['', '/template0', '/template1', ...(!reuse ? ['/postgres'] : [])].includes(
+        database.pathname,
+      ) &&
+      (!reuse || decodeURIComponent(database.pathname.slice(1)) === grant.databaseName),
     'database_target_refused',
   );
+  if (reuse) database.searchParams.set('sslmode', 'verify-full');
+  const databaseNamespace = reuse
+    ? 'p_' + createHash('sha256').update(projectName).digest('hex').slice(0, 32)
+    : undefined;
   const values = {
     AGENTBASE_URL: grant.apiUrl,
     AGENTBASE_TOKEN_URL: grant.tokenUrl,
@@ -290,8 +369,20 @@ export async function setupServices({
     AGENTBASE_CLIENT_SECRET: grant.clientSecret,
     AGENTBASE_LLM_MODEL: grant.modelId,
     AGENTBASE_LLM_BASE_URL: modelUrl,
-    DATABASE_URL: connectionString,
+    DATABASE_URL: reuse ? database.toString() : connectionString,
+    ...(reuse
+      ? { PRECAST_DB_NAMESPACE: databaseNamespace, MASTRA_DB_SCHEMA: databaseNamespace + '_agents' }
+      : {}),
   };
+  if (reuse && grant.databaseCaPem) {
+    const caPath = join(stateDir, 'database-ca.pem');
+    requireValue(
+      !existsSync(caPath) || !lstatSync(caPath).isSymbolicLink(),
+      'setup_symlink_refused',
+    );
+    writeFileSync(caPath, grant.databaseCaPem, { mode: 0o600 });
+    values.NODE_EXTRA_CA_CERTS = caPath;
+  }
   for (const [key, value] of Object.entries(values)) envText = setEnvValue(envText, key, value);
   writeFileSync(envPath, envText, { mode: 0o600 });
   restrictEnvFile(envPath);
@@ -300,6 +391,16 @@ export async function setupServices({
     geminiCallVerified: true,
     database: database.pathname.slice(1),
     databaseVerification: 'pending_server_check',
+    ...(reuse
+      ? {
+          databaseMode: 'existing',
+          databaseCaFile: Boolean(grant.databaseCaPem),
+          databaseUser: database.hostname.endsWith('.pooler.supabase.com')
+            ? decodeURIComponent(database.username).split('.')[0]
+            : decodeURIComponent(database.username),
+          databaseNamespace,
+        }
+      : {}),
   });
   return {
     projectName,
@@ -308,8 +409,14 @@ export async function setupServices({
     geminiCallVerified: true,
     database: database.pathname.slice(1),
     databaseHost: database.hostname,
+    ...(reuse ? { databaseMode: 'existing' } : {}),
     receipt: sealDatabaseReceipt(
-      { projectName, applicationId: grant.applicationId, connectionString },
+      {
+        projectName,
+        applicationId: grant.applicationId,
+        connectionString: reuse ? database.toString() : connectionString,
+        ...(reuse && grant.databaseCaPem ? { databaseCaPem: grant.databaseCaPem } : {}),
+      },
       publicKey,
     ),
   };
@@ -325,7 +432,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       }),
     );
     requireValue(
-      Object.keys(args).length === 3 && args.services === 'hannibal-gemini',
+      Object.keys(args).length === 3 &&
+        ['hannibal-gemini', 'existing-postgres-gemini'].includes(args.services),
       'explicit_setup_required',
     );
     const fd = process.env[`RAYA_SECRET_FD_${SETUP_ALIAS.toUpperCase()}`];
@@ -336,6 +444,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       projectName: args['project-name'],
       grant,
       publicKey: args['verification-key'],
+      services: args.services,
     });
     process.stdout.write(RECEIPT_PREFIX + JSON.stringify(result) + '\n');
   } catch (error) {

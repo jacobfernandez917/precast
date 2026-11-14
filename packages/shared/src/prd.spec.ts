@@ -69,3 +69,36 @@ describe('SHARED-009 PRD application contracts', () => {
     ).toBe(false);
   });
 });
+
+describe('SHARED-010 project idea boundary cases', () => {
+  it('rejects impossible calendar dates instead of normalizing them into another month', () => {
+    const schema = prdRecordSchema({
+      ...collection,
+      fields: [{ id: 'due', label: 'Due', type: 'date' as const, required: true, choices: [] }],
+    });
+    for (const due of ['2026-02-29', '2026-02-30', '2026-04-31', '2026-13-01'])
+      expect(schema.safeParse({ due }).success).toBe(false);
+    expect(schema.safeParse({ due: '2028-02-29' }).success).toBe(true);
+  });
+  it('keeps zero and false values for numeric and checkbox projects', () => {
+    const schema = prdRecordSchema({
+      ...collection,
+      fields: [
+        { id: 'quantity', label: 'Quantity', type: 'number' as const, required: true, choices: [] },
+        { id: 'done', label: 'Done', type: 'boolean' as const, required: true, choices: [] },
+      ],
+    });
+    expect(schema.parse({ quantity: 0, done: false })).toEqual({ quantity: 0, done: false });
+    expect(schema.safeParse({ quantity: '0', done: 'false' }).success).toBe(false);
+  });
+  it('rejects duplicate choice options in the product blueprint', () => {
+    expect(
+      prdBlueprintSchema.safeParse({
+        ...brief,
+        collections: [
+          { ...collection, fields: [{ ...collection.fields[1], choices: ['Open', 'Open'] }] },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+});

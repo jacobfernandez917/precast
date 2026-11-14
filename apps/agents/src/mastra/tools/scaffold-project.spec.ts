@@ -259,3 +259,35 @@ describe('AGT-035 automatic public preview', () => {
     );
   });
 });
+
+describe('AGT-044 existing database execution fence', () => {
+  afterEach(() => vi.unstubAllEnvs());
+  it('blocks the provisioning path before a Computer run in existing-only mode', async () => {
+    vi.stubEnv('PRECAST_AGENT_MODE', 'scaffold-builder');
+    vi.stubEnv('PRECAST_DATABASE_SETUP_MODE', 'existing');
+    vi.stubEnv('PRECAST_SERVICE_SETUP_ENABLED', '1');
+    await expect(scaffoldProject(input)).rejects.toThrow(/operator-approved mode/);
+    expect(calls.createRun).not.toHaveBeenCalled();
+  });
+  it('blocks existing-database execution unless the operator enabled that mode', async () => {
+    vi.stubEnv('PRECAST_AGENT_MODE', 'scaffold-builder');
+    vi.stubEnv('PRECAST_DATABASE_SETUP_MODE', 'provision');
+    vi.stubEnv('PRECAST_SERVICE_SETUP_ENABLED', '1');
+    await expect(
+      scaffoldProject({ ...input, services: 'existing-postgres-gemini' }),
+    ).rejects.toThrow(/operator-approved mode/);
+    expect(calls.createRun).not.toHaveBeenCalled();
+  });
+  it('passes only the fixed reuse command under the existing service credential lease', async () => {
+    vi.stubEnv('PRECAST_AGENT_MODE', 'scaffold-builder');
+    vi.stubEnv('PRECAST_DATABASE_SETUP_MODE', 'existing');
+    vi.stubEnv('PRECAST_SERVICE_SETUP_ENABLED', '1');
+    const result = await scaffoldProject({ ...input, services: 'existing-postgres-gemini' });
+    const command = calls.commands.find((c) => c.id === 'services') as unknown as {
+      argv: string[];
+    };
+    expect(command.argv).toContain('--services=existing-postgres-gemini');
+    expect(command.argv).not.toContain('--services=hannibal-gemini');
+    expect(result.services?.databaseVerified).toBe(true);
+  });
+});

@@ -58,6 +58,12 @@ export const prdBlueprintSchema = z
             path: ['collections', i, 'fields', j, 'choices'],
             message: 'A choice field needs its allowed values.',
           });
+        if (field.type === 'choice' && new Set(field.choices).size !== field.choices.length)
+          ctx.addIssue({
+            code: 'custom',
+            path: ['collections', i, 'fields', j, 'choices'],
+            message: 'Choice values must be unique.',
+          });
       }
     }
   });
@@ -87,7 +93,13 @@ export function prdRecordSchema(collection: PrdBlueprint['collections'][number])
                     ? z
                         .string()
                         .regex(/^\d{4}-\d{2}-\d{2}$/)
-                        .refine((v) => !Number.isNaN(Date.parse(v)), 'Use a valid date.')
+                        .refine((v) => {
+                          const parsed = Date.parse(v);
+                          return (
+                            !Number.isNaN(parsed) &&
+                            new Date(parsed).toISOString().slice(0, 10) === v
+                          );
+                        }, 'Use a valid date.')
                     : z.string().trim().max(5000);
           if (field.required && field.type === 'text') value = z.string().trim().min(1).max(5000);
           if (!field.required) value = value.optional();

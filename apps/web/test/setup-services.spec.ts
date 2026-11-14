@@ -227,3 +227,83 @@ describe('TOOL-016 connected scaffold service boundaries', () => {
     expect(upstream.fetch).not.toHaveBeenCalled();
   });
 });
+
+describe('TOOL-019 reuse an explicitly approved external database', () => {
+  function reuseGrant(change: Record<string, unknown> = {}) {
+    const common = Object.fromEntries(
+      Object.entries(grant).filter(
+        ([key]) => !['hannibalSlug', 'hannibalListingId', 'hannibalOrg'].includes(key),
+      ),
+    );
+    return {
+      ...common,
+      databaseHost: 'aws-0-ap-southeast-1.pooler.supabase.com',
+      databaseName: 'postgres',
+      databaseUrl:
+        'postgresql://scaffold_runtime.abcdefghijklmnopqrst:external-secret@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres',
+      ...change,
+    };
+  }
+  it('subscribes to Gemini only, reuses the exact database and never discovers or invokes Hannibal', async () => {
+    const root = fixture(),
+      upstream = server();
+    const run = () =>
+      setupServices({
+        root,
+        projectName: name,
+        grant: JSON.stringify(reuseGrant()),
+        publicKey,
+        fetch: upstream.fetch,
+        services: 'existing-postgres-gemini',
+      });
+    const result = await run();
+    await run();
+    expect(upstream.provisionCalls).toBe(0);
+    const calls = upstream.fetch.mock.calls
+      .filter(([, init]) => typeof init?.body === 'string')
+      .map(([, init]) => JSON.parse(String(init?.body)));
+    expect(
+      calls
+        .filter((c) => c.params?.name === 'agentbase.subscribe')
+        .map((c) => c.params.arguments.listingId),
+    ).toEqual([grant.modelListingId, grant.modelListingId]);
+    expect(calls.some((c) => c.params?.name === 'agentbase.get_agent')).toBe(false);
+    expect(upstream.fetch.mock.calls.some(([url]) => String(url).includes('/proxy/a2a/'))).toBe(
+      false,
+    );
+    expect(result).toMatchObject({ database: 'postgres', databaseMode: 'existing' });
+    expect(JSON.stringify(result)).not.toContain('external-secret');
+    expect(readFileSync(join(root, '.env'), 'utf8')).toContain('sslmode=verify-full');
+    expect(statSync(join(root, '.env')).mode & 0o777).toBe(0o600);
+    expect(
+      JSON.parse(readFileSync(join(root, '.precast/service-setup.json'), 'utf8')),
+    ).toMatchObject({ databaseMode: 'existing', databaseUser: 'scaffold_runtime' });
+  });
+  it.each([
+    {
+      databaseUrl:
+        'postgresql://postgres:private@aws-0-ap-southeast-1.pooler.supabase.com/postgres',
+    },
+    { databaseUrl: 'postgresql://scaffold_runtime:private@localhost/postgres' },
+    { databaseName: 'different_database' },
+    {
+      databaseUrl:
+        'postgresql://scaffold_runtime:private@aws-0-ap-southeast-1.pooler.supabase.com/postgres?sslmode=disable',
+    },
+    { hannibalSlug: 'unapproved-fallback' },
+    { databaseCaPem: 'not a certificate' },
+  ])('refuses an unsafe reuse approval before any subscription: %o', async (change) => {
+    const upstream = server();
+    await expect(
+      setupServices({
+        root: fixture(),
+        projectName: name,
+        grant: JSON.stringify(reuseGrant(change)),
+        publicKey,
+        fetch: upstream.fetch,
+        services: 'existing-postgres-gemini',
+      }),
+    ).rejects.toThrow();
+    expect(upstream.fetch).not.toHaveBeenCalled();
+  });
+});

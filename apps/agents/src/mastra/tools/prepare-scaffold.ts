@@ -3,12 +3,13 @@ import { z } from 'zod';
 import { scaffoldProjectInput } from './scaffold-project';
 import { loadPrdDraft, pendingPrdDraft } from '../lib/prd-drafts';
 import { readPrd } from './read-prd';
+import { resolveDatabaseSetupMode } from '../lib/database-setup-mode';
 
 export const scaffoldPreferences = z.object({
   projectName: z.string().optional(),
   model: z.enum(['gemini', 'later']).optional(),
   theme: scaffoldProjectInput.shape.theme.removeDefault().optional(),
-  database: z.enum(['managed-postgres', 'later']).optional(),
+  database: z.enum(['managed-postgres', 'existing-postgres', 'later']).optional(),
   useDefaults: z.boolean().default(false),
   prdId: z.string().uuid().optional(),
 });
@@ -58,29 +59,35 @@ export function prepareScaffold(
         'Which visual theme would you like: Stockholm (the default), Prague, Arctic, Nova, Melbourne, Lapland or Cappadocia?',
     };
 
+  const reuseOnly = resolveDatabaseSetupMode() === 'existing';
   const database =
-    preferences.database ?? (preferences.useDefaults ? 'managed-postgres' : undefined);
+    preferences.database ??
+    (preferences.useDefaults ? (reuseOnly ? 'existing-postgres' : 'managed-postgres') : undefined);
   if (!database)
     return {
       state: 'question',
       field: 'database',
-      question:
-        'Would you like a managed Postgres database now, or leave database setup for later?',
+      question: reuseOnly
+        ? 'Would you like to use the database already approved for this builder, or connect a database later?'
+        : 'Would you like a managed Postgres database now, or leave database setup for later?',
     };
 
-  const connected = model === 'gemini' && database === 'managed-postgres';
+  const connected = model === 'gemini' && database !== 'later';
+  const reuse = connected && (reuseOnly || database === 'existing-postgres');
   return {
     state: 'ready',
     execution: {
       projectName: projectName.data,
       theme,
-      services: connected ? 'hannibal-gemini' : 'deferred',
+      services: connected ? (reuse ? 'existing-postgres-gemini' : 'hannibal-gemini') : 'deferred',
       preview: connected ? 'srv.us' : 'off',
       ...(preferences.prdId ? { prdId: preferences.prdId } : {}),
     },
-    note: connected
-      ? 'Use the saved approved connections, then start the app and return its verified public link automatically.'
-      : 'This builder connects Gemini and managed Postgres together. Because a connection was deferred, both connections and the public preview remain deferred; the project will be scaffolded and built only.',
+    note: reuse
+      ? 'Reuse only the saved approved database, connect Gemini, then start the app and return its verified public link. No database will be provisioned.'
+      : connected
+        ? 'Use the saved approved connections, then start the app and return its verified public link automatically.'
+        : 'This builder connects Gemini and managed Postgres together. Because a connection was deferred, both connections and the public preview remain deferred; the project will be scaffolded and built only.',
   };
 }
 
@@ -123,7 +130,7 @@ export async function prepareScaffoldWithPrd(
     Object.entries(input).filter(([, value]) => value !== undefined),
   );
   const result = prepareScaffold({ ...inferred, ...supplied });
-  if (result.state === 'ready' && result.execution.services !== 'hannibal-gemini')
+  if (result.state === 'ready' && result.execution.services === 'deferred')
     return {
       state: 'question',
       field: 'product',

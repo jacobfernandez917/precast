@@ -137,8 +137,14 @@ const PG_IDENTIFIER_MAX = 63;
  * unquoted identifier (lowercase letters, digits, underscores; not starting with a digit),
  * within Postgres' 63-byte limit.
  */
-export function projectSchema(purpose: ProjectSchemaPurpose, name: string = PROJECT_NAME): string {
-  const base = name
+export function projectSchema(purpose: ProjectSchemaPurpose, name?: string): string {
+  const namespace =
+    name === undefined && typeof process !== 'undefined'
+      ? process.env.PRECAST_DB_NAMESPACE
+      : undefined;
+  if (namespace !== undefined && !/^[a-z][a-z0-9_]{0,47}$/.test(namespace))
+    throw new Error('PRECAST_DB_NAMESPACE must be a valid project database namespace.');
+  const base = (name ?? namespace ?? PROJECT_NAME)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');

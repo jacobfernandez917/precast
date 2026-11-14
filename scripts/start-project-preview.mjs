@@ -26,6 +26,7 @@ const requireValue = (ok, stage) => {
 
 export function parsePreviewApproval(raw, projectName, expiresAt, now = Date.now()) {
   const approval = JSON.parse(raw);
+  const reuse = approval?.databaseMode === 'existing';
   const keys = [
     'projectName',
     'applicationId',
@@ -33,6 +34,7 @@ export function parsePreviewApproval(raw, projectName, expiresAt, now = Date.now
     'relayHost',
     'httpsDomains',
     'expiresAt',
+    ...(reuse ? ['databaseMode'] : []),
   ];
   requireValue(
     approval &&
@@ -48,7 +50,11 @@ export function parsePreviewApproval(raw, projectName, expiresAt, now = Date.now
   requireValue(
     /^[a-f0-9-]{36}$/.test(approval.applicationId) &&
       approval.relayHost === 'srv.us' &&
-      /^[a-z0-9.-]+\.rds\.amazonaws\.com$/.test(approval.databaseHost),
+      (reuse
+        ? /^(?:[a-z0-9.-]+\.rds\.amazonaws\.com|db\.[a-z0-9]{20}\.supabase\.co|aws-\d+-[a-z0-9-]+\.pooler\.supabase\.com)$/.test(
+            approval.databaseHost,
+          )
+        : /^[a-z0-9.-]+\.rds\.amazonaws\.com$/.test(approval.databaseHost)),
     'invalid_preview_target',
   );
   requireValue(
@@ -93,7 +99,7 @@ export function privatePreviewDirectory(root) {
   return dir;
 }
 
-export async function verifyPreviewDatabase(root, env, expectedHost, connect) {
+export async function verifyPreviewDatabase(root, env, expectedHost, connect, options = {}) {
   const url = new URL(env.DATABASE_URL);
   requireValue(
     ['postgres:', 'postgresql:'].includes(url.protocol) &&
@@ -102,7 +108,10 @@ export async function verifyPreviewDatabase(root, env, expectedHost, connect) {
       url.username &&
       url.password &&
       [...url.searchParams.keys()].every((key) => key === 'sslmode') &&
-      !['', '/postgres', '/template0', '/template1'].includes(url.pathname),
+      !['', '/template0', '/template1', ...(!options.reuse ? ['/postgres'] : [])].includes(
+        url.pathname,
+      ) &&
+      (!options.reuse || decodeURIComponent(url.pathname.slice(1)) === options.databaseName),
     'preview_database_mismatch',
   );
   url.searchParams.delete('sslmode');
@@ -111,7 +120,11 @@ export async function verifyPreviewDatabase(root, env, expectedHost, connect) {
     connectionTimeoutMillis: 15000,
     statement_timeout: 10000,
     ssl: {
-      ca: readFileSync(join(root, 'scripts/certs/rds-global-bundle.pem'), 'utf8'),
+      ...(options.reuse
+        ? options.caPem
+          ? { ca: options.caPem }
+          : {}
+        : { ca: readFileSync(join(root, 'scripts/certs/rds-global-bundle.pem'), 'utf8') }),
       rejectUnauthorized: true,
     },
   };
@@ -131,7 +144,7 @@ export async function verifyPreviewDatabase(root, env, expectedHost, connect) {
     ).rows[0];
     requireValue(
       role?.database === decodeURIComponent(url.pathname.slice(1)) &&
-        role?.username === decodeURIComponent(url.username) &&
+        role?.username === (options.databaseUser ?? decodeURIComponent(url.username)) &&
         role.rolsuper === false &&
         role.rolcreatedb === false &&
         role.rolcreaterole === false,
@@ -162,11 +175,13 @@ export async function startProjectPreview({
       'connected_project_required',
     );
   const state = JSON.parse(readFileSync(join(root, '.precast/service-setup.json'), 'utf8'));
+  const reuse = approval.databaseMode === 'existing';
   requireValue(
     state.status === 'configured' &&
       state.projectName === projectName &&
       state.applicationId === approval.applicationId &&
-      state.geminiCallVerified === true,
+      state.geminiCallVerified === true &&
+      (reuse ? state.databaseMode === 'existing' : state.databaseMode !== 'existing'),
     'connected_project_required',
   );
   let text = readFileSync(join(root, '.env'), 'utf8');
@@ -190,7 +205,25 @@ export async function startProjectPreview({
       requireValue(!live, 'existing_preview_requires_review');
     }
   }
-  await verifyPreviewDatabase(root, env, approval.databaseHost);
+  const caPath = reuse && state.databaseCaFile ? join(root, '.precast/database-ca.pem') : undefined;
+  requireValue(
+    !caPath || (existsSync(caPath) && !lstatSync(caPath).isSymbolicLink()),
+    'preview_database_ca_refused',
+  );
+  await verifyPreviewDatabase(
+    root,
+    env,
+    approval.databaseHost,
+    undefined,
+    reuse
+      ? {
+          reuse: true,
+          databaseName: state.database,
+          databaseUser: state.databaseUser,
+          ...(caPath ? { caPem: readFileSync(caPath, 'utf8') } : {}),
+        }
+      : {},
+  );
   writeFileSync(
     join(dir, 'config.json'),
     JSON.stringify({
@@ -238,7 +271,11 @@ export async function startProjectPreview({
       PRECAST_AGENT_MODE: 'project',
       PRECAST_LOCAL_AGENTS: '1',
       BETTER_AUTH_URL: tunnelState.url,
-      NODE_EXTRA_CA_CERTS: join(root, 'scripts/certs/rds-global-bundle.pem'),
+      ...(!reuse
+        ? { NODE_EXTRA_CA_CERTS: join(root, 'scripts/certs/rds-global-bundle.pem') }
+        : caPath
+          ? { NODE_EXTRA_CA_CERTS: caPath }
+          : {}),
     }))
       text = setEnvValue(text, key, value);
     const database = new URL(env.DATABASE_URL);

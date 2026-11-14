@@ -1,6 +1,7 @@
 import {
   constants,
   createCipheriv,
+  createHash,
   createPublicKey,
   publicEncrypt,
   randomBytes,
@@ -11,7 +12,15 @@ import { createServiceVerifier } from './service-verification';
 afterEach(() => vi.unstubAllEnvs());
 const host = 'test.ap-southeast-1.rds.amazonaws.com';
 const applicationId = '00000000-0000-4000-8000-000000000001';
-function receipt(publicKey: string, projectName = 'connected-project', databaseHost = host) {
+function receipt(
+  publicKey: string,
+  projectName = 'connected-project',
+  databaseHost = host,
+  extra: { connectionString?: string; databaseMode?: 'existing'; databaseCaPem?: string } = {},
+) {
+  const connectionString =
+    extra.connectionString ??
+    `postgresql://owner:secret@${databaseHost}/new_project?sslmode=require`;
   const key = randomBytes(32),
     iv = randomBytes(12),
     cipher = createCipheriv('aes-256-gcm', key, iv);
@@ -20,7 +29,8 @@ function receipt(publicKey: string, projectName = 'connected-project', databaseH
       JSON.stringify({
         projectName,
         applicationId,
-        connectionString: `postgresql://owner:secret@${databaseHost}/new_project?sslmode=require`,
+        connectionString,
+        ...(extra.databaseCaPem ? { databaseCaPem: extra.databaseCaPem } : {}),
       }),
     ),
     cipher.final(),
@@ -32,8 +42,9 @@ function receipt(publicKey: string, projectName = 'connected-project', databaseH
       applicationId,
       model: 'gemini-3.5-flash',
       geminiCallVerified: true,
-      database: 'new_project',
+      database: decodeURIComponent(new URL(connectionString).pathname.slice(1)),
       databaseHost,
+      ...(extra.databaseMode ? { databaseMode: extra.databaseMode } : {}),
       receipt: {
         key: publicEncrypt(
           {
@@ -131,5 +142,113 @@ describe('AGT-033 service verification', () => {
       verifier.verify(receipt(verifier.publicKey, projectName, databaseHost), connect as never),
     ).rejects.toThrow(/verification failed/);
     expect(connect).not.toHaveBeenCalled();
+  });
+});
+
+describe('AGT-042 existing database verification and schema boundaries', () => {
+  const pooler = 'aws-0-ap-southeast-1.pooler.supabase.com';
+  const uri = `postgresql://scaffold_runtime.abcdefghijklmnopqrst:private@${pooler}/postgres?sslmode=verify-full`;
+  function settings() {
+    vi.stubEnv('PRECAST_DATABASE_SETUP_MODE', 'existing');
+    vi.stubEnv('PRECAST_SETUP_DATABASE_HOST', pooler);
+    vi.stubEnv('PRECAST_SETUP_DATABASE_NAME', 'postgres');
+    vi.stubEnv('PRECAST_SETUP_DATABASE_PROJECT_REF', 'abcdefghijklmnopqrst');
+  }
+  function database(wrongOwner = false) {
+    const client = {
+      connect: vi.fn(),
+      end: vi.fn(async () => undefined),
+      query: vi.fn(async (sql: string) => ({
+        rows: sql.includes('pg_namespace')
+          ? ['auth', 'agents', 'app'].map((p) => ({
+              name: `p_${createHash('sha256').update('connected-project').digest('hex').slice(0, 32)}_${p}`,
+              owner: wrongOwner ? 'other_project' : 'scaffold_runtime',
+            }))
+          : sql.includes('pg_roles')
+            ? [
+                {
+                  database: 'postgres',
+                  username: 'scaffold_runtime',
+                  rolsuper: false,
+                  rolcreatedb: false,
+                  rolcreaterole: false,
+                },
+              ]
+            : [{ connection_ok: 1 }],
+      })),
+    };
+    return { client, connect: vi.fn(() => client) };
+  }
+  it('verifies the pooled role and three owned schemas using strict TLS and read-only SQL', async () => {
+    settings();
+    const verifier = createServiceVerifier('connected-project', true),
+      db = database();
+    const report = receipt(verifier.publicKey, 'connected-project', pooler, {
+      connectionString: uri,
+      databaseMode: 'existing',
+    });
+    await expect(verifier.verify(report, db.connect as never)).resolves.toMatchObject({
+      database: 'postgres',
+      databaseReused: true,
+      hannibalInvoked: false,
+    });
+    expect(db.connect).toHaveBeenCalledWith(
+      expect.objectContaining({ ssl: { rejectUnauthorized: true } }),
+    );
+    expect(db.client.query.mock.calls.every(([sql]) => sql.startsWith('SELECT'))).toBe(true);
+    expect(db.client.end).toHaveBeenCalledOnce();
+  });
+  it("refuses another project's schemas even when SELECT 1 and the database role pass", async () => {
+    settings();
+    const verifier = createServiceVerifier('connected-project', true),
+      db = database(true);
+    await expect(
+      verifier.verify(
+        receipt(verifier.publicKey, 'connected-project', pooler, {
+          connectionString: uri,
+          databaseMode: 'existing',
+        }),
+        db.connect as never,
+      ),
+    ).rejects.toThrow(/verification failed/);
+    expect(db.client.end).toHaveBeenCalledOnce();
+  });
+  it('refuses another pooled project reference before connecting', async () => {
+    settings();
+    const verifier = createServiceVerifier('connected-project', true),
+      db = database();
+    await expect(
+      verifier.verify(
+        receipt(verifier.publicKey, 'connected-project', pooler, {
+          connectionString: uri.replace('abcdefghijklmnopqrst', 'uvwxyzabcdefghijklmn'),
+          databaseMode: 'existing',
+        }),
+        db.connect as never,
+      ),
+    ).rejects.toThrow(/verification failed/);
+    expect(db.connect).not.toHaveBeenCalled();
+  });
+  it('accepts only the operator-pinned CA fingerprint', async () => {
+    settings();
+    const ca = '-----BEGIN CERTIFICATE-----\napproved-ca\n-----END CERTIFICATE-----\n';
+    const verifier = createServiceVerifier('connected-project', true),
+      db = database();
+    const report = receipt(verifier.publicKey, 'connected-project', pooler, {
+      connectionString: uri,
+      databaseMode: 'existing',
+      databaseCaPem: ca,
+    });
+    vi.stubEnv('PRECAST_SETUP_DATABASE_CA_SHA256', 'wrong');
+    await expect(verifier.verify(report, db.connect as never)).rejects.toThrow(
+      /verification failed/,
+    );
+    expect(db.connect).not.toHaveBeenCalled();
+    vi.stubEnv('PRECAST_SETUP_DATABASE_CA_SHA256', createHash('sha256').update(ca).digest('hex'));
+    await expect(verifier.verify(report, db.connect as never)).resolves.toMatchObject({
+      databaseReused: true,
+    });
+    expect(db.connect).toHaveBeenCalledWith(
+      expect.objectContaining({ ssl: { ca, rejectUnauthorized: true } }),
+    );
   });
 });

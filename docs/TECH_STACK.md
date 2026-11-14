@@ -1,5 +1,7 @@
 # TECH_STACK.md — Tech Inventory
 
+**Existing-database setup (T-261, 2026-11-14):** no new dependency. `PRECAST_DATABASE_SETUP_MODE=existing` selects a separate Gemini-only setup path and blocks Hannibal provisioning before Computer creation. The operator privately supplies the exact database URL, restricted role and pre-owned project schemas. Reuse setup assigns a SHA-256-derived `PRECAST_DB_NAMESPACE`; ordinary project naming remains unchanged, and similar/long project names cannot alias the shared database schemas. hosted checks use strict TLS and verify the database, pooled project reference, role and schema ownership. Optional external CA certificates must match `PRECAST_SETUP_DATABASE_CA_SHA256`. Supabase previews use the existing signed network lease and an additional API operator flag, with exact public IPv4 pins on TCP 5432. Test cleanup is operator-only; no agent reset/truncation capability.
+
 **PRD record applications (T-260, 2026-11-13):** no new runtime dependency or service. `zod` validates bounded product blueprints and record values; the existing `pg` pool creates the project-specific `<project>_app.records` table. The builder's existing managed-memory schema stores `scaffold_prd_drafts`, bound to verified person/organisation/Raya room with a 24-hour expiry. Complete PDF text is limited to 40,000 characters. Product input writes use the existing Computer file action with an exact argument digest, followed by a fixed Node materialization step. No arbitrary generated code or commands are executed. Default project mode and the original placeholder app remain unchanged without a generated product brief. The PRD gate is separate from existing service/preview gates.
 
 **Automatic connected previews (2026-11-13, T-257):** root devDependency `ssh2` 1.17.0
@@ -28,7 +30,7 @@ The optional public preview exception is described above. No new service or repo
 
 > **Authoritative source of truth for all tech-stack facts.** If this file disagrees with any other doc about a version, library, container image, or port, this file wins and the other doc has a bug.
 
-**Last Updated:** 2026-11-13
+**Last Updated:** 2026-11-14
 
 ---
 

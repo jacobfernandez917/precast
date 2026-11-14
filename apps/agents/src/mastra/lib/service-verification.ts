@@ -1,8 +1,16 @@
-import { constants, createDecipheriv, generateKeyPairSync, privateDecrypt } from 'node:crypto';
+import {
+  constants,
+  createDecipheriv,
+  createHash,
+  generateKeyPairSync,
+  privateDecrypt,
+} from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import pg from 'pg';
 import { z } from 'zod';
+import { projectSchema } from '@precast/shared';
+import { resolveDatabaseSetupMode } from './database-setup-mode';
 
 const receiptSchema = z
   .object({
@@ -12,6 +20,7 @@ const receiptSchema = z
     geminiCallVerified: z.literal(true),
     database: z.string(),
     databaseHost: z.string(),
+    databaseMode: z.literal('existing').optional(),
     receipt: z
       .object({
         key: z.string().max(2048),
@@ -23,10 +32,33 @@ const receiptSchema = z
   })
   .strict();
 
-export function createServiceVerifier(projectName: string) {
+export function createServiceVerifier(projectName: string, reuse = false) {
   const host = process.env.PRECAST_SETUP_DATABASE_HOST;
-  if (!host || !/^[a-z0-9.-]+\.rds\.amazonaws\.com$/.test(host))
+  const allowed = reuse
+    ? /^(?:[a-z0-9.-]+\.rds\.amazonaws\.com|db\.[a-z0-9]{20}\.supabase\.co|aws-\d+-[a-z0-9-]+\.pooler\.supabase\.com)$/
+    : /^[a-z0-9.-]+\.rds\.amazonaws\.com$/;
+  if (!host || !allowed.test(host) || (reuse && resolveDatabaseSetupMode() !== 'existing'))
     throw new Error('The approved service database host is not configured.');
+  const approvedDatabase = reuse ? process.env.PRECAST_SETUP_DATABASE_NAME : undefined;
+  if (
+    reuse &&
+    (!approvedDatabase ||
+      !/^[a-z][a-z0-9_]{0,62}$/.test(approvedDatabase) ||
+      ['template0', 'template1'].includes(approvedDatabase))
+  )
+    throw new Error('The approved existing database name is not configured.');
+  if (
+    reuse &&
+    host.endsWith('.pooler.supabase.com') &&
+    !/^[a-z0-9]{20}$/.test(process.env.PRECAST_SETUP_DATABASE_PROJECT_REF ?? '')
+  )
+    throw new Error('The approved database project reference is not configured.');
+  if (
+    reuse &&
+    process.env.PRECAST_SETUP_DATABASE_CA_SHA256 &&
+    !/^[a-f0-9]{64}$/.test(process.env.PRECAST_SETUP_DATABASE_CA_SHA256)
+  )
+    throw new Error('The approved database certificate fingerprint is not configured.');
   const { publicKey, privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
   return {
     publicKey: publicKey.export({ format: 'der', type: 'spki' }).toString('base64url'),
@@ -50,6 +82,7 @@ export function createServiceVerifier(projectName: string) {
             projectName: z.string(),
             applicationId: z.string().uuid(),
             connectionString: z.string().max(8192),
+            databaseCaPem: z.string().max(32768).optional(),
           })
           .strict()
           .parse(
@@ -73,21 +106,64 @@ export function createServiceVerifier(projectName: string) {
           !url.username ||
           !url.password ||
           url.pathname.slice(1) !== report.database ||
-          ['postgres', 'template0', 'template1'].includes(report.database)
+          ['template0', 'template1', ...(!reuse ? ['postgres'] : [])].includes(report.database) ||
+          (reuse && (report.databaseMode !== 'existing' || report.database !== approvedDatabase)) ||
+          (!reuse && report.databaseMode !== undefined)
         )
           throw new Error('binding_mismatch');
         url.searchParams.delete('sslmode');
-        const caPath = [
-          ...(process.env.PRECAST_SETUP_CA_PATH ? [process.env.PRECAST_SETUP_CA_PATH] : []),
-          join(process.cwd(), 'certs/rds-global-bundle.pem'),
-          join(process.cwd(), 'scripts/certs/rds-global-bundle.pem'),
-        ].find(existsSync);
-        if (!caPath) throw new Error('trusted_ca_missing');
+        const caPath = reuse
+          ? undefined
+          : [
+              ...(process.env.PRECAST_SETUP_CA_PATH ? [process.env.PRECAST_SETUP_CA_PATH] : []),
+              join(process.cwd(), 'certs/rds-global-bundle.pem'),
+              join(process.cwd(), 'scripts/certs/rds-global-bundle.pem'),
+            ].find(existsSync);
+        if (!reuse && !caPath) throw new Error('trusted_ca_missing');
+        let expectedUser = decodeURIComponent(url.username);
+        if (reuse && host.endsWith('.pooler.supabase.com')) {
+          const reference = process.env.PRECAST_SETUP_DATABASE_PROJECT_REF;
+          if (
+            !reference ||
+            !/^[a-z0-9]{20}$/.test(reference) ||
+            !expectedUser.endsWith('.' + reference)
+          )
+            throw new Error('pooler_project_mismatch');
+          expectedUser = expectedUser.slice(0, -reference.length - 1);
+        }
+        if (
+          reuse &&
+          [
+            'postgres',
+            'supabase_admin',
+            'authenticator',
+            'anon',
+            'authenticated',
+            'service_role',
+          ].includes(expectedUser)
+        )
+          throw new Error('database_role_not_scoped');
+        const caFingerprint = process.env.PRECAST_SETUP_DATABASE_CA_SHA256;
+        if (
+          reuse &&
+          (proof.databaseCaPem || caFingerprint) &&
+          (!proof.databaseCaPem ||
+            !caFingerprint ||
+            createHash('sha256').update(proof.databaseCaPem).digest('hex') !== caFingerprint)
+        )
+          throw new Error('database_ca_mismatch');
         client = connect({
           connectionString: url.toString(),
           connectionTimeoutMillis: 15000,
           statement_timeout: 15000,
-          ssl: { ca: readFileSync(caPath, 'utf8'), rejectUnauthorized: true },
+          ssl: {
+            rejectUnauthorized: true,
+            ...(reuse
+              ? proof.databaseCaPem
+                ? { ca: proof.databaseCaPem }
+                : {}
+              : { ca: readFileSync(caPath!, 'utf8') }),
+          },
         });
         await client.connect();
         const result = await client.query('SELECT 1 AS connection_ok');
@@ -98,12 +174,30 @@ export function createServiceVerifier(projectName: string) {
         const role = identity.rows[0];
         if (
           role?.database !== report.database ||
-          role.username !== decodeURIComponent(url.username) ||
+          role.username !== expectedUser ||
           role.rolsuper !== false ||
           role.rolcreatedb !== false ||
           role.rolcreaterole !== false
         )
           throw new Error('database_role_not_scoped');
+        if (reuse) {
+          const namespace =
+            'p_' + createHash('sha256').update(projectName).digest('hex').slice(0, 32);
+          const schemas = ['auth', 'agents', 'app'].map((purpose) =>
+            projectSchema(purpose as 'auth' | 'agents' | 'app', namespace),
+          );
+          const owned = await client.query(
+            'SELECT nspname AS name, pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname = ANY($1::text[])',
+            [schemas],
+          );
+          if (
+            owned.rows.length !== schemas.length ||
+            schemas.some(
+              (name) => !owned.rows.some((row) => row.name === name && row.owner === expectedUser),
+            )
+          )
+            throw new Error('database_schema_not_scoped');
+        }
         return {
           projectName,
           applicationId: report.applicationId,
@@ -112,6 +206,7 @@ export function createServiceVerifier(projectName: string) {
           database: report.database,
           databaseVerified: true as const,
           verificationLocation: 'builder-server' as const,
+          ...(reuse ? { databaseReused: true as const, hannibalInvoked: false as const } : {}),
         };
       } catch {
         throw new Error(

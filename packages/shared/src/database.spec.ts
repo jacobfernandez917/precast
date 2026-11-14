@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createHash } from 'node:crypto';
 import {
   PROJECT_NAME,
   assertPostgresUrl,
@@ -119,5 +120,26 @@ describe('projectSchema', () => {
       expect(schema.length, name).toBeLessThanOrEqual(63);
     }
     expect(projectSchema('agents', '9lives')).toBe('p_9lives_agents');
+  });
+});
+
+afterEach(() => vi.unstubAllEnvs());
+describe('SHARED-011 existing-database project namespace isolation', () => {
+  it('separates project names that normalize to the same legacy identifier', () => {
+    const names = ['personal-notes', 'personal--notes'];
+    expect(projectSchema('app', names[0])).toBe(projectSchema('app', names[1]));
+    const schemas = names.map((name) => {
+      vi.stubEnv(
+        'PRECAST_DB_NAMESPACE',
+        'p_' + createHash('sha256').update(name).digest('hex').slice(0, 32),
+      );
+      return projectSchema('app');
+    });
+    expect(new Set(schemas).size).toBe(2);
+    expect(schemas.every((name) => name.length <= 63)).toBe(true);
+  });
+  it('refuses malformed namespace configuration rather than falling back to another project', () => {
+    vi.stubEnv('PRECAST_DB_NAMESPACE', '../public');
+    expect(() => projectSchema('app')).toThrow(/namespace/);
   });
 });

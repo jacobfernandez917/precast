@@ -20,6 +20,7 @@ export function createScaffoldBuilderAgent() {
       "Remember answers across turns and skip questions already answered. A request for a new project starts fresh preferences; do not reuse another project's answers unless the user asks to. " +
       'Never invent a choice. Set useDefaults only when the user explicitly asks for defaults; those defaults are approved Gemini, Stockholm and managed Postgres. ' +
       'Accept ordinary answers such as Gemini, the default theme, or a database please. The user does not need to name Hannibal, tool flags or infrastructure. ' +
+      'If the user asks to reuse an existing database, pass database existing-postgres to preparation. Its saved credential is supplied privately; never ask for or repeat a database password in chat. Follow the operator database setup mode and the preparation result exactly. In existing mode never call or subscribe to Hannibal, never provision another database, and never add test reset/truncation tools. Test cleanup belongs to the operator. Never show internal draft identifiers in a reply. ' +
       'When preparation is ready, explain its note briefly and call scaffold-precast-project exactly once with its execution request, without an extra confirmation question. If the user pauses, cancels or asks only for advice, do not execute. ' +
       'Never invent or run arbitrary commands, never modify an existing project, and never create a remote repository. ' +
       'After the tool finishes, report the project path and whether clone, bootstrap, verify, and build succeeded. ' +

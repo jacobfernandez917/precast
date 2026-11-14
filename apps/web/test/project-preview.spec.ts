@@ -121,3 +121,57 @@ describe('TOOL-017 project public preview boundaries', () => {
     ).rejects.toThrow(/mismatch/);
   });
 });
+
+describe('TOOL-020 existing database public preview', () => {
+  it('requires explicit existing-database approval for a Supabase host', () => {
+    const existing = {
+      ...grant(),
+      databaseMode: 'existing',
+      databaseHost: 'aws-0-ap-southeast-1.pooler.supabase.com',
+    };
+    expect(
+      parsePreviewApproval(JSON.stringify(existing), projectName, existing.expiresAt),
+    ).toMatchObject(existing);
+    const implicit = Object.fromEntries(
+      Object.entries(existing).filter(([key]) => key !== 'databaseMode'),
+    );
+    expect(() =>
+      parsePreviewApproval(JSON.stringify(implicit), projectName, existing.expiresAt),
+    ).toThrow();
+  });
+  it('verifies the reused postgres database and pooled role using strict TLS and read-only checks', async () => {
+    const host = 'aws-0-ap-southeast-1.pooler.supabase.com';
+    const client = {
+      connect: vi.fn(),
+      end: vi.fn(),
+      query: vi.fn(async (sql: string) => ({
+        rows: sql.startsWith('SELECT 1')
+          ? [{ ok: 1 }]
+          : [
+              {
+                database: 'postgres',
+                username: 'scaffold_runtime',
+                rolsuper: false,
+                rolcreatedb: false,
+                rolcreaterole: false,
+              },
+            ],
+      })),
+    };
+    const connect = vi.fn(() => client);
+    await verifyPreviewDatabase(
+      '/unused',
+      {
+        DATABASE_URL: `postgresql://scaffold_runtime.abcdefghijklmnopqrst:private@${host}/postgres?sslmode=verify-full`,
+      },
+      host,
+      connect,
+      { reuse: true, databaseName: 'postgres', databaseUser: 'scaffold_runtime' },
+    );
+    expect(connect).toHaveBeenCalledWith(
+      expect.objectContaining({ ssl: { rejectUnauthorized: true } }),
+    );
+    expect(client.query.mock.calls.every(([sql]) => sql.startsWith('SELECT'))).toBe(true);
+    expect(client.end).toHaveBeenCalledOnce();
+  });
+});

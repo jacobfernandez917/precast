@@ -1,0 +1,645 @@
+[
+  {
+    "case": 1,
+    "idea": "habits",
+    "projectName": "precast-rt-20261114-01-habits",
+    "theme": "stockholm",
+    "scenario": "none",
+    "blueprint": {
+      "title": "Daily Habits",
+      "mission": "Track personal habits and mark daily completions.",
+      "audience": "A person building consistent routines.",
+      "agentJob": "Help choose practical next steps from habit details supplied in chat.",
+      "collections": [
+        {
+          "id": "habits",
+          "label": "Habits",
+          "singular": "Habit",
+          "fields": [
+            {
+              "id": "name",
+              "label": "Habit name",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "done",
+              "label": "Completed",
+              "type": "boolean",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "target",
+              "label": "Target count",
+              "type": "number",
+              "required": false,
+              "choices": []
+            }
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Create an account and sign in to a private workspace.",
+        "Create, edit, search, reload and delete records in every collection.",
+        "Other accounts cannot read, update or delete these records.",
+        "The assistant responds through the real connected Gemini model using supplied chat details."
+      ]
+    },
+    "database": "existing-postgres",
+    "cleanupOwner": "operator"
+  },
+  {
+    "case": 2,
+    "idea": "expenses",
+    "projectName": "precast-rt-20261114-02-expenses",
+    "theme": "prague",
+    "scenario": "theme",
+    "blueprint": {
+      "title": "Pocket Ledger",
+      "mission": "Record personal expenses with categories and dates.",
+      "audience": "An individual tracking spending records.",
+      "agentJob": "Help categorize and organize user-supplied expense details without financial advice.",
+      "collections": [
+        {
+          "id": "expenses",
+          "label": "Expenses",
+          "singular": "Expense",
+          "fields": [
+            {
+              "id": "description",
+              "label": "Description",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "amount",
+              "label": "Amount",
+              "type": "number",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "category",
+              "label": "Category",
+              "type": "choice",
+              "required": true,
+              "choices": ["Food", "Travel", "Other"]
+            },
+            {
+              "id": "occurred",
+              "label": "Occurred on",
+              "type": "date",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "reimbursed",
+              "label": "Reimbursed",
+              "type": "boolean",
+              "required": false,
+              "choices": []
+            }
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Create an account and sign in to a private workspace.",
+        "Create, edit, search, reload and delete records in every collection.",
+        "Other accounts cannot read, update or delete these records.",
+        "The assistant responds through the real connected Gemini model using supplied chat details."
+      ]
+    },
+    "database": "existing-postgres",
+    "cleanupOwner": "operator"
+  },
+  {
+    "case": 3,
+    "idea": "jobs",
+    "projectName": "precast-rt-20261114-03-jobs",
+    "theme": "arctic",
+    "scenario": "name",
+    "blueprint": {
+      "title": "Job Search Notebook",
+      "mission": "Track personal job applications and interview progress.",
+      "audience": "An individual managing their job search.",
+      "agentJob": "Help prepare follow-up notes using application details shared in chat.",
+      "collections": [
+        {
+          "id": "applications",
+          "label": "Applications",
+          "singular": "Application",
+          "fields": [
+            {
+              "id": "company",
+              "label": "Company",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "position",
+              "label": "Position",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "status",
+              "label": "Status",
+              "type": "choice",
+              "required": true,
+              "choices": ["Saved", "Applied", "Interview", "Offer"]
+            },
+            {
+              "id": "applied",
+              "label": "Applied on",
+              "type": "date",
+              "required": false,
+              "choices": []
+            },
+            {
+              "id": "notes",
+              "label": "Notes",
+              "type": "text",
+              "required": false,
+              "choices": []
+            }
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Create an account and sign in to a private workspace.",
+        "Create, edit, search, reload and delete records in every collection.",
+        "Other accounts cannot read, update or delete these records.",
+        "The assistant responds through the real connected Gemini model using supplied chat details."
+      ]
+    },
+    "database": "existing-postgres",
+    "cleanupOwner": "operator"
+  },
+  {
+    "case": 4,
+    "idea": "books",
+    "projectName": "precast-rt-20261114-04-books",
+    "theme": "nova",
+    "scenario": "clarification",
+    "blueprint": {
+      "title": "Reading Shelf",
+      "mission": "Keep a personal reading list and category for each book.",
+      "audience": "An individual organizing books.",
+      "agentJob": "Suggest a reading order from book details supplied in chat.",
+      "collections": [
+        {
+          "id": "books",
+          "label": "Books",
+          "singular": "Book",
+          "fields": [
+            {
+              "id": "title",
+              "label": "Title",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "author",
+              "label": "Author",
+              "type": "text",
+              "required": false,
+              "choices": []
+            },
+            {
+              "id": "category",
+              "label": "Category",
+              "type": "choice",
+              "required": true,
+              "choices": ["Fiction", "Nonfiction", "Reference"]
+            },
+            {
+              "id": "finished",
+              "label": "Finished",
+              "type": "boolean",
+              "required": false,
+              "choices": []
+            }
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Create an account and sign in to a private workspace.",
+        "Create, edit, search, reload and delete records in every collection.",
+        "Other accounts cannot read, update or delete these records.",
+        "The assistant responds through the real connected Gemini model using supplied chat details."
+      ]
+    },
+    "database": "existing-postgres",
+    "cleanupOwner": "operator"
+  },
+  {
+    "case": 5,
+    "idea": "pantry",
+    "projectName": "precast-rt-20261114-05-pantry",
+    "theme": "melbourne",
+    "scenario": "both",
+    "blueprint": {
+      "title": "Pantry Notebook",
+      "mission": "Track personal pantry items, quantities and expiry dates.",
+      "audience": "An individual organizing their pantry.",
+      "agentJob": "Help plan a pantry review from item details supplied in chat.",
+      "collections": [
+        {
+          "id": "items",
+          "label": "Items",
+          "singular": "Item",
+          "fields": [
+            {
+              "id": "item",
+              "label": "Item name",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "quantity",
+              "label": "Quantity",
+              "type": "number",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "expiry",
+              "label": "Expiry date",
+              "type": "date",
+              "required": false,
+              "choices": []
+            },
+            {
+              "id": "opened",
+              "label": "Opened",
+              "type": "boolean",
+              "required": false,
+              "choices": []
+            }
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Create an account and sign in to a private workspace.",
+        "Create, edit, search, reload and delete records in every collection.",
+        "Other accounts cannot read, update or delete these records.",
+        "The assistant responds through the real connected Gemini model using supplied chat details."
+      ]
+    },
+    "database": "existing-postgres",
+    "cleanupOwner": "operator"
+  },
+  {
+    "case": 6,
+    "idea": "followups",
+    "projectName": "precast-rt-20261114-06-followups",
+    "theme": "lapland",
+    "scenario": "override",
+    "blueprint": {
+      "title": "Follow-up Desk",
+      "mission": "Keep personal contacts and follow-up notes in independent lists.",
+      "audience": "An individual planning personal follow-up work.",
+      "agentJob": "Draft follow-up wording from information shared directly in chat.",
+      "collections": [
+        {
+          "id": "contacts",
+          "label": "Contacts",
+          "singular": "Contact",
+          "fields": [
+            {
+              "id": "name",
+              "label": "Name",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "email",
+              "label": "Email",
+              "type": "text",
+              "required": false,
+              "choices": []
+            }
+          ]
+        },
+        {
+          "id": "followups",
+          "label": "Follow-ups",
+          "singular": "Follow-up",
+          "fields": [
+            {
+              "id": "subject",
+              "label": "Subject",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "due",
+              "label": "Due date",
+              "type": "date",
+              "required": false,
+              "choices": []
+            },
+            {
+              "id": "priority",
+              "label": "Priority",
+              "type": "choice",
+              "required": true,
+              "choices": ["Low", "Normal", "High"]
+            }
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Create an account and sign in to a private workspace.",
+        "Create, edit, search, reload and delete records in every collection.",
+        "Other accounts cannot read, update or delete these records.",
+        "The assistant responds through the real connected Gemini model using supplied chat details."
+      ]
+    },
+    "database": "existing-postgres",
+    "cleanupOwner": "operator"
+  },
+  {
+    "case": 7,
+    "idea": "trips",
+    "projectName": "precast-rt-20261114-07-trips",
+    "theme": "cappadocia",
+    "scenario": "pause",
+    "blueprint": {
+      "title": "Trip Notebook",
+      "mission": "Organize personal trip notes and independent packing lists.",
+      "audience": "An individual preparing a trip.",
+      "agentJob": "Help prioritize preparation from details shared in chat.",
+      "collections": [
+        {
+          "id": "trips",
+          "label": "Trips",
+          "singular": "Trip",
+          "fields": [
+            {
+              "id": "title",
+              "label": "Trip name",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "starts",
+              "label": "Start date",
+              "type": "date",
+              "required": false,
+              "choices": []
+            },
+            {
+              "id": "budget",
+              "label": "Budget note amount",
+              "type": "number",
+              "required": false,
+              "choices": []
+            }
+          ]
+        },
+        {
+          "id": "packing",
+          "label": "Packing items",
+          "singular": "Packing item",
+          "fields": [
+            {
+              "id": "item",
+              "label": "Item",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "packed",
+              "label": "Packed",
+              "type": "boolean",
+              "required": true,
+              "choices": []
+            }
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Create an account and sign in to a private workspace.",
+        "Create, edit, search, reload and delete records in every collection.",
+        "Other accounts cannot read, update or delete these records.",
+        "The assistant responds through the real connected Gemini model using supplied chat details."
+      ]
+    },
+    "database": "existing-postgres",
+    "cleanupOwner": "operator"
+  },
+  {
+    "case": 8,
+    "idea": "study",
+    "projectName": "precast-rt-20261114-08-study",
+    "theme": "stockholm",
+    "scenario": "none",
+    "blueprint": {
+      "title": "Study Journal",
+      "mission": "Record personal study modules and sessions.",
+      "audience": "An individual organizing learning sessions.",
+      "agentJob": "Help plan the next study session from user-provided details.",
+      "collections": [
+        {
+          "id": "modules",
+          "label": "Modules",
+          "singular": "Module",
+          "fields": [
+            {
+              "id": "title",
+              "label": "Title",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "level",
+              "label": "Level",
+              "type": "choice",
+              "required": true,
+              "choices": ["Introductory", "Intermediate", "Advanced"]
+            }
+          ]
+        },
+        {
+          "id": "sessions",
+          "label": "Sessions",
+          "singular": "Session",
+          "fields": [
+            {
+              "id": "topic",
+              "label": "Topic",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "minutes",
+              "label": "Minutes",
+              "type": "number",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "done",
+              "label": "Completed",
+              "type": "boolean",
+              "required": true,
+              "choices": []
+            }
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Create an account and sign in to a private workspace.",
+        "Create, edit, search, reload and delete records in every collection.",
+        "Other accounts cannot read, update or delete these records.",
+        "The assistant responds through the real connected Gemini model using supplied chat details."
+      ]
+    },
+    "database": "existing-postgres",
+    "cleanupOwner": "operator"
+  },
+  {
+    "case": 9,
+    "idea": "equipment",
+    "projectName": "precast-rt-20261114-09-equipment",
+    "theme": "prague",
+    "scenario": "unreadable",
+    "blueprint": {
+      "title": "Equipment Notebook",
+      "mission": "Track personally owned equipment and its condition.",
+      "audience": "An individual maintaining an equipment list.",
+      "agentJob": "Help make a maintenance checklist from details supplied in chat.",
+      "collections": [
+        {
+          "id": "equipment",
+          "label": "Equipment",
+          "singular": "Equipment item",
+          "fields": [
+            {
+              "id": "name",
+              "label": "Equipment name",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "serial",
+              "label": "Serial number",
+              "type": "text",
+              "required": false,
+              "choices": []
+            },
+            {
+              "id": "purchased",
+              "label": "Purchased on",
+              "type": "date",
+              "required": false,
+              "choices": []
+            },
+            {
+              "id": "working",
+              "label": "Working",
+              "type": "boolean",
+              "required": true,
+              "choices": []
+            }
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Create an account and sign in to a private workspace.",
+        "Create, edit, search, reload and delete records in every collection.",
+        "Other accounts cannot read, update or delete these records.",
+        "The assistant responds through the real connected Gemini model using supplied chat details."
+      ]
+    },
+    "database": "existing-postgres",
+    "cleanupOwner": "operator"
+  },
+  {
+    "case": 10,
+    "idea": "events",
+    "projectName": "precast-rt-20261114-10-events",
+    "theme": "arctic",
+    "scenario": "rescope",
+    "blueprint": {
+      "title": "Personal Event Checklist",
+      "mission": "Organize personal event notes and checklists.",
+      "audience": "An individual planning an event.",
+      "agentJob": "Help order checklist tasks using user-supplied event details.",
+      "collections": [
+        {
+          "id": "events",
+          "label": "Events",
+          "singular": "Event",
+          "fields": [
+            {
+              "id": "name",
+              "label": "Event name",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "date",
+              "label": "Event date",
+              "type": "date",
+              "required": false,
+              "choices": []
+            },
+            {
+              "id": "guests",
+              "label": "Guest count",
+              "type": "number",
+              "required": false,
+              "choices": []
+            }
+          ]
+        },
+        {
+          "id": "tasks",
+          "label": "Tasks",
+          "singular": "Task",
+          "fields": [
+            {
+              "id": "title",
+              "label": "Task",
+              "type": "text",
+              "required": true,
+              "choices": []
+            },
+            {
+              "id": "done",
+              "label": "Completed",
+              "type": "boolean",
+              "required": true,
+              "choices": []
+            }
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Create an account and sign in to a private workspace.",
+        "Create, edit, search, reload and delete records in every collection.",
+        "Other accounts cannot read, update or delete these records.",
+        "The assistant responds through the real connected Gemini model using supplied chat details."
+      ]
+    },
+    "database": "existing-postgres",
+    "cleanupOwner": "operator"
+  }
+]

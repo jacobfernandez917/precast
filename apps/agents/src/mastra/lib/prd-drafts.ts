@@ -12,7 +12,7 @@ export const prdAnalysisSchema = z
     theme: z
       .enum(['stockholm', 'prague', 'arctic', 'nova', 'melbourne', 'lapland', 'cappadocia'])
       .nullable(),
-    database: z.enum(['managed-postgres', 'later']).nullable(),
+    database: z.enum(['managed-postgres', 'existing-postgres', 'later']).nullable(),
     missingQuestions: z.array(z.string().min(1).max(500)).max(8),
     unsupportedRequirements: z.array(z.string().min(1).max(1000)).max(20),
   })
