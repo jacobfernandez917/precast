@@ -46,7 +46,8 @@ export function PrdWorkspace({ brief }: { brief: PrdBlueprint }) {
     const data = Object.fromEntries(
       collection.fields.flatMap((field) => {
         const raw = values[field.id];
-        if (!field.required && (raw === undefined || raw === '')) return [];
+        if (!field.required && field.type !== 'boolean' && (raw === undefined || raw === ''))
+          return [];
         const value =
           field.type === 'boolean'
             ? raw === true
