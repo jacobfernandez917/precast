@@ -24,7 +24,8 @@
  *   5. Rename the `precast` placeholder everywhere (scripts/rename-project.mjs).
  *   6. Apply the chosen ports across env, configs, pnpm scripts, Dockerfiles, docs
  *      (scripts/set-ports.mjs), and the chosen theme (scripts/set-theme.mjs).
- *   7. Install + update dependencies to latest compatible (scripts/update-deps.mjs).
+ *   7. Install + update dependencies to latest compatible (scripts/update-deps.mjs),
+ *      or use the committed lockfile with --skip-deps.
  *   8. Record provenance in precast.lock.json, then remove Precast's own git
  *      history and re-initialize a BLANK repo on the `develop` branch with a
  *      single initial commit, hooks activated.
@@ -596,7 +597,7 @@ async function main() {
 
   // 3. Dependencies.
   if (skipDeps) {
-    run('pnpm', ['install']);
+    run('pnpm', ['install', '--frozen-lockfile']);
   } else {
     run('node', ['scripts/update-deps.mjs', '--no-verify']);
   }

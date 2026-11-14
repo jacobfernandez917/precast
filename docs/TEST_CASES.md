@@ -303,3 +303,5 @@ Live Raya validation (2026-11-13): **Passed end to end** on signed image `202611
 | SHARED-012 | Reused prepared schemas require matching project ownership and no database CREATE; missing/foreign schemas refuse replacement; ordinary projects retain creation | Passing (5 cases; SQL 42501 reproduced before fix; ten real restricted roles pass helper/CRUD/isolation) |
 
 | WEB-044 | Prepared sign-in migrations use only the owned auth search path without CREATE SCHEMA; foreign owners fail before migration; ordinary projects retain explicit schema selection | Passing (3 unit cases; actual restricted pooler created four auth tables then rolled back; full verify passed) |
+
+| APP-036 | Automated scaffolds select the committed lockfile with existing skip-deps mode and frozen install; no implicit update to a newly published broken dependency | Passing locally (12 verify tasks, actual offline bootstrap and six derived typecheck tasks; unchanged lock). Fresh locked Computer retry pending |

@@ -30,7 +30,7 @@ The optional public preview exception is described above. No new service or repo
 
 > **Authoritative source of truth for all tech-stack facts.** If this file disagrees with any other doc about a version, library, container image, or port, this file wins and the other doc has a bug.
 
-**Last Updated:** 2026-11-14
+**Last Updated:** 2026-11-15
 
 ---
 
@@ -247,7 +247,11 @@ Postgres/Redis run on your remote/managed provider — their ports are part of t
   copies of the provider types and the agents app stops typechecking (AGT-027 guards it).
 - **Bootstrapping a new project:** `pnpm bootstrap` (`scripts/bootstrap.mjs`)
   asks for a name, renames the placeholder, updates deps, re-initializes a blank
-  git repo on the `develop` branch, and prints the feed-forward doc checklist.
+  git repo on the `develop` branch, and prints the feed-forward doc checklist. Automated Raya
+  scaffolds pass the existing `--skip-deps` option and install with `--frozen-lockfile`, using
+  the exact audited dependency graph. A live regression selected a newly published dependency
+  whose tarball returned 404; automatic runs must not silently update beyond the tested lock.
+  Manual bootstrap keeps the default compatible update path. No package versions change here.
 - **Staying aligned with Precast:** `pnpm precast:update`
   (`scripts/precast-update.mjs`) pulls later Precast improvements into a derived
   project. Release identity and the managed/advisory file map live in

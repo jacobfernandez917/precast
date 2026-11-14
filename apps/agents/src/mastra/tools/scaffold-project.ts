@@ -158,6 +158,7 @@ export async function scaffoldProject(
         '--',
         parsed.projectName,
         '--yes',
+        '--skip-deps',
         '--llm-provider=skip',
         '--db=later',
         `--theme=${parsed.theme}`,

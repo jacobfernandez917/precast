@@ -1,5 +1,7 @@
 # PROGRESS.md — Context Memory
 
+- **2026-11-15 · Codex · two full apps passed; lock automated dependencies (T-261).** Pocket Ledger v2 passed native scaffold plus the committed public fixture matrix, proving the optional false fix. Job Search Notebook failed before PRD/services when automatic compatible updates selected Better Auth 1.7.24 and its memory-adapter download returned npm 404. Automated bootstrap now uses the existing skip-deps branch with frozen-lockfile installation; manual default updates remain. No dependency versions are changed. All 12 verify tasks passed. A real offline bootstrap plus all six derived-project typecheck tasks passed, with the lockfile unchanged. Deployment and fresh third-idea retry are next; preserve the failed run. External DB unchanged except owned test roles/schemas/data; no Hannibal.
+
 - **2026-11-14 · Codex · one full app passed; optional checkbox gap (T-261).** Daily Habits v2 passed native seven-command scaffold plus public auth/CRUD/validation/isolation/XSS and actual Gemini SSE; nine source artifacts verified, one model subscription and no Hannibal. Pocket Ledger completed native scaffolding, then the public check reproduced an unchecked optional boolean omitted rather than false. The form now serializes binary checkboxes consistently. Added the real parameterized fixture browser test to source. All 12 full verify tasks passed (web 416/one skipped), and the committed browser harness discovers cleanly. Deployment/fresh retry are next; no second full acceptance success claimed. Operator storage cleanup preserves sources/env/receipts and removes only owned rebuild caches.
 
 - **2026-11-14 · Codex · first actual Computer startup gap fixed (T-261).** Run fd4f3bcf completed six commands plus the PRD file write, including real database/Gemini setup, then the final preview command failed. Owner-scanned startup artifacts identify Better Auth's unconditional schema DDL. Prepared-mode migration now uses the owned auth search path without schemaName; qualified runtime access remains. Actual restricted pooler migration created four auth tables and rolled back, with database CREATE still false. Three focused regression checks and all 12 verify tasks passed (web 416/one skipped). Deployment and fresh-attempt full retest are next. Preserve the failed run; no full public success claimed.
@@ -60,7 +62,7 @@
 
 > **This file is the ultimate cross-tool context memory.** All coding agents MUST update this file on every meaningful change. If you finish work without updating PROGRESS.md, the work is **not** considered complete.
 
-**Last Updated:** 2026-11-14
+**Last Updated:** 2026-11-15
 **Updated By:** Codex (active ten-project Computer run)
 **Active Branch:** develop
 

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const calls = vi.hoisted(() => ({
-  commands: [] as Array<{ id: string; secrets?: unknown }>,
+  commands: [] as Array<{ id: string; argv: string[]; secrets?: unknown }>,
   complete: vi.fn(),
   createRun: vi.fn(),
   verify: vi.fn(),
@@ -19,7 +19,7 @@ vi.mock('../lib/agentbase-computer', () => ({
       _run: string,
       _lease: string,
       _epoch: number,
-      command: { id: string; secrets?: unknown },
+      command: { id: string; argv: string[]; secrets?: unknown },
     ) {
       calls.commands.push(command);
       return {
@@ -161,6 +161,7 @@ describe('AGT-034 connected scaffold gates', () => {
     await scaffoldProject({ ...input, services: 'deferred' });
     expect(calls.commands.map((c) => c.id)).toEqual(['clone', 'bootstrap', 'verify', 'build']);
     expect(calls.commands.every((c) => c.secrets === undefined)).toBe(true);
+    expect(calls.commands.find((c) => c.id === 'bootstrap')?.argv).toContain('--skip-deps');
     expect(calls.verify).not.toHaveBeenCalled();
   });
   it('runs connected setup with an alias only, verifies before building and returns no private receipt', async () => {
