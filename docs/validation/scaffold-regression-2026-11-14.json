@@ -1,0 +1,634 @@
+{
+  "task": "T-261",
+  "date": "2026-11-14",
+  "timezone": "Asia/Manila",
+  "generatedAt": "2026-11-14T09:54:14.883Z",
+  "status": "blocked_before_ten_connected_app_builds",
+  "request": "Test at least ten project ideas through Raya and a real Computer, fix and retest gaps, reuse the supplied external Postgres database without Hannibal, verify srv.us and keep database cleanup with the operator.",
+  "result": {
+    "projectIdeas": 10,
+    "localMaterializationsPassed": 10,
+    "realRayaPrdInterviewsPassed": 10,
+    "completedNativeRayaTasks": 31,
+    "newComputerRuns": 0,
+    "fullConnectedAppsCompleted": 0,
+    "newWorkingAppUrls": [],
+    "operatorHostSrvUsTransportProbe": "passed",
+    "externalDatabaseModified": false,
+    "hannibalCallsObserved": 0
+  },
+  "delivery": {
+    "precast": {
+      "branch": "develop",
+      "existingDatabaseCommit": "2dc140ae0684f7fa1d1356f0c3a1eb05d39eb859",
+      "liveReviewFixCommit": "0836b9d4fb22d90f79418e84df52e183b3f18a0f",
+      "sourceImportStatus": "SYNCED",
+      "runtimeState": "RUNNING",
+      "environment": "LOCAL/nonprod",
+      "databaseSetupMode": "existing",
+      "automaticPublicPreview": "srv.us",
+      "ci": {
+        "run": 43581289031,
+        "url": "https://github.com/jacobfernandez917/precast/actions/runs/43581289031",
+        "jobs": ["verify", "e2e", "images (web)", "images (agents)"],
+        "result": "all four passed"
+      }
+    },
+    "agentbase": {
+      "branch": "develop",
+      "commit": "a99b07f9526b78a1de79d0dd80be6de5b5e48486",
+      "api": "LOCAL/nonprod deployed and healthz HTTP 200; external database preview gate active",
+      "workerManager": "update blocked by expired AWS sign-in",
+      "developerImage": "20261113.precast.5 unchanged",
+      "sharedCheckout": "No shared source edits; component overlay preserves the other session’s work",
+      "migration": "none; OD-239 records the external preview gate"
+    }
+  },
+  "fixes": [
+    {
+      "gap": "No existing-database-only connected setup path",
+      "change": "Explicit existing mode subscribes to Gemini only and refuses the Hannibal/provisioning path before any Computer run.",
+      "validation": "Gemini-only setup, mode mismatch and invalid operator-mode regressions pass; all ten live preparations select existing-postgres-gemini."
+    },
+    {
+      "gap": "A shared external database needs project isolation and explicit network approval",
+      "change": "Strict TLS, exact database/pooler project binding, a restricted role and three owned schemas; a separate API gate admits only approved provider hosts and public Supabase address pins.",
+      "validation": "API 29 and worker 128 checks pass. Live external database and worker enforcement remain untested until the two required inputs arrive."
+    },
+    {
+      "gap": "Different project names could normalize or truncate to the same database schemas",
+      "change": "Existing-database projects use a SHA-256-derived database namespace.",
+      "validation": "Two namespace regressions pass; no external schemas were created."
+    },
+    {
+      "gap": "Impossible calendar dates and duplicate dropdown choices were accepted",
+      "change": "Date values must round-trip as the same ISO calendar date; choice values must be unique.",
+      "validation": "Two failures reproduced before the fixes; boundary regressions now pass and preserve zero and false."
+    },
+    {
+      "gap": "A live PRD review treated explicitly excluded features as requirements",
+      "change": "Reader guidance distinguishes required, excluded and deferred scope, including conflicting later explicit requirements.",
+      "validation": "Study Journal retest has no unsupported requirements; Personal Event Checklist correctly flags both permissions and reminder emails, then removes them only after an explicit human deferral."
+    },
+    {
+      "gap": "The agent claimed to discard an unreadable draft without settling it",
+      "change": "Explicit cancellation must call the draft tool and confirm persistence; unreadable drafts retain their filenames.",
+      "validation": "Three new lifecycle checks pass. Live scanned-PDF cancellation, readable replacement and final discard passed."
+    },
+    {
+      "gap": "Later human project/theme clarifications were discarded by a source-only check",
+      "change": "Setup-choice validation now considers both the original document and the retained human clarifications.",
+      "validation": "Failure reproduced before the fix; the regression and the live later-theme-override case pass."
+    },
+    {
+      "gap": "A reader changed an explicitly provided field label",
+      "change": "Reader guidance preserves identifiers, labels, field types and choice values exactly.",
+      "validation": "All ten final live blueprints match their fixture collections and fields exactly."
+    },
+    {
+      "gap": "An opaque encoded identifier appeared in an earlier native reply",
+      "change": "Builder guidance explicitly avoids copying opaque historical prefixes.",
+      "validation": "No encoded UUID prefix in the 31 retest replies. The original upstream-generation cause was not established; this is a verified prompt-level mitigation."
+    }
+  ],
+  "verification": {
+    "fullPrecastVerify": {
+      "tasks": 12,
+      "result": "passed",
+      "agents": 219,
+      "webPassed": 413,
+      "webSkipped": 1,
+      "shared": 29,
+      "a2ui": 34
+    },
+    "mastraBundle": "passed",
+    "agentbase": {
+      "apiPreviewTests": 29,
+      "workerTests": 128,
+      "apiTypecheck": "passed",
+      "touchedFileLint": "passed"
+    },
+    "localMaterializations": {
+      "cases": 10,
+      "result": "passed",
+      "scope": "Local product generation and schema checks only; no Computer, external database or public app."
+    },
+    "realRaya": {
+      "startedAt": "2026-11-14T09:36:36.995Z",
+      "endedAt": "2026-11-14T09:51:06.255Z",
+      "turns": 31,
+      "nativeTasks": "31 completed",
+      "scope": "Actual PDF uploads, model-backed review, missing-only questions, clarifications, preparation and persisted cancellation. Every review explicitly stopped before execution.",
+      "builderAudit": {
+        "since": "2026-11-14T00:00:00.000Z",
+        "successfulModelCompletionsForBuilder": 169,
+        "modelCompletionScope": "All builder identity calls since the audit boundary, including initial reviews and retests; not only the 31 final turns.",
+        "hannibalCallsForBuilderOrOwner": 0,
+        "newComputerRuns": 0
+      }
+    }
+  },
+  "projects": [
+    {
+      "case": 1,
+      "idea": "habits",
+      "title": "Daily Habits",
+      "scenario": "none",
+      "localMaterialization": "passed",
+      "rayaInterview": "passed",
+      "elapsedMs": 43494,
+      "sourceHash": "83bd554bbf328d26d92352a5641eeafed2e72d915bb13aa94345a7ea6fabe9bb",
+      "exactSourceRetained": true,
+      "exactCollectionAndFieldContract": true,
+      "draftDiscardVerified": true,
+      "computerUnchanged": true,
+      "prepared": {
+        "projectName": "precast-rt-20261114-01-habits",
+        "theme": "stockholm",
+        "services": "existing-postgres-gemini",
+        "preview": "srv.us"
+      },
+      "turns": [
+        {
+          "workId": "def81e27-333c-4c9b-b3d7-d29033c1e856",
+          "nativeA2aTaskId": "3143c9b4-fc63-4296-880d-c19c292d5d22",
+          "elapsedMs": 29047,
+          "questionCount": 0
+        },
+        {
+          "workId": "7799784f-67f5-4152-974e-8cacca13fe14",
+          "nativeA2aTaskId": "70962aa9-b243-4613-9da5-7fc388a349ca",
+          "elapsedMs": 12877,
+          "questionCount": 0
+        }
+      ],
+      "fullComputerAndPublicApp": "blocked before build",
+      "workingAppUrl": null
+    },
+    {
+      "case": 2,
+      "idea": "expenses",
+      "title": "Pocket Ledger",
+      "scenario": "theme",
+      "localMaterialization": "passed",
+      "rayaInterview": "passed",
+      "elapsedMs": 42611,
+      "sourceHash": "6932f0cc74596712d399ca8122bcba191ef7e5ba912ab862a4268013627b8458",
+      "exactSourceRetained": true,
+      "exactCollectionAndFieldContract": true,
+      "draftDiscardVerified": true,
+      "computerUnchanged": true,
+      "prepared": {
+        "projectName": "precast-rt-20261114-02-expenses",
+        "theme": "prague",
+        "services": "existing-postgres-gemini",
+        "preview": "srv.us"
+      },
+      "turns": [
+        {
+          "workId": "c6ebfff5-7692-4ae7-8019-a47128be4291",
+          "nativeA2aTaskId": "87b326e0-ce8b-4eba-a470-89aec72e86f9",
+          "elapsedMs": 20011,
+          "questionCount": 1
+        },
+        {
+          "workId": "db476b5f-f8c5-49ef-8d3d-75219023c510",
+          "nativeA2aTaskId": "0dedd380-d9df-4600-8f72-d411198efc30",
+          "elapsedMs": 12232,
+          "questionCount": 0
+        },
+        {
+          "workId": "0e82d483-c886-4984-b522-47ba3d109a2c",
+          "nativeA2aTaskId": "d960d45a-75ba-4669-b9f3-b425dd2e2c06",
+          "elapsedMs": 9234,
+          "questionCount": 0
+        }
+      ],
+      "fullComputerAndPublicApp": "blocked before build",
+      "workingAppUrl": null
+    },
+    {
+      "case": 3,
+      "idea": "jobs",
+      "title": "Job Search Notebook",
+      "scenario": "name",
+      "localMaterialization": "passed",
+      "rayaInterview": "passed",
+      "elapsedMs": 41080,
+      "sourceHash": "d60fcc3e91a93c2e1887daf84479bfbb22568406152a7f56113e12a1423a0bc8",
+      "exactSourceRetained": true,
+      "exactCollectionAndFieldContract": true,
+      "draftDiscardVerified": true,
+      "computerUnchanged": true,
+      "prepared": {
+        "projectName": "precast-rt-20261114-03-jobs",
+        "theme": "arctic",
+        "services": "existing-postgres-gemini",
+        "preview": "srv.us"
+      },
+      "turns": [
+        {
+          "workId": "c62a1966-2b60-41b8-8fd0-46e8e70c4d5d",
+          "nativeA2aTaskId": "deb7714f-c451-4649-9f79-238537bffd48",
+          "elapsedMs": 24425,
+          "questionCount": 1
+        },
+        {
+          "workId": "bd5d01c1-0ff4-459a-8792-7e9bab7ee0ba",
+          "nativeA2aTaskId": "f5b0ad2c-6ff6-4689-966a-f220360f3dc8",
+          "elapsedMs": 9323,
+          "questionCount": 0
+        },
+        {
+          "workId": "7d8c3c09-b336-4aa9-889d-7efdf9f35233",
+          "nativeA2aTaskId": "d7a2ac25-e078-4bc4-beda-7b22f47931d7",
+          "elapsedMs": 6343,
+          "questionCount": 0
+        }
+      ],
+      "fullComputerAndPublicApp": "blocked before build",
+      "workingAppUrl": null
+    },
+    {
+      "case": 4,
+      "idea": "books",
+      "title": "Reading Shelf",
+      "scenario": "clarification",
+      "localMaterialization": "passed",
+      "rayaInterview": "passed",
+      "elapsedMs": 53254,
+      "sourceHash": "c4135a75fc3cffbb5c767e1e434a21b2b7bbf2e3f55bf6ee5b149cb7939f34b3",
+      "exactSourceRetained": true,
+      "exactCollectionAndFieldContract": true,
+      "draftDiscardVerified": true,
+      "computerUnchanged": true,
+      "prepared": {
+        "projectName": "precast-rt-20261114-04-books",
+        "theme": "nova",
+        "services": "existing-postgres-gemini",
+        "preview": "srv.us"
+      },
+      "turns": [
+        {
+          "workId": "1408d357-1d18-4ae0-a446-90919368c2cc",
+          "nativeA2aTaskId": "feb6f898-cd1c-48f4-ac2c-00e04e8ae4a0",
+          "elapsedMs": 20053,
+          "questionCount": 1
+        },
+        {
+          "workId": "ae8e8528-15be-4cbb-8f41-34e1e0489f42",
+          "nativeA2aTaskId": "17055071-9cdf-4809-b671-27a39de3922b",
+          "elapsedMs": 23001,
+          "questionCount": 0
+        },
+        {
+          "workId": "cd548565-7b35-4b0c-8aed-345c08ca25d5",
+          "nativeA2aTaskId": "1008eec1-f3aa-40a1-98cb-d4a0f44d6206",
+          "elapsedMs": 9439,
+          "questionCount": 0
+        }
+      ],
+      "fullComputerAndPublicApp": "blocked before build",
+      "workingAppUrl": null
+    },
+    {
+      "case": 5,
+      "idea": "pantry",
+      "title": "Pantry Notebook",
+      "scenario": "both",
+      "localMaterialization": "passed",
+      "rayaInterview": "passed",
+      "elapsedMs": 40908,
+      "sourceHash": "5aa0388b8c7671d78a57799ada8603bf7608655c009d705b893d678c7b815442",
+      "exactSourceRetained": true,
+      "exactCollectionAndFieldContract": true,
+      "draftDiscardVerified": true,
+      "computerUnchanged": true,
+      "prepared": {
+        "projectName": "precast-rt-20261114-05-pantry",
+        "theme": "melbourne",
+        "services": "existing-postgres-gemini",
+        "preview": "srv.us"
+      },
+      "turns": [
+        {
+          "workId": "4959215d-e731-4370-933a-95b157682dd0",
+          "nativeA2aTaskId": "a560361f-9090-4961-881e-bb7f48929477",
+          "elapsedMs": 18611,
+          "questionCount": 1
+        },
+        {
+          "workId": "500f5fbd-b5ed-4872-8c9f-0b810b312642",
+          "nativeA2aTaskId": "4374fc53-3ae3-4f90-8bbb-c2e1951097c8",
+          "elapsedMs": 5092,
+          "questionCount": 1
+        },
+        {
+          "workId": "d61ed425-6342-490f-a3d8-c06106d2bf22",
+          "nativeA2aTaskId": "761d3b45-3374-49a9-9118-886277c56f59",
+          "elapsedMs": 6629,
+          "questionCount": 0
+        },
+        {
+          "workId": "b7bdbf0c-b6b6-4f7b-8a42-cac626544308",
+          "nativeA2aTaskId": "ce34c47c-d48f-481c-9cc2-0e16410eb2c4",
+          "elapsedMs": 9445,
+          "questionCount": 0
+        }
+      ],
+      "fullComputerAndPublicApp": "blocked before build",
+      "workingAppUrl": null
+    },
+    {
+      "case": 6,
+      "idea": "followups",
+      "title": "Follow-up Desk",
+      "scenario": "override",
+      "localMaterialization": "passed",
+      "rayaInterview": "passed",
+      "elapsedMs": 43405,
+      "sourceHash": "1a71f49c71e22105f6c0fea28ce60c0547b571c1b0ec20c2ae1ec4e693b6a3a7",
+      "exactSourceRetained": true,
+      "exactCollectionAndFieldContract": true,
+      "draftDiscardVerified": true,
+      "computerUnchanged": true,
+      "prepared": {
+        "projectName": "precast-rt-20261114-06-followups",
+        "theme": "nova",
+        "services": "existing-postgres-gemini",
+        "preview": "srv.us"
+      },
+      "turns": [
+        {
+          "workId": "c5f30e29-cd8a-4953-8f26-f948a33849a4",
+          "nativeA2aTaskId": "f63e134a-d70a-4afd-a324-5152fb55d140",
+          "elapsedMs": 17186,
+          "questionCount": 1
+        },
+        {
+          "workId": "aec05b9d-d973-4eeb-a054-591207a2cf39",
+          "nativeA2aTaskId": "981aa667-cb84-41eb-8cdd-93e01c4b4eb1",
+          "elapsedMs": 6512,
+          "questionCount": 0
+        },
+        {
+          "workId": "cde6bb95-6bbb-4f7b-8c26-4cca1796fce6",
+          "nativeA2aTaskId": "cdaee4f6-6ef2-48f3-a293-8c5ee7bed998",
+          "elapsedMs": 9444,
+          "questionCount": 0
+        },
+        {
+          "workId": "048f25e5-a334-4a1a-8e07-973149cb8926",
+          "nativeA2aTaskId": "36e63f17-6a04-4763-b126-aab8da78f562",
+          "elapsedMs": 8623,
+          "questionCount": 0
+        }
+      ],
+      "fullComputerAndPublicApp": "blocked before build",
+      "workingAppUrl": null
+    },
+    {
+      "case": 7,
+      "idea": "trips",
+      "title": "Trip Notebook",
+      "scenario": "pause",
+      "localMaterialization": "passed",
+      "rayaInterview": "passed",
+      "elapsedMs": 31710,
+      "sourceHash": "3a4e426663e4a743f710f1ae379778676d4fca11d86b8357a48b2c245435040b",
+      "exactSourceRetained": true,
+      "exactCollectionAndFieldContract": true,
+      "draftDiscardVerified": true,
+      "computerUnchanged": true,
+      "prepared": {
+        "projectName": "precast-rt-20261114-07-trips",
+        "theme": "cappadocia",
+        "services": "existing-postgres-gemini",
+        "preview": "srv.us"
+      },
+      "turns": [
+        {
+          "workId": "be717942-2496-4f74-b0f6-04814499963e",
+          "nativeA2aTaskId": "ffeca3f6-fa56-4e5f-8d5b-ee6d0f2cc40a",
+          "elapsedMs": 21828,
+          "questionCount": 0
+        },
+        {
+          "workId": "bb2391d2-a92d-4d6b-8b9f-ffd5bc44257e",
+          "nativeA2aTaskId": "ac369690-45a5-4d41-b04b-655e99a812ba",
+          "elapsedMs": 3902,
+          "questionCount": 0
+        },
+        {
+          "workId": "d65ab7ca-53f6-4482-9771-8895404647d1",
+          "nativeA2aTaskId": "7d63bfe2-e959-4390-9589-ef90b1cf9c4e",
+          "elapsedMs": 4954,
+          "questionCount": 0
+        }
+      ],
+      "fullComputerAndPublicApp": "blocked before build",
+      "workingAppUrl": null
+    },
+    {
+      "case": 8,
+      "idea": "study",
+      "title": "Study Journal",
+      "scenario": "none",
+      "localMaterialization": "passed",
+      "rayaInterview": "passed",
+      "elapsedMs": 28901,
+      "sourceHash": "d9a0407b01a65d3bd9e59756307ed21f91cf62cea7d39212a1ed38d98d69340c",
+      "exactSourceRetained": true,
+      "exactCollectionAndFieldContract": true,
+      "draftDiscardVerified": true,
+      "computerUnchanged": true,
+      "prepared": {
+        "projectName": "precast-rt-20261114-08-study",
+        "theme": "stockholm",
+        "services": "existing-postgres-gemini",
+        "preview": "srv.us"
+      },
+      "turns": [
+        {
+          "workId": "0cbd663e-7dae-40c1-864e-f678652a1a02",
+          "nativeA2aTaskId": "de6345da-b5b6-42c7-a393-f82c8a69f033",
+          "elapsedMs": 20002,
+          "questionCount": 0
+        },
+        {
+          "workId": "0a9cc3af-4092-40db-b039-20f41d2e7d6b",
+          "nativeA2aTaskId": "e2954055-4b56-4ed0-a02a-89f0a4fa40a4",
+          "elapsedMs": 8076,
+          "questionCount": 0
+        }
+      ],
+      "fullComputerAndPublicApp": "blocked before build",
+      "workingAppUrl": null
+    },
+    {
+      "case": 9,
+      "idea": "equipment",
+      "title": "Equipment Notebook",
+      "scenario": "unreadable",
+      "localMaterialization": "passed",
+      "rayaInterview": "passed",
+      "elapsedMs": 49134,
+      "sourceHash": "cfdb8df3cda40f78a63d072d6b023f661d89a427162a5c0fa4a5d1d4b9467e2f",
+      "exactSourceRetained": true,
+      "exactCollectionAndFieldContract": true,
+      "draftDiscardVerified": true,
+      "computerUnchanged": true,
+      "unreadableDiscardVerified": true,
+      "prepared": {
+        "projectName": "precast-rt-20261114-09-equipment",
+        "theme": "prague",
+        "services": "existing-postgres-gemini",
+        "preview": "srv.us"
+      },
+      "turns": [
+        {
+          "workId": "2610ec77-31f6-4099-a60d-9c6cb7ddeac9",
+          "nativeA2aTaskId": "9bada858-b6c7-4e89-942c-a9b808272378",
+          "elapsedMs": 8260,
+          "questionCount": 0
+        },
+        {
+          "workId": "0b4f0260-eb0f-47b6-bdf2-32522950c148",
+          "nativeA2aTaskId": "0e960b92-194f-4866-8558-7dd267dca8a2",
+          "elapsedMs": 10972,
+          "questionCount": 0
+        },
+        {
+          "workId": "326d43d1-b0be-453a-8ff7-e8f04d3b36e0",
+          "nativeA2aTaskId": "20387b29-4800-44aa-b881-118dd9c6645e",
+          "elapsedMs": 20186,
+          "questionCount": 0
+        },
+        {
+          "workId": "16958b7f-aaa6-49fb-9367-5537cb78d988",
+          "nativeA2aTaskId": "a207d760-0856-4d48-a3d6-88f88a466d75",
+          "elapsedMs": 8011,
+          "questionCount": 0
+        }
+      ],
+      "fullComputerAndPublicApp": "blocked before build",
+      "workingAppUrl": null
+    },
+    {
+      "case": 10,
+      "idea": "events",
+      "title": "Personal Event Checklist",
+      "scenario": "rescope",
+      "localMaterialization": "passed",
+      "rayaInterview": "passed",
+      "elapsedMs": 61457,
+      "sourceHash": "5aba66b35bd4187028728bf498bb3fab8730bd49bcbe041fe8cd603471b7e97d",
+      "exactSourceRetained": true,
+      "exactCollectionAndFieldContract": true,
+      "draftDiscardVerified": true,
+      "computerUnchanged": true,
+      "prepared": {
+        "projectName": "precast-rt-20261114-10-events",
+        "theme": "arctic",
+        "services": "existing-postgres-gemini",
+        "preview": "srv.us"
+      },
+      "turns": [
+        {
+          "workId": "0b6bf963-1bd8-47b2-b722-2d9503dbb68c",
+          "nativeA2aTaskId": "cdc194d9-e739-4b0d-958d-d21bdfadd895",
+          "elapsedMs": 27889,
+          "questionCount": 1
+        },
+        {
+          "workId": "306d538f-cfa7-4758-82a3-55187f3e4577",
+          "nativeA2aTaskId": "800dc6f4-cb23-4798-bebb-eeadb91a00a4",
+          "elapsedMs": 23235,
+          "questionCount": 0
+        },
+        {
+          "workId": "674e9481-fd18-4d6a-9c11-f3718dc4ef8d",
+          "nativeA2aTaskId": "3fe6645c-f17c-4f13-a3f8-e4c8c7c704d5",
+          "elapsedMs": 8902,
+          "questionCount": 0
+        }
+      ],
+      "fullComputerAndPublicApp": "blocked before build",
+      "workingAppUrl": null
+    }
+  ],
+  "srvUs": {
+    "status": "passed_operator_host_probe",
+    "scope": "Data-free operator-host transport probe using the shipped preview-tunnel.mjs. Not a Raya Computer run or generated application. No model or database involved.",
+    "startedAt": "2026-11-14T09:40:49.706Z",
+    "endedAt": "2026-11-14T09:43:57.232Z",
+    "initialStream": {
+      "durationMs": 6204,
+      "firstEventMs": 1207,
+      "incremental": true
+    },
+    "longStream": {
+      "durationMs": 131215,
+      "eventCount": 15,
+      "incremental": true
+    },
+    "reconnect": {
+      "sameUrl": true,
+      "healthy": true,
+      "durationMs": 9727
+    },
+    "expiry": {
+      "processStopped": true,
+      "publicEndpointClosed": true,
+      "status": 503
+    },
+    "probeRemovedFromPublicAccess": true,
+    "limitations": [
+      "This data-free probe ran on the operator host using the shipped tunnel utility, not on the Raya Computer.",
+      "The long response was synthetic HTTP streaming, not a generated app’s Gemini call.",
+      "The script expiry timer was tested; the Computer’s signed network-lease expiry path was not tested.",
+      "No working app URL is being supplied from this probe."
+    ],
+    "reference": "https://docs.srv.us/",
+    "startup": {
+      "retryableSshTimeouts": 2,
+      "recoveredWithExistingRetry": true
+    }
+  },
+  "database": {
+    "reuseRequired": true,
+    "host": "db.quaiszkmokmurqpdegfs.supabase.co",
+    "database": "postgres",
+    "connection": "Blocked: direct hostname resolves only IPv6; ENETUNREACH on this host.",
+    "operatorCredential": "Kept private; not committed or supplied to Raya/Precast.",
+    "newDatabases": 0,
+    "newRuntimeRolesOrSchemas": 0,
+    "testDataWritten": 0,
+    "cleanup": "No external test data exists to truncate. For the pending full run, the operator alone will clear manifest-owned test tables without CASCADE or changes to unrelated data."
+  },
+  "blockingInputs": [
+    {
+      "need": "Exact IPv4 Supabase Session pooler host and username, or its connection string, from Dashboard → Connect.",
+      "reason": "The direct endpoint cannot be reached here. Pooler hostnames are not safely inferred from project region. The supplied password is already retained privately."
+    },
+    {
+      "need": "Renew the agentbase AWS sign-in on this computer.",
+      "action": "aws sso login --profile agentbase",
+      "reason": "The token is expired and refresh fails. The real Computer worker must be updated before it can admit the approved Supabase preview connection."
+    }
+  ],
+  "remaining": [
+    "Update the actual Computer worker after AWS renewal and confirm session ownership before any stop.",
+    "Prepare ten restricted runtime roles and their hashed schemas inside the same supplied database. Do not create a database or call Hannibal.",
+    "Run all ten connected scaffold flows through real Raya and Computer, then public signup, each-collection CRUD/reload/search, cross-account isolation, invalid inputs, actual Gemini SSE and long calls.",
+    "Verify Computer lease expiry and reconnect; keep the final verified app URL live.",
+    "Perform operator-only test-data cleanup and publish the completed full-flow report."
+  ],
+  "notClaimed": [
+    "Ten real Computer builds",
+    "Ten working public applications",
+    "External Supabase connectivity, isolation or cleanup execution",
+    "Real Gemini calls from generated apps through srv.us in this run",
+    "Deployment of the updated worker manager"
+  ]
+}
