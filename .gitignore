@@ -39,3 +39,6 @@ docs/.progress-journal.jsonl
 
 # Local editor workspace files — personal, never part of the boilerplate.
 *.code-workspace
+
+# Maintainer execution reports are kept outside the distributed template.
+docs/validation/

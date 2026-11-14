@@ -8,6 +8,8 @@ Kimi, Cursor, Aider, or a human doing it by hand.
 > applies to whatever agent is editing. This file exists because most harnesses look
 > for `AGENTS.md` and would otherwise start with no instructions at all.
 
+Also read `CLAUDE.local.md` when present for local maintainer instructions. Internal operational reports belong outside this template and require explicit user approval before publication.
+
 Read next, in this order: **[docs/HANDOFF.md](docs/HANDOFF.md)** (where the last agent
 stopped) → **[docs/PROGRESS.md](docs/PROGRESS.md)** (the long-form ledger) →
 [docs/SPEC.md](docs/SPEC.md) and [docs/TECH_STACK.md](docs/TECH_STACK.md) when you need

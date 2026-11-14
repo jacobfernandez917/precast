@@ -12,96 +12,15 @@
 
 ## 1. Current state (overwrite on each handoff)
 
-- **2026-11-15 · Codex · ten full Raya/Computer/public projects passed (T-261).** All ten distinct PDF projects completed the conversational flow, seven zero-exit commands plus PRD write, source/provenance checks and public auth/CRUD/reload/search/validation/XSS/isolation with real Gemini SSE. Fixed and retested prepared-schema sign-in DDL, optional false persistence and registry drift; automatic scaffolds now use the committed frozen lock. Latest builder `1c870ce` is SYNCED/RUNNING, full verify passed 12 tasks and all four code CI jobs passed. The final app passed an actual 109.5-second Gemini response and signed Computer network-lease expiry with same-URL reconnect, followed by fresh full public acceptance. Operator alone cleared 115 rows from 494 manifest-owned tables across 39 schemas; all 41 original protected table counts, eight original schema owners/ACLs and database names are unchanged. Zero new databases and Hannibal calls. Keep the final Computer/app running: https://7icqqfrqqlvjtsgwn2opi4i2ve.srv.us, expiry 06:35 PHT on 15 November. Report: `docs/validation/scaffold-regression-2026-11-14.json`.
+This is the neutral Precast starting point. Project mode serves the app's agents; the separately gated scaffold-builder mode creates projects through Raya's Developer Computer.
 
-- **PRD workflow deployed and passed end to end (T-260, 2026-11-13).** The existing builder/template `731a733` read the actual PDF exactly, asked only missing name/theme, and completed seven commands plus one bounded PRD input write on the real Developer Computer. Run `9237c2c7-41b0-40f4-83ae-ca1751137532`, Raya work `f1acd593-5a65-4ce1-9573-be7921457acf` and its native A2A task completed; the long turn took **252559 ms**. Both subscriptions, real Gemini and exactly one audited Hannibal invocation passed. Final web presentation `1b4ead6` was applied to the same project with verified source hashes and a successful web-only build/restart, preserving the agent bundles, database, URL and approval window. Public `E2E-018` passed again in **54.5 seconds**: account creation, persistent CRUD, two-account isolation and real streamed assistant output. Full verify passed all 12 tasks (agents 203, web 404/one skipped, shared 24, A2UI 34); both code revisions passed all four CI jobs. Current app: https://o6ocvgsysepyzkxzuxmstud4lq.srv.us, expiry **05:29 PHT on 14 November**. Keep the Computer running. Evidence: `docs/validation/prd-scaffold-2026-11-13.json`. The earlier disk-full project/database are retained; only disposable caches were cleared (4.79 GB). One initial public test hit a browser network interruption; two subsequent complete runs passed. No new repository, image or AgentBase/Raya source change.
+Readable PRDs supply the product brief and field contracts. The builder asks missing questions one at a time, preserves human overrides and pauses, and blocks unsupported scope until it is clarified. Connected previews require the existing saved owner approvals and operator gates.
 
-- **Conversational setup deployed and passed (T-258, 2026-11-13).** Builder `830156b`
-  uses `prepare-precast-project` to ask one missing bootstrap preference per turn: name,
-  model, theme, database. It skips supplied answers and uses defaults only when requested.
-  Selecting Gemini and managed Postgres maps to the existing connected flow; srv.us is
-  automatic, with no tunnel question. Existing operator and saved owner approvals remain
-  mandatory. Deferring either connection keeps both and the preview deferred. Focused
-  checks: 17 passed; full verify: 12 tasks passed (agents 184, web 393/one skipped); all
-  four code CI jobs passed. The existing LOCAL builder is SYNCED/RUNNING. A real five-turn
-  Raya conversation asked the four questions in order and honored pause. Zero new Computer
-  runs; the existing session and public preview (HTTP 200) are preserved. This acceptance
-  stopped before creating another project/database; the prior six-step execution below
-  remains the real connected-build evidence. Report: `docs/validation/scaffold-conversation-2026-11-13.json`.
-
-- **Automatic connected preview passed (T-257, 2026-11-13).** The existing builder at
-  `152a404` completed a fresh full Raya run with six successful commands for
-  `Projects/raya-scaffold-auto-20261113-v2`. The project Application has active subscriptions;
-  Gemini and one audited Hannibal invocation passed. The Computer verified trusted Postgres
-  TLS and its restricted role, then automatically started the app and srv.us tunnel. The API
-  verified public sign-in and handed the bounded preview to the owner. Raya and its native
-  A2A task completed after 239661 ms. Public sign-up and real UI chat with SSE passed.
-  Historical preview: https://6ipicslqumvnweft4iojuqqdba.srv.us (ended when the Computer was stopped for later work).
-  Flags and a separate saved project approval remain mandatory; ordinary scaffolds do not
-  expose a public app. Full verify passed 12 tasks (web 393 passed/one skipped, agents 174),
-  code CI all four jobs, script/tool checks ten; companion API checks passed 36.
-  The first attempt's finished project/database are preserved after fixing a guard that
-  counted a never-started historical run as active. The earlier manual preview was stopped.
-
-- **Extended public UI test passed:** a real Gemini turn containing a 120-second deterministic
-  tool completed in **127407 ms**, with **26** live progress events, the UI counter through
-  120 seconds and the final answer visible. The original tool and fixture environment were
-  restored again, agents rebuilt, the tunnel reconnected to the same URL and a normal real
-  tool call with JSON compatibility passed in 6442 ms. Code CI `43393207804` passed verify,
-  E2E and both images. The preview expiry below remains unchanged.
-
-- **srv.us preview passed (2026-11-13):** the existing connected app runs on the real Developer Computer at https://ssc4pd3mnfawg6t26wvwtx6sua.srv.us until **23:35 PHT / 15:35 UTC today**. Public sign-up, authenticated UI chat and a real Gemini turn containing a deterministic 45-second echo tool passed: 49999 ms, ten incremental elapsed-time events, first at 702 ms. Restored the original tool and fixture environment, rebuilt agents, forced SSH reconnection to the same URL and passed another real tool call with JSON compatibility in 6710 ms. Postgres trusted TLS and the restricted role were verified inside the Computer. Full `pnpm verify` passed 12 tasks (web 390 passed/1 skipped, agents 171); focused checks passed 38. Progress events are live; the upstream answer arrives at completion. Companion AgentBase OD-223 provides an explicit bounded owner reservation and exact expiring relay/RDS networking. Keys and Application/database credentials stay private in the Computer.
-
-- **Connected Raya scaffold passed (2026-11-13).** Deployed builder `3e3088c` cloned template `5e95164` into `Projects/raya-scaffold-live-20261113-connected`. Computer run `63107f67-e301-45db-9768-9a90a790225f` completed all five steps with zero exits. The project's own Application has both subscriptions active; the Computer made the real Gemini call and one audited Hannibal invocation. The hosted builder verified trusted RDS TLS, `SELECT 1`, the expected database/user and no superuser/role/database-creation privileges. Raya work `5433b827-fc65-4055-9c66-bbabc30a93fd` and native A2A task completed after 232786 ms. Exact template/package identity, web build ID, agent bundle and three normal Raya file views passed. The project is configured and built; no app preview or public tunnel was started. The original deferred project and failed model-check folder are retained.
-
-- **Connected gates and verification:** optional `hannibal-gemini` setup requires the explicit request, builder/operator settings and an approved Computer credential lease bound to one project Application and exact listings. An uncertain database request refuses automatic retry. The model check now allows 1024 tokens; the earlier 32-token failure stopped before any database request. Signed Developer image v5 passed three model-directed attended synthetic HTTPS external-write trials, with disposable resources erased. Ordinary scaffold egress stays HTTPS-only; the optional preview has its own exact expiring exception. The encrypted database receipt is verified at the hosted builder. Code CI, focused checks and the real connected run pass. AgentBase `a1f59fac` fixes omitted fields being reset by partial Computer grant edits; 30 policy tests and API typecheck pass.
-
-- **Fresh Computer bootstrap:** initial-commit identity falls back to `Project Scaffold <scaffold@localhost>` only for missing identity fields; existing Git configuration and author/committer environment overrides win. This fixes the failure reproduced inside the Developer image without changing member settings.
-- **End-to-end Raya scaffold passed (2026-11-13).** The deployed builder at code `6a3dc9e` completed clone, bootstrap, `verify:poc` and build with four zero exits, and Raya returned the successful final reply after 238963 ms, beyond the former 180-second cutoff. Output `Projects/raya-scaffold-live-20261113-endtoend` has the requested package name, template commit `6a3dc9e`, a web build ID and the agent bundle; all three normal Raya file views returned 200. Signed Developer image `20261113.precast.5` is installed, promoted and attended-qualified with three model-directed trials, project-cache checks and a real npm registry read. Earlier image, memory, CI-lockfile and npm-configuration defects are fixed; v1–v4 are retired. Builder mode alone gets a bounded 15-minute server window; project mode keeps three minutes. General, existing nonprod capacity and prior project folders are preserved. No remote repository was created. Deployment scope is LOCAL/nonprod.
-- **Validation:** both bundled modes served exactly their expected agent cards against managed Postgres; full `pnpm verify` and code CI passed. Fresh Developer-image desktop and initial-commit probes passed. Companion fixes are AgentBase `ab50cbbb` (per-agent identity + governance holds) and Raya `03ec2e0` (proposal rooms matched by stable subscribed agent ID); their focused unit and real-Postgres integration checks passed.
-
-**Fresh baseline.** This is a clean Precast checkout — a runnable, agent-native monorepo with neutral placeholders (`example-agent` / `summary-agent` / `example-tool`, a generic landing page + agent-chat demo). No domain logic yet. `pnpm build` / `typecheck` / `lint` / `test` are green out of the box.
-
-- **Two gated modes, one repository (2026-11-12).** `PRECAST_AGENT_MODE=project` is the default and constructs only the existing crew. `PRECAST_AGENT_MODE=scaffold-builder` constructs only `scaffold-builder`. Static factory imports avoid a live-discovered Mastra chunk cycle; project MCP preflight still runs only in project mode. Its execution tool runs a fixed Computer workflow in `Projects/<name>`: clone Precast → bootstrap (`--llm-provider=skip --db=later`) → `verify:poc` → build. The import manifest scopes Developer Computer needs to Mastra id `scaffold-builder`; normal project agents receive no Computer proposal.
-
-- The Mastra app (`apps/agents`) and Next app (`apps/web`) are intentionally **neutral placeholders**. Real agents/pages/schema come from the feed-forward docs in `templates/` + TECH_STACK.
-- Infra (Postgres/Redis) is **remote/managed** via the root `.env`, never run on the developer's computer. `pnpm poc` runs both apps as Node processes on `127.0.0.1`; there is no container runtime locally.
-- **Postgres-only** ([ADR-002](ADRS.md), supersedes ADR-001): `DATABASE_URL` rejects SQLite/libsql at boot. A provisioned managed Postgres is a bootstrap precondition — the stack will not start without one.
-- **Agent memory is wired and durable.** `example-agent` carries a `Memory` backed by Postgres (`@mastra/pg`); `summary-agent` deliberately has none (transformation, not conversation). The web app derives `resourceId` (`account-<user id>` from the signed-in session) and a resource-namespaced `threadId` **server-side** in `apps/web/app/lib/agent-context.ts` and never accepts either from the request body. Mastra otherwise defaults `resourceId` to the agent id, which would put every user in one shared memory bucket. Its tables are in `<project>_agents`.
-- **Orchestrator crew — `docs/plans/orchestrator-crew-plan.md` (Phases 1–4 done).** `apps/agents/src/mastra/crew.ts` is the single source of truth for the roster; `defineCrew()` (`lib/crew.ts`) builds an **in-process** orchestrator front door — `crew-orchestrator`, a Mastra Agent Network (agents-as-tools) over the members that routes LLM-decided and **activates only at 2+ members**, collapsing to the sole member at N=1 (no routing hop, no extra card). Each member stays a plain agent → keeps its own `/api/.well-known/:id/agent-card.json` and is independently invocable; the orchestrator is purely additive. `index.ts` registers exactly `crewAgents(crew)`. Guards: reserved orchestrator id, duplicate ids, flat single layer. **P2:** `scripts/emit-import-manifest.mjs` emits an `orchestration` block into `agentbase.import.json` (orchestrator id from `ORCHESTRATOR_ID`; members omitted → discovered; `defaultImport: orchestrator-only`), guarded by `orchestration-manifest.spec.ts`. **P4 R2/R3:** `apps/agents/src/mastra/telemetry/otel.ts` (imported FIRST in `index.ts`) starts an OTel SDK — W3C propagation always, OTLP export when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (AgentBase injects it into hosted containers) — so the crew's in-process hops continue AgentBase's inbound trace and forward it on egress. (P3 + P4 R1/R4/R5 are AgentBase-side.)
-
-_Known carry-forwards:_
-
-- Memory has **not been exercised against a live Postgres** — the baseline is verified by typecheck, unit tests, `mastra build`, and runtime env-validation checks only. First run against a real `DATABASE_URL` should confirm Mastra creates its tables in the `mastra` schema and that a second turn recalls the first.
-- The crew's **live A2A cards have not been fetched against a running server.** This checkout's `.env` carries only placeholder DB creds (`your-postgres-host`) plus a pre-existing invalid `file:` `MASTRA_DB_URL` (the repo is Postgres-only, ADR-002), so `mastra start`/`dev` cannot boot here. Phase 1 is verified by typecheck, lint, the 51 agents-package unit tests (8 new in `lib/crew.spec.ts`), and a successful `mastra build` (which constructs the full instance graph including all three agents). First boot against a real Postgres should confirm `/api/.well-known/{example-agent,summary-agent,crew-orchestrator}/agent-card.json` all serve, and that a 2-member prompt routes through `crew-orchestrator`.
-- **Context threading (OBO subject + session) through the orchestrator → member → egress, and W3C `traceparent` propagation, are NOT in Phase 1** — they are Phase 4 (telemetry R1–R5) in the plan. In-process routing works today; the governed-context/telemetry seam is the next correctness-sensitive piece.
-- Sign-in runs inside the web app (Better Auth, `apps/web/app/lib/auth.ts`); chatting needs an account, and agent memory is scoped to `account-<user id>` from the verified session.
-
----
+Use this document for the derived project's own continuity. Maintainer session notes, operational identifiers and internal validation reports belong in the separate maintainer workspace and require explicit approval before publication.
 
 ## 2. Next task (overwrite on each handoff)
 
-**T-261 is complete.** Keep the final Computer owner session and app running: https://7icqqfrqqlvjtsgwn2opi4i2ve.srv.us, expiry 06:35 PHT on 15 November. All ten public apps and the real long-call/network-lease tests passed; operator cleanup is finished. Do not reset a delivered app again. Earlier nine sessions are stopped, with source/specs/receipts retained. Use the dated report for exact code candidates, run IDs, template provenance, failed attempts and the final public checks. The AgentBase worktree remains required by the LOCAL API bind mounts.
-
-The earlier orchestrator-crew live telemetry checks remain carry-forwards:
-
-CI's first scaffold-builder run passed both Docker image builds and E2E, but its lint gate identified an unused initial command-output assignment. That assignment has been removed; command output is now scoped to each polling iteration.
-
-The repository rename guard also caught placeholder-bearing mode identifiers that bootstrap would turn into invalid hyphenated TypeScript. These are now `AgentMode` and `resolveAgentMode`; the guard remains enforced.
-
-1. **Live-verify the telemetry stitch (P4 R2/R3).** With a real Postgres + a wired OTLP backend, boot a 2-member crew container and confirm the orchestrator→member in-process spans carry AgentBase's inbound `traceparent` and land in the backend correlated with `audit_calls` by trace id. The bundled container likely needs `node --import ./instrumentation.mjs` (ESM instrumentation ordering) — `apps/agents/src/mastra/telemetry/otel.ts` currently self-starts on first import, which covers `mastra dev`; harden the Dockerfile CMD if the live check shows inbound extraction is missed.
-2. **Live-verify the AgentBase Studio import drawer** (full-crew vs orchestrator-only) against an authenticated stack + a repo whose manifest carries `orchestration`.
-
-Deferred (Phase 5, not built): `CREW_ROUTE_VIA_AGENTBASE` per-hop governed routing; Studio "Expose/Hide subagent".
-
-Precast otherwise remains a runnable baseline. To start a real project:
-
-1. `pnpm install && pnpm bootstrap` (or `pnpm bootstrap my-project`).
-2. **Write the feed-forward docs first:** copy the relevant `templates/*.md` into `docs/`, replace the example content with your product.
-3. Fill in `docs/PROGRESS.md` §1 (name + mission) and the README title; run `pnpm connect` for the AgentBase Application and model (it proves them before writing `.env`; no vendor key anywhere), point `REDIS_URL` at your remote/managed Redis, and set `DATABASE_URL` to a **managed Postgres** URL — Postgres-only since [ADR-002](ADRS.md), and the stack will not boot without it (see [.env.example](../.env.example)).
-4. Build your agents/tools under `apps/agents/src/mastra/` and pages under `apps/web/app/`; extend the env schema in `packages/shared/src/env.ts`.
-
----
+Define the project's mission, users, data and acceptance criteria in its feed-forward docs. Configure the approved model and Postgres connection, then run the relevant checks described in `TEST_CASES.md` and `SCRIPTS.md`.
 
 ## 3. Resume prompt (paste into the next agent)
 
@@ -138,11 +57,9 @@ Return format:
 
 Existing database reuse: `lib/database-setup-mode.ts` validates the operator restriction; `scripts/setup-services.mjs` has a separate no-Hannibal path, while `lib/service-verification.ts` binds the actual database, pooler project, role and three owned schemas. `scripts/start-project-preview.mjs` preserves strict TLS and the saved external approval. `docs/fixtures/scaffold-project-ideas.json` defines ten regression ideas.
 
-Regression report: `docs/validation/scaffold-regression-2026-11-14.json` records ten completed real Raya/Computer/public flows, source/template provenance, live failure/fix/retest evidence, actual long Gemini and signed lease recovery, operator cleanup and the final URL/expiry. Earlier interview-only and operator-host synthetic checks remain explicitly historical.
-
 PRD review lifecycle: `lib/prd-drafts.ts` retains exact source and unreadable filenames; `tools/read-prd.ts` handles explicit cancellation and distinguishes excluded features; `agents/scaffold-builder.ts` requires confirmed settlement before claiming cancellation.
 
-PRD flow: `middleware/auth.ts` automatically captures the actual attachment before the model; `tools/prepare-scaffold.ts` analyses a still-unprocessed draft through `tools/read-prd.ts`; `lib/prd-drafts.ts` persists the exact source/hash and analysis under the scoped builder memory schema. `prepare-scaffold.ts` merges supplied PRD preferences with human replies and returns one next question. `scaffold-project.ts` uploads only a bounded PRD input into the fresh project; `scripts/apply-prd.mjs` validates its source/hash, refuses customized/symlinked outputs and writes the specs plus `project-brief.ts`. `packages/shared/src/prd.ts` owns the product/record contracts. `PrdWorkspace.tsx`, `api/project-records/route.ts` and `lib/prd-records.ts` implement signed-in CRUD; `e2e/prd-workspace.spec.ts` is the real public acceptance test. `middleware/auth.ts` binds builder memory to verified person/room, preserving project-mode behavior. `AgentChat.tsx` has a plain assistant presentation for PRD products; its default template demo remains available. `docs/validation/prd-scaffold-2026-11-13.json` records the core/template revision, final web delta and actual public acceptance separately.
+PRD flow: `middleware/auth.ts` automatically captures the actual attachment before the model; `tools/prepare-scaffold.ts` analyses a still-unprocessed draft through `tools/read-prd.ts`; `lib/prd-drafts.ts` persists the exact source/hash and analysis under the scoped builder memory schema. `prepare-scaffold.ts` merges supplied PRD preferences with human replies and returns one next question. `scaffold-project.ts` uploads only a bounded PRD input into the fresh project; `scripts/apply-prd.mjs` validates its source/hash, refuses customized/symlinked outputs and writes the specs plus `project-brief.ts`. `packages/shared/src/prd.ts` owns the product/record contracts. `PrdWorkspace.tsx`, `api/project-records/route.ts` and `lib/prd-records.ts` implement signed-in CRUD; `e2e/prd-workspace.spec.ts` is the real public acceptance test. `middleware/auth.ts` binds builder memory to verified person/room, preserving project-mode behavior. `AgentChat.tsx` has a plain assistant presentation for PRD products; its default template demo remains available.
 
 Conversational setup: `apps/agents/src/mastra/tools/prepare-scaffold.ts` returns the next
 single question or ready execution request without side effects; its spec covers question

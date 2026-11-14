@@ -60,6 +60,10 @@ If any of these documents disagree:
 
 ---
 
+## Internal reporting
+
+Keep maintainer session history, customer validation reports, run identifiers and infrastructure details outside the distributed template. Read `CLAUDE.local.md` when present. Obtain explicit user approval before pushing or uploading any internal report, including to another repository.
+
 ## 3. PROGRESS.md Enforcement — **MANDATORY**
 
 > **You MUST update [docs/PROGRESS.md](docs/PROGRESS.md) on every meaningful change.**
