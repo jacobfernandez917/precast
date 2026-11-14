@@ -1,5 +1,7 @@
 # PROGRESS.md — Context Memory
 
+- **2026-11-15 · Codex · ten full Raya/Computer/public projects passed (T-261).** All ten distinct PDF projects completed the conversational flow, seven zero-exit commands plus PRD write, source/provenance checks and public auth/CRUD/reload/search/validation/XSS/isolation with real Gemini SSE. Fixed and retested prepared-schema sign-in DDL, optional false persistence and registry drift; automatic scaffolds now use the committed frozen lock. Latest builder `1c870ce` is SYNCED/RUNNING, full verify passed 12 tasks and all four code CI jobs passed. The final app passed an actual 109.5-second Gemini response and signed Computer network-lease expiry with same-URL reconnect, followed by fresh full public acceptance. Operator alone cleared 115 rows from 494 manifest-owned tables across 39 schemas; all 41 original protected table counts, eight original schema owners/ACLs and database names are unchanged. Zero new databases and Hannibal calls. Keep the final Computer/app running: https://7icqqfrqqlvjtsgwn2opi4i2ve.srv.us, expiry 06:35 PHT on 15 November. Report: `docs/validation/scaffold-regression-2026-11-14.json`.
+
 - **2026-11-15 · Codex · two full apps passed; lock automated dependencies (T-261).** Pocket Ledger v2 passed native scaffold plus the committed public fixture matrix, proving the optional false fix. Job Search Notebook failed before PRD/services when automatic compatible updates selected Better Auth 1.7.24 and its memory-adapter download returned npm 404. Automated bootstrap now uses the existing skip-deps branch with frozen-lockfile installation; manual default updates remain. No dependency versions are changed. All 12 verify tasks passed. A real offline bootstrap plus all six derived-project typecheck tasks passed, with the lockfile unchanged. Deployment and fresh third-idea retry are next; preserve the failed run. External DB unchanged except owned test roles/schemas/data; no Hannibal.
 
 - **2026-11-14 · Codex · one full app passed; optional checkbox gap (T-261).** Daily Habits v2 passed native seven-command scaffold plus public auth/CRUD/validation/isolation/XSS and actual Gemini SSE; nine source artifacts verified, one model subscription and no Hannibal. Pocket Ledger completed native scaffolding, then the public check reproduced an unchecked optional boolean omitted rather than false. The form now serializes binary checkboxes consistently. Added the real parameterized fixture browser test to source. All 12 full verify tasks passed (web 416/one skipped), and the committed browser harness discovers cleanly. Deployment/fresh retry are next; no second full acceptance success claimed. Operator storage cleanup preserves sources/env/receipts and removes only owned rebuild caches.
@@ -63,7 +65,7 @@
 > **This file is the ultimate cross-tool context memory.** All coding agents MUST update this file on every meaningful change. If you finish work without updating PROGRESS.md, the work is **not** considered complete.
 
 **Last Updated:** 2026-11-15
-**Updated By:** Codex (active ten-project Computer run)
+**Updated By:** Codex (completed T-261 full regression)
 **Active Branch:** develop
 
 ---
@@ -129,7 +131,7 @@ You MUST update PROGRESS.md when you:
 
 - [x] T-261: Existing-only Gemini/Postgres gates and identified regression fixes, pushed and builder/API deployed.
 - [x] T-261: Ten real Raya PRD interviews (31 native tasks), ten local materializations and operator-host srv.us transport probe.
-- [~] T-261: Ten connected Computer/public flows and operator cleanup; AWS/pooler resolved, idle worker updated, ten restricted schema sets prepared.
+- [x] T-261: Ten connected Computer/public flows, actual long Gemini and signed lease recovery, operator-only cleanup and unchanged protected database data; report published and final app live.
 
 ---
 
@@ -150,18 +152,20 @@ You MUST update PROGRESS.md when you:
 
 ## 6. Test Coverage
 
-| Area                  | Tests                                                                                                            | Status                           |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| Agents (Vitest)       | `apps/agents/src/**` — includes conversational preparation and gated execution (17 focused)                      | Passing                          |
-| Web/shared (Vitest)   | `apps/web/test/**` — env schema + fitness guards                                                                 | Passing                          |
-| E2E (Playwright)      | `apps/web/e2e/**` — home page                                                                                    | Passing                          |
-| T-261 interviews      | Ten real Raya PDFs, 31 native tasks; exact source/fields, missing questions, override/pause/rescope/cancellation | Passing                          |
-| T-261 relay transport | Shipped tunnel utility on operator host: 131.2-second stream, reconnect, expiry                                  | Passing; not a Computer app test |
-| T-261 full apps       | Ten real connected Computer/public flows and operator-only external DB cleanup                                   | Blocked on two required inputs   |
+| Area                  | Tests                                                                                                                      | Status                                                 |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Agents (Vitest)       | `apps/agents/src/**` — includes conversational preparation and gated execution (17 focused)                                | Passing                                                |
+| Web/shared (Vitest)   | `apps/web/test/**` — env schema + fitness guards                                                                           | Passing                                                |
+| E2E (Playwright)      | `apps/web/e2e/**` — home page                                                                                              | Passing                                                |
+| T-261 interviews      | Ten real Raya PDFs, 31 native tasks; exact source/fields, missing questions, override/pause/rescope/cancellation           | Passing                                                |
+| T-261 relay transport | Shipped tunnel utility on operator host: 131.2-second stream, reconnect, expiry                                            | Passing; not a Computer app test                       |
+| T-261 full apps       | Ten distinct actual Raya/Computer/public apps; actual long Gemini, signed lease expiry/reconnect and operator-only cleanup | Passing; exact source and template provenance verified |
 
 ---
 
 ## 7. Environment State
+
+T-261: builder `1c870ce` and companion AgentBase `a99b07f9` are deployed. The existing AWS worker is healthy on signed Developer image `20261113.precast.5`; only its egress/contract modules changed, with backups and hashes. Strict-TLS IPv4 pooler: `aws-1-ap-northeast-2.pooler.supabase.com:5432`, existing `postgres` database. Final app: https://7icqqfrqqlvjtsgwn2opi4i2ve.srv.us, expiry 06:35 PHT on 15 November. Earlier nine verified preview sessions are stopped; their source and receipts remain. Regression accounts/records were removed by the operator; create an account to use the final app.
 
 | Variable | Value                                                                  |
 | -------- | ---------------------------------------------------------------------- |
@@ -172,6 +176,8 @@ You MUST update PROGRESS.md when you:
 ---
 
 ## 8. Session Log
+
+- **2026-11-15 · Codex · ten full Raya/Computer/public projects passed (T-261).** All ten distinct PDF projects completed the conversational flow, seven zero-exit commands plus PRD write, source/provenance checks and public auth/CRUD/reload/search/validation/XSS/isolation with real Gemini SSE. Fixed and retested prepared-schema sign-in DDL, optional false persistence and registry drift; automatic scaffolds now use the committed frozen lock. Latest builder `1c870ce` is SYNCED/RUNNING, full verify passed 12 tasks and all four code CI jobs passed. The final app passed an actual 109.5-second Gemini response and signed Computer network-lease expiry with same-URL reconnect, followed by fresh full public acceptance. Operator alone cleared 115 rows from 494 manifest-owned tables across 39 schemas; all 41 original protected table counts, eight original schema owners/ACLs and database names are unchanged. Zero new databases and Hannibal calls. Keep the final Computer/app running: https://7icqqfrqqlvjtsgwn2opi4i2ve.srv.us, expiry 06:35 PHT on 15 November. Report: `docs/validation/scaffold-regression-2026-11-14.json`.
 
 - **2026-11-14 · Codex · full regression resumed; prepared-schema startup fix (T-261).** AWS access is active. Located the correct Seoul IPv4 pooler through official region metadata and a password-free verified-TLS tenant challenge, obtained the CA from official pinned Supabase CLI source, and authenticated to the same postgres database. Updated only the idle worker’s egress/contract modules with hashes/backups; healthy. Ten restricted roles and thirty owned schemas prepared; cross-project/unrelated-table isolation passes and operator CRUD probes roll back. Actual SQL reproduced 42501 from unconditional CREATE SCHEMA on pre-existing schemas. Auth/PRD startup now validates prepared namespace ownership without schema DDL; five focused shared checks pass. Full local verify passed all 12 tasks (agents 219, web 413/one skipped, shared 34, A2UI 34); publish/deploy and all ten actual Computer/public flows are next. No database created, no protected data changed, no Hannibal calls.
 
@@ -215,7 +221,7 @@ You MUST update PROGRESS.md when you:
 
 | Date       | Agent | Context                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ---------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 2026-11-14 | Codex | T-261: ten live interviews/31 native tasks and relay probe passed at `0836b9d`; full builds remain blocked by exact Supabase pooler details and AWS renewal. See the dated validation report; no external data changed or Hannibal calls.                                                                                                                                                                    |
+| 2026-11-15 | Codex | T-261 complete: ten real Computer/public apps, actual long Gemini and signed lease expiry/reconnect passed. Operator cleanup preserved all 41 original protected tables and eight schema ACLs. Keep final preview running; exact URL/expiry and evidence are in the dated report.                                                                                                                            |
 | 2026-11-13 | Codex | T-260 complete: builder/template `731a733`, final web presentation `1b4ead6`; full PDF/Raya/Computer flow and final public acceptance passed. Live srv.us URL and bounded expiry are in `docs/validation/prd-scaffold-2026-11-13.json`; keep the current owner preview running.                                                                                                                              |
 | 2026-11-13 | Codex | Conversational scaffold refinement T-258 is deployed at `830156b` and passed the real five-turn Raya interview. Connected setup includes srv.us automatically under saved approvals/gates. Full verify and all four CI jobs passed. Current Computer/public app preserved; test conversation paused before database choice and created nothing. See `docs/validation/scaffold-conversation-2026-11-13.json`. |
 

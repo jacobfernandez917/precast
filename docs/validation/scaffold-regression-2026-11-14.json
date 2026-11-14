@@ -2,47 +2,58 @@
   "task": "T-261",
   "date": "2026-11-14",
   "timezone": "Asia/Manila",
-  "generatedAt": "2026-11-14T09:54:14.883Z",
-  "status": "blocked_before_ten_connected_app_builds",
+  "generatedAt": "2026-11-14T17:40:42.080Z",
+  "status": "completed",
   "request": "Test at least ten project ideas through Raya and a real Computer, fix and retest gaps, reuse the supplied external Postgres database without Hannibal, verify srv.us and keep database cleanup with the operator.",
   "result": {
-    "projectIdeas": 10,
-    "localMaterializationsPassed": 10,
-    "realRayaPrdInterviewsPassed": 10,
-    "completedNativeRayaTasks": 31,
-    "newComputerRuns": 0,
-    "fullConnectedAppsCompleted": 0,
-    "newWorkingAppUrls": [],
-    "operatorHostSrvUsTransportProbe": "passed",
-    "externalDatabaseModified": false,
-    "hannibalCallsObserved": 0
+    "uniqueProjectIdeas": 10,
+    "fullConversationalComputerFlowsPassed": 10,
+    "publicAppAcceptancePassed": 10,
+    "newDatabases": 0,
+    "hannibalCalls": 0,
+    "operatorOnlyDatabaseReset": true,
+    "finalPublicUrl": "https://7icqqfrqqlvjtsgwn2opi4i2ve.srv.us",
+    "expiresAt": "2026-11-14T22:35:16.885Z"
   },
   "delivery": {
-    "precast": {
-      "branch": "develop",
-      "existingDatabaseCommit": "2dc140ae0684f7fa1d1356f0c3a1eb05d39eb859",
-      "liveReviewFixCommit": "0836b9d4fb22d90f79418e84df52e183b3f18a0f",
-      "sourceImportStatus": "SYNCED",
+    "rayaOrigin": "https://raya-local.917v.dev",
+    "computer": "Real AWS nonprod Developer Computer with persistent encrypted home",
+    "applicationPath": "Projects/precast-rt-20261114-10-events",
+    "liveUrl": "https://7icqqfrqqlvjtsgwn2opi4i2ve.srv.us",
+    "expiresAt": "2026-11-14T22:35:16.885Z",
+    "access": "Create an account on the app. Regression accounts and records were removed by the operator.",
+    "earlierPreviews": "The first nine were verified while running, then their completed sessions were stopped to reuse the same Computer."
+  },
+  "deployment": {
+    "precastCode": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+    "precastCiRun": 43613884610,
+    "allFourCiJobsPassed": true,
+    "agentbaseCompanion": "a99b07f9526b78a1de79d0dd80be6de5b5e48486",
+    "builder": {
+      "id": "ca2c3767-46e8-439c-99cb-4687a713fc9f",
+      "status": "SYNCED",
       "runtimeState": "RUNNING",
-      "environment": "LOCAL/nonprod",
-      "databaseSetupMode": "existing",
-      "automaticPublicPreview": "srv.us",
-      "ci": {
-        "run": 43581289031,
-        "url": "https://github.com/jacobfernandez917/precast/actions/runs/43581289031",
-        "jobs": ["verify", "e2e", "images (web)", "images (agents)"],
-        "result": "all four passed"
-      }
+      "commitSha": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+      "checkedAt": "2026-11-14T17:38:20.384Z"
     },
-    "agentbase": {
-      "branch": "develop",
-      "commit": "a99b07f9526b78a1de79d0dd80be6de5b5e48486",
-      "api": "LOCAL/nonprod deployed and healthz HTTP 200; external database preview gate active",
-      "workerManager": "update blocked by expired AWS sign-in",
-      "developerImage": "20261113.precast.5 unchanged",
-      "sharedCheckout": "No shared source edits; component overlay preserves the other session’s work",
-      "migration": "none; OD-239 records the external preview gate"
-    }
+    "workerSourceCommit": "a99b07f9526b78a1de79d0dd80be6de5b5e48486",
+    "workerModules": [
+      {
+        "name": "egress",
+        "target": "/opt/computer-sandbox-manager/dist/egress.js",
+        "oldSha256": "20c17b10d2fd6e2338542693192ca6d7fa88ceec337bc7370d9b413ff1227c68",
+        "newSha256": "aecb73a6c8edfa700b2946f5c460c477e2483c34f87133298b746f377be87c35"
+      },
+      {
+        "name": "contract",
+        "target": "/opt/computer-sandbox-manager/node_modules/@agentbase/agent-deployer-contract/dist/index.js",
+        "oldSha256": "f6feb58da153b7ea67a4e22dc62414675df477e2c84f9df785557fcd27547a41",
+        "newSha256": "2c23f6feba6cbe8adc2d48688a288791e64384fcde77d41d7745200284b436d9"
+      }
+    ],
+    "developerImage": "sha256:174dd8081bfe7ac122663915444be744c4951eee870450c19aa2f0161af48e97",
+    "apiAndWorkerExistingDatabaseGatesEnabled": true,
+    "remoteRepositoriesCreated": 0
   },
   "fixes": [
     {
@@ -53,12 +64,12 @@
     {
       "gap": "A shared external database needs project isolation and explicit network approval",
       "change": "Strict TLS, exact database/pooler project binding, a restricted role and three owned schemas; a separate API gate admits only approved provider hosts and public Supabase address pins.",
-      "validation": "API 29 and worker 128 checks pass. Live external database and worker enforcement remain untested until the two required inputs arrive."
+      "validation": "API 29 and worker 128 checks pass; exact worker modules deployed with hashes/backups, ten restricted-role real Computer builds and public flows passed, and actual signed network lease expiry/reconnect passed."
     },
     {
       "gap": "Different project names could normalize or truncate to the same database schemas",
       "change": "Existing-database projects use a SHA-256-derived database namespace.",
-      "validation": "Two namespace regressions pass; no external schemas were created."
+      "validation": "Two namespace regressions pass; all 39 manifest-owned schemas across ten projects and three retained failed attempts have distinct expected owners and markers; original 41 protected tables and eight schema ACLs are unchanged after operator-only cleanup."
     },
     {
       "gap": "Impossible calendar dates and duplicate dropdown choices were accepted",
@@ -88,547 +99,2713 @@
     {
       "gap": "An opaque encoded identifier appeared in an earlier native reply",
       "change": "Builder guidance explicitly avoids copying opaque historical prefixes.",
-      "validation": "No encoded UUID prefix in the 31 retest replies. The original upstream-generation cause was not established; this is a verified prompt-level mitigation."
+      "validation": "No encoded UUID prefix in the earlier 31 native retest replies or the ten full conversational flows. The original upstream-generation cause was not established; this is a verified prompt-level mitigation."
+    },
+    {
+      "case": 1,
+      "candidate": "a1e8659b2a6008a10dd445f9a8b418b758a280de",
+      "runId": "fd4f3bcf-a6b3-4383-8a95-faf64e56ca96",
+      "stage": "preview startup",
+      "observed": "Prepared-schema auth migration attempted CREATE SCHEMA and Postgres denied database CREATE.",
+      "fix": "a4673bfe539bfadc6860263e5d1fb9e961b25c86",
+      "retestRunId": "c3937c89-dee4-4c53-bfa6-b834f4ed281e"
+    },
+    {
+      "case": 2,
+      "candidate": "a4673bfe539bfadc6860263e5d1fb9e961b25c86",
+      "runId": "305e603d-fbf5-4f1d-8793-f1da25499497",
+      "stage": "public record UI",
+      "observed": "Untouched optional checkbox was omitted instead of persisted as false.",
+      "fix": "805883656d9e3c012686a44bccb31601c41c20af",
+      "retestRunId": "b27cf2bc-bd1a-4ff4-8492-cdcce7fdce8b"
+    },
+    {
+      "case": 3,
+      "candidate": "805883656d9e3c012686a44bccb31601c41c20af",
+      "runId": "4f0e4b3d-c7cb-4769-8358-a9c7689577cb",
+      "stage": "bootstrap dependency update",
+      "observed": "pnpm selected Better Auth 1.7.24 but its memory-adapter tarball returned registry HTTP 404 during the run.",
+      "fix": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+      "retestRunId": "1c6b48bd-0660-4fbc-bd1e-722c9c78e57c"
     }
   ],
   "verification": {
-    "fullPrecastVerify": {
-      "tasks": 12,
-      "result": "passed",
+    "localFullVerify": {
+      "tasksPassed": 12,
       "agents": 219,
-      "webPassed": 413,
+      "web": 416,
       "webSkipped": 1,
-      "shared": 29,
+      "shared": 34,
       "a2ui": 34
     },
-    "mastraBundle": "passed",
-    "agentbase": {
-      "apiPreviewTests": 29,
-      "workerTests": 128,
-      "apiTypecheck": "passed",
-      "touchedFileLint": "passed"
+    "actualOfflineFrozenBootstrap": {
+      "passed": true,
+      "offline": true,
+      "bootstrap": true,
+      "derivedTypecheck": true,
+      "lockfileUnchanged": true,
+      "lockSha256": "3c064536ca576322de4dec3a8aab1879a8880349ed3a42d80a0ca98012200f5e",
+      "at": "2026-11-14T16:06:57.549Z"
     },
-    "localMaterializations": {
-      "cases": 10,
-      "result": "passed",
-      "scope": "Local product generation and schema checks only; no Computer, external database or public app."
+    "nativeAudit": {
+      "completedA2aTasks": 21,
+      "successfulComputerRuns": 10,
+      "conversationGatesVerified": [
+        {
+          "case": 1,
+          "runCreatedOnlyAfterFinalHumanInput": true,
+          "priorReviewTurnsCompletedBeforeRun": true
+        },
+        {
+          "case": 2,
+          "runCreatedOnlyAfterFinalHumanInput": true,
+          "priorReviewTurnsCompletedBeforeRun": true
+        },
+        {
+          "case": 3,
+          "runCreatedOnlyAfterFinalHumanInput": true,
+          "priorReviewTurnsCompletedBeforeRun": true
+        },
+        {
+          "case": 4,
+          "runCreatedOnlyAfterFinalHumanInput": true,
+          "priorReviewTurnsCompletedBeforeRun": true
+        },
+        {
+          "case": 5,
+          "runCreatedOnlyAfterFinalHumanInput": true,
+          "priorReviewTurnsCompletedBeforeRun": true
+        },
+        {
+          "case": 6,
+          "runCreatedOnlyAfterFinalHumanInput": true,
+          "priorReviewTurnsCompletedBeforeRun": true
+        },
+        {
+          "case": 7,
+          "runCreatedOnlyAfterFinalHumanInput": true,
+          "priorReviewTurnsCompletedBeforeRun": true
+        },
+        {
+          "case": 8,
+          "runCreatedOnlyAfterFinalHumanInput": true,
+          "priorReviewTurnsCompletedBeforeRun": true
+        },
+        {
+          "case": 9,
+          "runCreatedOnlyAfterFinalHumanInput": true,
+          "priorReviewTurnsCompletedBeforeRun": true
+        },
+        {
+          "case": 10,
+          "runCreatedOnlyAfterFinalHumanInput": true,
+          "priorReviewTurnsCompletedBeforeRun": true
+        }
+      ],
+      "previewSessions": [
+        {
+          "id": "d6897df4-d7b1-48a8-ac77-daf4679018b8",
+          "state": "STOPPED",
+          "stopped_at": "2026-11-14T15:31:44.672Z"
+        },
+        {
+          "id": "a636a36d-64e6-431c-85e7-a6b98d5fa58b",
+          "state": "STOPPED",
+          "stopped_at": "2026-11-14T15:58:28.642Z"
+        },
+        {
+          "id": "70a9c703-ab2a-42f8-8061-b71b98ed41ad",
+          "state": "STOPPED",
+          "stopped_at": "2026-11-14T16:22:39.385Z"
+        },
+        {
+          "id": "64f3df30-d80a-4c8e-bfd2-3b291a514b93",
+          "state": "STOPPED",
+          "stopped_at": "2026-11-14T16:41:03.344Z"
+        },
+        {
+          "id": "dd00920e-3660-43e6-84d2-5629ada1791c",
+          "state": "STOPPED",
+          "stopped_at": "2026-11-14T16:49:53.627Z"
+        },
+        {
+          "id": "f145ceb8-1f9f-42c3-9d89-33d3dc1fd90a",
+          "state": "STOPPED",
+          "stopped_at": "2026-11-14T17:01:31.641Z"
+        },
+        {
+          "id": "15051c36-9477-435e-b82f-3b4ca1fb0f91",
+          "state": "STOPPED",
+          "stopped_at": "2026-11-14T17:09:37.704Z"
+        },
+        {
+          "id": "805bcbea-7186-4e19-9748-b224b1bea7b2",
+          "state": "STOPPED",
+          "stopped_at": "2026-11-14T17:17:21.166Z"
+        },
+        {
+          "id": "bee0b2a5-89d1-4d27-baed-788dd7d9ed86",
+          "state": "STOPPED",
+          "stopped_at": "2026-11-14T17:24:52.277Z"
+        },
+        {
+          "id": "d443ee15-a04c-4e6e-a060-edd45d9d61b8",
+          "state": "HUMAN_CONTROL",
+          "stopped_at": null
+        }
+      ],
+      "hannibalCalls": 0,
+      "regressionApplications": 13,
+      "modelCalls": [
+        {
+          "application_id": "0c408f57-db28-4868-93dd-47547c25fb0b",
+          "listing_id": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status_code": 200,
+          "calls": 3,
+          "input_tokens": "3747",
+          "output_tokens": "89",
+          "maximum_latency_ms": 3121
+        },
+        {
+          "application_id": "52e8e208-652a-4912-9f6c-5e563dc31d97",
+          "listing_id": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status_code": 200,
+          "calls": 3,
+          "input_tokens": "3726",
+          "output_tokens": "87",
+          "maximum_latency_ms": 2964
+        },
+        {
+          "application_id": "5aa2df01-cd63-4d46-a57b-7dd42cbd9b5d",
+          "listing_id": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status_code": 200,
+          "calls": 3,
+          "input_tokens": "3620",
+          "output_tokens": "85",
+          "maximum_latency_ms": 2645
+        },
+        {
+          "application_id": "6b213981-47b5-424d-8179-8b2d4d0a1b94",
+          "listing_id": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status_code": 200,
+          "calls": 1,
+          "input_tokens": "11",
+          "output_tokens": "7",
+          "maximum_latency_ms": 3045
+        },
+        {
+          "application_id": "743fd5a0-b14a-4805-ac13-68cd8a59a9e0",
+          "listing_id": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status_code": 200,
+          "calls": 3,
+          "input_tokens": "3853",
+          "output_tokens": "160",
+          "maximum_latency_ms": 3846
+        },
+        {
+          "application_id": "7d180e6f-fb39-4363-9adc-293c07e6a32c",
+          "listing_id": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status_code": 200,
+          "calls": 3,
+          "input_tokens": "3911",
+          "output_tokens": "170",
+          "maximum_latency_ms": 3983
+        },
+        {
+          "application_id": "89f927f1-315d-444e-9294-043a947ef2b8",
+          "listing_id": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status_code": 200,
+          "calls": 7,
+          "input_tokens": "11720",
+          "output_tokens": "12725",
+          "maximum_latency_ms": 97237
+        },
+        {
+          "application_id": "8fd7eee5-e962-4d5c-af94-e81b03a49b13",
+          "listing_id": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status_code": 200,
+          "calls": 3,
+          "input_tokens": "3522",
+          "output_tokens": "89",
+          "maximum_latency_ms": 2569
+        },
+        {
+          "application_id": "909326d1-89d7-4eae-8c23-b907a88db2d0",
+          "listing_id": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status_code": 200,
+          "calls": 1,
+          "input_tokens": "11",
+          "output_tokens": "7",
+          "maximum_latency_ms": 3619
+        },
+        {
+          "application_id": "9815045c-4b29-454d-9a4e-21b61e4f7aa8",
+          "listing_id": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status_code": 200,
+          "calls": 3,
+          "input_tokens": "3611",
+          "output_tokens": "83",
+          "maximum_latency_ms": 2841
+        },
+        {
+          "application_id": "9b878dda-b13e-42df-9f9d-08a0c042c50a",
+          "listing_id": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status_code": 200,
+          "calls": 3,
+          "input_tokens": "3491",
+          "output_tokens": "84",
+          "maximum_latency_ms": 2444
+        },
+        {
+          "application_id": "c90d146f-f7ef-4a06-b1df-e114cee0fd42",
+          "listing_id": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status_code": 200,
+          "calls": 3,
+          "input_tokens": "3707",
+          "output_tokens": "87",
+          "maximum_latency_ms": 2828
+        }
+      ]
     },
-    "realRaya": {
-      "startedAt": "2026-11-14T09:36:36.995Z",
-      "endedAt": "2026-11-14T09:51:06.255Z",
-      "turns": 31,
-      "nativeTasks": "31 completed",
-      "scope": "Actual PDF uploads, model-backed review, missing-only questions, clarifications, preparation and persisted cancellation. Every review explicitly stopped before execution.",
-      "builderAudit": {
-        "since": "2026-11-14T00:00:00.000Z",
-        "successfulModelCompletionsForBuilder": 169,
-        "modelCompletionScope": "All builder identity calls since the audit boundary, including initial reviews and retests; not only the 31 final turns.",
-        "hannibalCallsForBuilderOrOwner": 0,
-        "newComputerRuns": 0
-      }
+    "sourceArtifactsVerified": 100,
+    "finalPublic": {
+      "url": "https://7icqqfrqqlvjtsgwn2opi4i2ve.srv.us",
+      "projectName": "precast-rt-20261114-10-events",
+      "expiresAt": "2026-11-14T22:35:16.885Z",
+      "checks": {
+        "healthReady": true,
+        "correctPublicProduct": true,
+        "signInAvailable": true,
+        "anonymousRecordsDenied": true,
+        "privateFilesNotPublished": true
+      },
+      "checkedAt": "2026-11-14T17:40:15.137Z",
+      "passed": true
     }
   },
   "projects": [
     {
       "case": 1,
-      "idea": "habits",
       "title": "Daily Habits",
+      "idea": "habits",
       "scenario": "none",
-      "localMaterialization": "passed",
-      "rayaInterview": "passed",
-      "elapsedMs": 43494,
-      "sourceHash": "83bd554bbf328d26d92352a5641eeafed2e72d915bb13aa94345a7ea6fabe9bb",
-      "exactSourceRetained": true,
-      "exactCollectionAndFieldContract": true,
-      "draftDiscardVerified": true,
-      "computerUnchanged": true,
-      "prepared": {
-        "projectName": "precast-rt-20261114-01-habits",
-        "theme": "stockholm",
-        "services": "existing-postgres-gemini",
-        "preview": "srv.us"
+      "conversationalChecks": {
+        "currentProjectApprovalsActivated": true
       },
-      "turns": [
+      "projectPath": "Projects/precast-rt-20261114-01-habits-v2",
+      "templateAndBuilderCandidate": "a4673bfe539bfadc6860263e5d1fb9e961b25c86",
+      "applicationId": "9b878dda-b13e-42df-9f9d-08a0c042c50a",
+      "runId": "c3937c89-dee4-4c53-bfa6-b834f4ed281e",
+      "sessionId": "d6897df4-d7b1-48a8-ac77-daf4679018b8",
+      "startedAt": "2026-11-14T15:20:27.149Z",
+      "completedAt": "2026-11-14T15:27:14.769Z",
+      "conversation": [
         {
-          "workId": "def81e27-333c-4c9b-b3d7-d29033c1e856",
-          "nativeA2aTaskId": "3143c9b4-fc63-4296-880d-c19c292d5d22",
-          "elapsedMs": 29047,
-          "questionCount": 0
-        },
-        {
-          "workId": "7799784f-67f5-4152-974e-8cacca13fe14",
-          "nativeA2aTaskId": "70962aa9-b243-4613-9da5-7fc388a349ca",
-          "elapsedMs": 12877,
-          "questionCount": 0
+          "status": "done",
+          "workId": "22ffb5f0-acb9-4e38-bdb2-39867b74aa50",
+          "nativeA2aTaskId": "ec352392-89e9-4643-b419-42a6ac7453dc",
+          "elapsedMs": 274414,
+          "replyWasOneQuestionOrVerifiedResult": true
         }
       ],
-      "fullComputerAndPublicApp": "blocked before build",
-      "workingAppUrl": null
+      "prdSourceHash": "0dfba5e85411052ddd3fbdeb4bcf1462b4df0b04691ac390db184831be9b1970",
+      "exactPrdSource": true,
+      "sourceArtifacts": [
+        {
+          "path": "Projects/precast-rt-20261114-01-habits-v2/.precast/prd-build.json",
+          "sha256": "sha256:953df99a29b36315d166660301bede4d7452005aa24f52892485e2a6c1587b17",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-01-habits-v2/docs/PRD.md",
+          "sha256": "sha256:8c3c74e0b6b2ad87e7f5e4ffdb947cedf032446450d025b1ffd3e2a5512062ef",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-01-habits-v2/docs/DATA_MODEL.md",
+          "sha256": "sha256:b62ee2cf5ef4d70da38c95f55a66bc1b499853290e69f30bd748e2a9386af2ca",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-01-habits-v2/docs/AGENT_SPEC.md",
+          "sha256": "sha256:92a29af877ef0eb518abe6c34ec65e95ed512ea0d2870787c3bc099ceebd60a8",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-01-habits-v2/docs/DESIGN_SYSTEM.md",
+          "sha256": "sha256:993196f9e11620b3911fed35f399de435c7525eb2a38659c837fbd33fd84414e",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-01-habits-v2/docs/PRD_ACCEPTANCE.md",
+          "sha256": "sha256:a5e12035d5301d6ad99bf770e4754460bf05765d8946497a9b6ca29afc564bd0",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-01-habits-v2/packages/shared/src/project-brief.ts",
+          "sha256": "sha256:17e4dd748587fa45ce0b1ef52e28495ad9bd5ab80ba1f4f6a7c6888cf0e9b1e2",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-01-habits-v2/.precast/service-setup.json",
+          "sha256": "sha256:0a57eb1990079dbc5fbed8c3a67defe10591f0a00383a32eb806b84e57053bf9",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-01-habits-v2/.precast/preview/srv.json",
+          "sha256": "sha256:aa84a0a8b072f60598b744af05e4c6ce534e331d944e5961d38fde382685ee6a",
+          "scan": "clean"
+        }
+      ],
+      "collections": [
+        {
+          "id": "habits",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        }
+      ],
+      "selectedThemeVerified": true,
+      "publicChecks": {
+        "signup": true,
+        "unauthenticatedDenied": true,
+        "privateFilesNotPublished": true,
+        "fieldValidation": true,
+        "ownerInjectionDenied": true,
+        "crossOriginWritesDenied": true
+      },
+      "realGemini": {
+        "realConnectedGemini": true,
+        "streamedResponse": true,
+        "durationMs": 10990
+      },
+      "subscriptions": [
+        {
+          "listingId": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status": "ACTIVE"
+        }
+      ],
+      "geminiCalls": [
+        {
+          "status": 200,
+          "latencyMs": 2131,
+          "inputTokens": 11,
+          "outputTokens": 6
+        },
+        {
+          "status": 200,
+          "latencyMs": 2444,
+          "inputTokens": 1589,
+          "outputTokens": 46
+        },
+        {
+          "status": 200,
+          "latencyMs": 1405,
+          "inputTokens": 1891,
+          "outputTokens": 32
+        }
+      ],
+      "nativeActions": [
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "git",
+          "exitCode": 0,
+          "durationMs": 1798
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 93305
+        },
+        {
+          "operation": "file_create",
+          "state": "SUCCEEDED"
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 2457
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 2953
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 16870
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 82540
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 10297
+        }
+      ],
+      "publicUrl": "https://dr5hyrm6r7h24irlbarvwavhs4.srv.us",
+      "urlState": "verified_during_test_then_session_stopped",
+      "expiresAt": "2026-11-14T23:10:39.408Z",
+      "status": "passed",
+      "templateProvenance": {
+        "case": 1,
+        "projectName": "precast-rt-20261114-01-habits-v2",
+        "precastCommit": "a4673bfe539bfadc6860263e5d1fb9e961b25c86",
+        "precastVersion": "0.12.4",
+        "sha256": "sha256:92ea1e791fc4126c1a03c949bf684dc08fe7281833d25c3a5fb278e78703a5c7",
+        "artifactId": "35992e1f-4f53-4663-a523-2735435874a6",
+        "scan": "clean"
+      }
     },
     {
       "case": 2,
-      "idea": "expenses",
       "title": "Pocket Ledger",
+      "idea": "expenses",
       "scenario": "theme",
-      "localMaterialization": "passed",
-      "rayaInterview": "passed",
-      "elapsedMs": 42611,
-      "sourceHash": "6932f0cc74596712d399ca8122bcba191ef7e5ba912ab862a4268013627b8458",
-      "exactSourceRetained": true,
-      "exactCollectionAndFieldContract": true,
-      "draftDiscardVerified": true,
-      "computerUnchanged": true,
-      "prepared": {
-        "projectName": "precast-rt-20261114-02-expenses",
-        "theme": "prague",
-        "services": "existing-postgres-gemini",
-        "preview": "srv.us"
+      "conversationalChecks": {
+        "currentProjectApprovalsActivated": true
       },
-      "turns": [
+      "projectPath": "Projects/precast-rt-20261114-02-expenses-v2",
+      "templateAndBuilderCandidate": "805883656d9e3c012686a44bccb31601c41c20af",
+      "applicationId": "c90d146f-f7ef-4a06-b1df-e114cee0fd42",
+      "runId": "b27cf2bc-bd1a-4ff4-8492-cdcce7fdce8b",
+      "sessionId": "a636a36d-64e6-431c-85e7-a6b98d5fa58b",
+      "startedAt": "2026-11-14T15:46:30.048Z",
+      "completedAt": "2026-11-14T15:56:27.913Z",
+      "conversation": [
         {
-          "workId": "c6ebfff5-7692-4ae7-8019-a47128be4291",
-          "nativeA2aTaskId": "87b326e0-ce8b-4eba-a470-89aec72e86f9",
-          "elapsedMs": 20011,
-          "questionCount": 1
+          "status": "done",
+          "workId": "570cfc68-3115-440a-ac4f-60919c54c0b8",
+          "nativeA2aTaskId": "5751ec15-2828-4ede-9d71-ef8f4881f7b8",
+          "elapsedMs": 24395,
+          "replyWasOneQuestionOrVerifiedResult": true
         },
         {
-          "workId": "db476b5f-f8c5-49ef-8d3d-75219023c510",
-          "nativeA2aTaskId": "0dedd380-d9df-4600-8f72-d411198efc30",
-          "elapsedMs": 12232,
-          "questionCount": 0
-        },
-        {
-          "workId": "0e82d483-c886-4984-b522-47ba3d109a2c",
-          "nativeA2aTaskId": "d960d45a-75ba-4669-b9f3-b425dd2e2c06",
-          "elapsedMs": 9234,
-          "questionCount": 0
+          "status": "done",
+          "workId": "1aab37b2-8e5a-4180-a3ee-a292a28e2f04",
+          "nativeA2aTaskId": "47601d3f-50da-45c7-a4b2-643f79b3d9da",
+          "elapsedMs": 246797,
+          "replyWasOneQuestionOrVerifiedResult": true
         }
       ],
-      "fullComputerAndPublicApp": "blocked before build",
-      "workingAppUrl": null
+      "prdSourceHash": "53f0aecb2783a14a96fd066b493b786ffd7f515959454c8ab4c22cd080ca4246",
+      "exactPrdSource": true,
+      "sourceArtifacts": [
+        {
+          "path": "Projects/precast-rt-20261114-02-expenses-v2/.precast/prd-build.json",
+          "sha256": "sha256:8e638b0bd265a487dd7aad5afd6aaae36706d0dafbe26ddbecf243884649bbef",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-02-expenses-v2/docs/PRD.md",
+          "sha256": "sha256:bddbb0515951fc3c2a7d603d148f8cc306c0a9d92ffb0701c55d10ee752a4342",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-02-expenses-v2/docs/DATA_MODEL.md",
+          "sha256": "sha256:c71757ee53802f822484cf7590ddc54a509170b153f18735ded21f2e9c554e26",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-02-expenses-v2/docs/AGENT_SPEC.md",
+          "sha256": "sha256:1b71ec777db83a0e5be3426d3484849ece0da0afff7f7f473a70a34665c8588a",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-02-expenses-v2/docs/DESIGN_SYSTEM.md",
+          "sha256": "sha256:13b26ee1eda46fa23453e3c225dc71b6dbc34500b981ce748bc59dde3c64d353",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-02-expenses-v2/docs/PRD_ACCEPTANCE.md",
+          "sha256": "sha256:04d077e70be9406883414355c314915b79eea4af9d090bed66d5161115ea0dd4",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-02-expenses-v2/packages/shared/src/project-brief.ts",
+          "sha256": "sha256:4c7f43a13f1bc6da0bc753409fecbdc739c998b917a1e792b332a9d84e1abe4c",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-02-expenses-v2/.precast/service-setup.json",
+          "sha256": "sha256:f257b94fd8b7fa7aea92b3b33dab6c4c7eb80ab61234cab90788dbee0f0e9a9c",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-02-expenses-v2/.precast/preview/srv.json",
+          "sha256": "sha256:c63facb4047c5ec8c17c50127bdb314668944b7795c164a0c0127566379e14b9",
+          "scan": "clean"
+        }
+      ],
+      "collections": [
+        {
+          "id": "expenses",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        }
+      ],
+      "selectedThemeVerified": true,
+      "publicChecks": {
+        "signup": true,
+        "unauthenticatedDenied": true,
+        "privateFilesNotPublished": true,
+        "fieldValidation": true,
+        "ownerInjectionDenied": true,
+        "crossOriginWritesDenied": true
+      },
+      "realGemini": {
+        "realConnectedGemini": true,
+        "streamedResponse": true,
+        "durationMs": 11522
+      },
+      "subscriptions": [
+        {
+          "listingId": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status": "ACTIVE"
+        }
+      ],
+      "geminiCalls": [
+        {
+          "status": 200,
+          "latencyMs": 2114,
+          "inputTokens": 11,
+          "outputTokens": 7
+        },
+        {
+          "status": 200,
+          "latencyMs": 2828,
+          "inputTokens": 1636,
+          "outputTokens": 47
+        },
+        {
+          "status": 200,
+          "latencyMs": 1256,
+          "inputTokens": 2060,
+          "outputTokens": 33
+        }
+      ],
+      "nativeActions": [
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "git",
+          "exitCode": 0,
+          "durationMs": 1610
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 92442
+        },
+        {
+          "operation": "file_create",
+          "state": "SUCCEEDED"
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 2292
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 2823
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 16521
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 82515
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 10324
+        }
+      ],
+      "publicUrl": "https://vtfmidw5bx6f6irm5xjcsgx2my.srv.us",
+      "urlState": "verified_during_test_then_session_stopped",
+      "expiresAt": "2026-11-14T23:44:47.165Z",
+      "status": "passed",
+      "templateProvenance": {
+        "case": 2,
+        "projectName": "precast-rt-20261114-02-expenses-v2",
+        "precastCommit": "805883656d9e3c012686a44bccb31601c41c20af",
+        "precastVersion": "0.12.4",
+        "sha256": "sha256:b39d8723fc9a611cf24f826b91e33c5ed1898231591b0f6b5d617bf4c7d5747b",
+        "artifactId": "96170414-c280-4138-b5ce-7bdf8ba64095",
+        "scan": "clean"
+      }
     },
     {
       "case": 3,
-      "idea": "jobs",
       "title": "Job Search Notebook",
+      "idea": "jobs",
       "scenario": "name",
-      "localMaterialization": "passed",
-      "rayaInterview": "passed",
-      "elapsedMs": 41080,
-      "sourceHash": "d60fcc3e91a93c2e1887daf84479bfbb22568406152a7f56113e12a1423a0bc8",
-      "exactSourceRetained": true,
-      "exactCollectionAndFieldContract": true,
-      "draftDiscardVerified": true,
-      "computerUnchanged": true,
-      "prepared": {
-        "projectName": "precast-rt-20261114-03-jobs",
-        "theme": "arctic",
-        "services": "existing-postgres-gemini",
-        "preview": "srv.us"
+      "conversationalChecks": {
+        "currentProjectApprovalsActivated": true
       },
-      "turns": [
+      "projectPath": "Projects/precast-rt-20261114-03-jobs-v2",
+      "templateAndBuilderCandidate": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+      "applicationId": "8fd7eee5-e962-4d5c-af94-e81b03a49b13",
+      "runId": "1c6b48bd-0660-4fbc-bd1e-722c9c78e57c",
+      "sessionId": "70a9c703-ab2a-42f8-8061-b71b98ed41ad",
+      "startedAt": "2026-11-14T16:10:51.137Z",
+      "completedAt": "2026-11-14T16:20:58.214Z",
+      "conversation": [
         {
-          "workId": "c62a1966-2b60-41b8-8fd0-46e8e70c4d5d",
-          "nativeA2aTaskId": "deb7714f-c451-4649-9f79-238537bffd48",
-          "elapsedMs": 24425,
-          "questionCount": 1
+          "status": "done",
+          "workId": "cb95b001-2214-43b8-806b-6269c8986e7a",
+          "nativeA2aTaskId": "444b8cb8-3492-484e-86d7-cbbb1ed9bf94",
+          "elapsedMs": 9274,
+          "replyWasOneQuestionOrVerifiedResult": true
         },
         {
-          "workId": "bd5d01c1-0ff4-459a-8792-7e9bab7ee0ba",
-          "nativeA2aTaskId": "f5b0ad2c-6ff6-4689-966a-f220360f3dc8",
-          "elapsedMs": 9323,
-          "questionCount": 0
-        },
-        {
-          "workId": "7d8c3c09-b336-4aa9-889d-7efdf9f35233",
-          "nativeA2aTaskId": "d7a2ac25-e078-4bc4-beda-7b22f47931d7",
-          "elapsedMs": 6343,
-          "questionCount": 0
+          "status": "done",
+          "workId": "47e9d955-1054-42f8-b7f4-137be0486063",
+          "nativeA2aTaskId": "d7505143-aaf0-4796-90ef-503736d750f4",
+          "elapsedMs": 241454,
+          "replyWasOneQuestionOrVerifiedResult": true
         }
       ],
-      "fullComputerAndPublicApp": "blocked before build",
-      "workingAppUrl": null
+      "prdSourceHash": "d60fcc3e91a93c2e1887daf84479bfbb22568406152a7f56113e12a1423a0bc8",
+      "exactPrdSource": true,
+      "sourceArtifacts": [
+        {
+          "path": "Projects/precast-rt-20261114-03-jobs-v2/.precast/prd-build.json",
+          "sha256": "sha256:85fddd676d4b3f32fed00cca4b66d3d1f9961f408af012c086722b1630285568",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-03-jobs-v2/docs/PRD.md",
+          "sha256": "sha256:f693847f4e3c0fc3ec972ca5438d77fb1a0f24655600a71ff562f2a96c535108",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-03-jobs-v2/docs/DATA_MODEL.md",
+          "sha256": "sha256:b489fdd607c87c8d2232723763b32884f4aa338476c1af0060e4f18b1162b499",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-03-jobs-v2/docs/AGENT_SPEC.md",
+          "sha256": "sha256:da53a9f3cfca8055cf954dcdbe703020c3a3369225d12925dd22c0ba7865525e",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-03-jobs-v2/docs/DESIGN_SYSTEM.md",
+          "sha256": "sha256:41dcaaa2aaf5aeccff2dbcbae2d8704ffbd6c6058cfd6b86b10affefcd5035be",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-03-jobs-v2/docs/PRD_ACCEPTANCE.md",
+          "sha256": "sha256:b357390ef678b1b035fd4a9cff0186b104379403756c985d7e60c28479710557",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-03-jobs-v2/packages/shared/src/project-brief.ts",
+          "sha256": "sha256:9980dd18e3d660e9ec4a35896a07d4b8959c6e02a5c40d5897677fc831747212",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-03-jobs-v2/.precast/service-setup.json",
+          "sha256": "sha256:bb54bba66dd3bf2dbb6ef5ceda43d0fece09bafa8ec97b7a1423fef715a3cead",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-03-jobs-v2/.precast/preview/srv.json",
+          "sha256": "sha256:567f616db8abcf3b5f7e79258cf8520e133e869881356752ef8a87dca325bd75",
+          "scan": "clean"
+        }
+      ],
+      "collections": [
+        {
+          "id": "applications",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        }
+      ],
+      "selectedThemeVerified": true,
+      "publicChecks": {
+        "signup": true,
+        "unauthenticatedDenied": true,
+        "privateFilesNotPublished": true,
+        "fieldValidation": true,
+        "ownerInjectionDenied": true,
+        "crossOriginWritesDenied": true
+      },
+      "realGemini": {
+        "realConnectedGemini": true,
+        "streamedResponse": true,
+        "durationMs": 8046
+      },
+      "subscriptions": [
+        {
+          "listingId": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status": "ACTIVE"
+        }
+      ],
+      "geminiCalls": [
+        {
+          "status": 200,
+          "latencyMs": 2569,
+          "inputTokens": 11,
+          "outputTokens": 7
+        },
+        {
+          "status": 200,
+          "latencyMs": 1914,
+          "inputTokens": 1635,
+          "outputTokens": 48
+        },
+        {
+          "status": 200,
+          "latencyMs": 2317,
+          "inputTokens": 1876,
+          "outputTokens": 34
+        }
+      ],
+      "nativeActions": [
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "git",
+          "exitCode": 0,
+          "durationMs": 5045
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 57501
+        },
+        {
+          "operation": "file_create",
+          "state": "SUCCEEDED"
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 2274
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 3285
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 16484
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 89543
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 10339
+        }
+      ],
+      "publicUrl": "https://pdtj3ddlcbkdwlnabluwuef7oe.srv.us",
+      "urlState": "verified_during_test_then_session_stopped",
+      "expiresAt": "2026-11-15T00:09:12.915Z",
+      "status": "passed",
+      "templateProvenance": {
+        "case": 3,
+        "projectName": "precast-rt-20261114-03-jobs-v2",
+        "precastCommit": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+        "precastVersion": "0.12.4",
+        "sha256": "sha256:12f04c8e24079c74d718c36421cd5e0205856324c35ade1d5a350857c8647426",
+        "artifactId": "3fb8c938-0271-4d34-9a04-7d4843da8c54",
+        "scan": "clean"
+      }
     },
     {
       "case": 4,
-      "idea": "books",
       "title": "Reading Shelf",
+      "idea": "books",
       "scenario": "clarification",
-      "localMaterialization": "passed",
-      "rayaInterview": "passed",
-      "elapsedMs": 53254,
-      "sourceHash": "c4135a75fc3cffbb5c767e1e434a21b2b7bbf2e3f55bf6ee5b149cb7939f34b3",
-      "exactSourceRetained": true,
-      "exactCollectionAndFieldContract": true,
-      "draftDiscardVerified": true,
-      "computerUnchanged": true,
-      "prepared": {
-        "projectName": "precast-rt-20261114-04-books",
-        "theme": "nova",
-        "services": "existing-postgres-gemini",
-        "preview": "srv.us"
+      "conversationalChecks": {
+        "currentProjectApprovalsActivated": true
       },
-      "turns": [
+      "projectPath": "Projects/precast-rt-20261114-04-books",
+      "templateAndBuilderCandidate": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+      "applicationId": "9815045c-4b29-454d-9a4e-21b61e4f7aa8",
+      "runId": "af9973aa-87f9-498b-b8da-f688ef39b2d7",
+      "sessionId": "64f3df30-d80a-4c8e-bfd2-3b291a514b93",
+      "startedAt": "2026-11-14T16:22:40.852Z",
+      "completedAt": "2026-11-14T16:28:19.995Z",
+      "conversation": [
         {
-          "workId": "1408d357-1d18-4ae0-a446-90919368c2cc",
-          "nativeA2aTaskId": "feb6f898-cd1c-48f4-ac2c-00e04e8ae4a0",
-          "elapsedMs": 20053,
-          "questionCount": 1
+          "status": "done",
+          "workId": "ebd793be-8cf1-4ae2-bc40-3125969f9fc4",
+          "nativeA2aTaskId": "9c8a1905-36d0-4f0b-b6ea-96bda4ab890e",
+          "elapsedMs": 22892,
+          "replyWasOneQuestionOrVerifiedResult": true
         },
         {
-          "workId": "ae8e8528-15be-4cbb-8f41-34e1e0489f42",
-          "nativeA2aTaskId": "17055071-9cdf-4809-b671-27a39de3922b",
-          "elapsedMs": 23001,
-          "questionCount": 0
-        },
-        {
-          "workId": "cd548565-7b35-4b0c-8aed-345c08ca25d5",
-          "nativeA2aTaskId": "1008eec1-f3aa-40a1-98cb-d4a0f44d6206",
-          "elapsedMs": 9439,
-          "questionCount": 0
+          "status": "done",
+          "workId": "a609ff91-6154-4901-b011-b980fa28da26",
+          "nativeA2aTaskId": "c58a1800-3cd1-44e9-9dbd-e56699232a78",
+          "elapsedMs": 242435,
+          "replyWasOneQuestionOrVerifiedResult": true
         }
       ],
-      "fullComputerAndPublicApp": "blocked before build",
-      "workingAppUrl": null
+      "prdSourceHash": "c4135a75fc3cffbb5c767e1e434a21b2b7bbf2e3f55bf6ee5b149cb7939f34b3",
+      "exactPrdSource": true,
+      "sourceArtifacts": [
+        {
+          "path": "Projects/precast-rt-20261114-04-books/.precast/prd-build.json",
+          "sha256": "sha256:73f5d041e36fd7e0021f9d0451390594f87325fff70584b2764affbbe87706bf",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-04-books/docs/PRD.md",
+          "sha256": "sha256:630467551b91a87ab20804d73c0fd411df0968ec6b4e8e0fc2d02acc6fc7e640",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-04-books/docs/DATA_MODEL.md",
+          "sha256": "sha256:2a2b31f856345719ae3a1b062bc12ed7c92af7a6d3a7ec5642e1d07eb09833d7",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-04-books/docs/AGENT_SPEC.md",
+          "sha256": "sha256:c2f1f87973e047970c0e009da56385a873f3ff7cf76d1a352d71d2054f32a5d2",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-04-books/docs/DESIGN_SYSTEM.md",
+          "sha256": "sha256:f89aa80f374ce78193bbfd9a25c6236ab5ee870f68bb3add57291cb90a04e55f",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-04-books/docs/PRD_ACCEPTANCE.md",
+          "sha256": "sha256:11a6d49e91547e997fd17ed3535029ee6d2c14aa830a4e6dda308f3935ece85d",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-04-books/packages/shared/src/project-brief.ts",
+          "sha256": "sha256:fb00f947e3daffee4afec1d96969d7c8f6ba33d2bb3219a886b16bb5a1e90699",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-04-books/.precast/service-setup.json",
+          "sha256": "sha256:752ba06c3cfcdc455bc42b34a7f137deccc47e20b37dfd0650a40f4ffc4a0cf8",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-04-books/.precast/preview/srv.json",
+          "sha256": "sha256:31958f5e61a659fb7e72ea7200929cd046e6b46dc27c53e81dd6bd6387fe9ae5",
+          "scan": "clean"
+        }
+      ],
+      "collections": [
+        {
+          "id": "books",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        }
+      ],
+      "selectedThemeVerified": true,
+      "publicChecks": {
+        "signup": true,
+        "unauthenticatedDenied": true,
+        "privateFilesNotPublished": true,
+        "fieldValidation": true,
+        "ownerInjectionDenied": true,
+        "crossOriginWritesDenied": true
+      },
+      "realGemini": {
+        "realConnectedGemini": true,
+        "streamedResponse": true,
+        "durationMs": 7802
+      },
+      "subscriptions": [
+        {
+          "listingId": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status": "ACTIVE"
+        }
+      ],
+      "geminiCalls": [
+        {
+          "status": 200,
+          "latencyMs": 2641,
+          "inputTokens": 11,
+          "outputTokens": 7
+        },
+        {
+          "status": 200,
+          "latencyMs": 2841,
+          "inputTokens": 1608,
+          "outputTokens": 45
+        },
+        {
+          "status": 200,
+          "latencyMs": 1044,
+          "inputTokens": 1992,
+          "outputTokens": 31
+        }
+      ],
+      "nativeActions": [
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "git",
+          "exitCode": 0,
+          "durationMs": 3240
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 63452
+        },
+        {
+          "operation": "file_create",
+          "state": "SUCCEEDED"
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 3762
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 3701
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 17049
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 88677
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 10327
+        }
+      ],
+      "publicUrl": "https://zaq6ejh6b2o3gknwszneolwjzu.srv.us",
+      "urlState": "verified_during_test_then_session_stopped",
+      "expiresAt": "2026-11-14T22:35:14.355Z",
+      "status": "passed",
+      "templateProvenance": {
+        "case": 4,
+        "projectName": "precast-rt-20261114-04-books",
+        "precastCommit": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+        "precastVersion": "0.12.4",
+        "sha256": "sha256:4b13539c49b340a3314fee635962cdfca6d4c8422b6a5765693b36caa76fa71c",
+        "artifactId": "732bd21c-89b5-4a4f-b04d-a1df6fbabc5f",
+        "scan": "clean"
+      }
     },
     {
       "case": 5,
-      "idea": "pantry",
       "title": "Pantry Notebook",
+      "idea": "pantry",
       "scenario": "both",
-      "localMaterialization": "passed",
-      "rayaInterview": "passed",
-      "elapsedMs": 40908,
-      "sourceHash": "5aa0388b8c7671d78a57799ada8603bf7608655c009d705b893d678c7b815442",
-      "exactSourceRetained": true,
-      "exactCollectionAndFieldContract": true,
-      "draftDiscardVerified": true,
-      "computerUnchanged": true,
-      "prepared": {
-        "projectName": "precast-rt-20261114-05-pantry",
-        "theme": "melbourne",
-        "services": "existing-postgres-gemini",
-        "preview": "srv.us"
+      "conversationalChecks": {
+        "currentProjectApprovalsActivated": true
       },
-      "turns": [
+      "projectPath": "Projects/precast-rt-20261114-05-pantry",
+      "templateAndBuilderCandidate": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+      "applicationId": "7d180e6f-fb39-4363-9adc-293c07e6a32c",
+      "runId": "95b0e745-a729-4588-9cae-5fbe11b63340",
+      "sessionId": "dd00920e-3660-43e6-84d2-5629ada1791c",
+      "startedAt": "2026-11-14T16:41:06.559Z",
+      "completedAt": "2026-11-14T16:47:01.547Z",
+      "conversation": [
         {
-          "workId": "4959215d-e731-4370-933a-95b157682dd0",
-          "nativeA2aTaskId": "a560361f-9090-4961-881e-bb7f48929477",
-          "elapsedMs": 18611,
-          "questionCount": 1
+          "status": "done",
+          "workId": "ed2e3703-52d8-4eb6-ba66-f9b2156f0ff4",
+          "nativeA2aTaskId": "11d61adc-b6d0-4a82-8367-ce34ee3b820b",
+          "elapsedMs": 25900,
+          "replyWasOneQuestionOrVerifiedResult": true
         },
         {
-          "workId": "500f5fbd-b5ed-4872-8c9f-0b810b312642",
-          "nativeA2aTaskId": "4374fc53-3ae3-4f90-8bbb-c2e1951097c8",
-          "elapsedMs": 5092,
-          "questionCount": 1
+          "status": "done",
+          "workId": "00698e96-d25c-42e3-92a1-10c87ab51909",
+          "nativeA2aTaskId": "c6804fc6-85bb-4b09-8af0-f5b8af7b2562",
+          "elapsedMs": 7676,
+          "replyWasOneQuestionOrVerifiedResult": true
         },
         {
-          "workId": "d61ed425-6342-490f-a3d8-c06106d2bf22",
-          "nativeA2aTaskId": "761d3b45-3374-49a9-9118-886277c56f59",
-          "elapsedMs": 6629,
-          "questionCount": 0
-        },
-        {
-          "workId": "b7bdbf0c-b6b6-4f7b-8a42-cac626544308",
-          "nativeA2aTaskId": "ce34c47c-d48f-481c-9cc2-0e16410eb2c4",
-          "elapsedMs": 9445,
-          "questionCount": 0
+          "status": "done",
+          "workId": "32958841-e5d9-4d7f-be32-45a6f69f1bb8",
+          "nativeA2aTaskId": "c66493dc-e04a-4101-96e3-c721e8ca4932",
+          "elapsedMs": 247434,
+          "replyWasOneQuestionOrVerifiedResult": true
         }
       ],
-      "fullComputerAndPublicApp": "blocked before build",
-      "workingAppUrl": null
+      "prdSourceHash": "5aa0388b8c7671d78a57799ada8603bf7608655c009d705b893d678c7b815442",
+      "exactPrdSource": true,
+      "sourceArtifacts": [
+        {
+          "path": "Projects/precast-rt-20261114-05-pantry/.precast/prd-build.json",
+          "sha256": "sha256:03630056a30c875a8172536d7a768730f9c16d91b1d4a87d4efebdcb486041fd",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-05-pantry/docs/PRD.md",
+          "sha256": "sha256:f17469faa053d0df91137802fee89ad924467fe0f51adc89ec819ae453acb219",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-05-pantry/docs/DATA_MODEL.md",
+          "sha256": "sha256:47c3a530d2bddf0073ce6ed9ac4b5021e05d06f96949e0805219f3309e07ec30",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-05-pantry/docs/AGENT_SPEC.md",
+          "sha256": "sha256:6912b00333a1986b97447409699a41b3440c134692b55dc65318fba9fa838322",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-05-pantry/docs/DESIGN_SYSTEM.md",
+          "sha256": "sha256:e986b8bfb01c7e2cb0f38e8287e8904cbff8ece8a9cd01d0a2439a7ed0e89003",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-05-pantry/docs/PRD_ACCEPTANCE.md",
+          "sha256": "sha256:e0422f16ace90b373ed57a0daa40ae6a8a64f0cded05323f696d48fadb122d38",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-05-pantry/packages/shared/src/project-brief.ts",
+          "sha256": "sha256:f1b60d5e6663f486616c1fdbff91bca4de51ba4c731e8101475a64f08b3640c7",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-05-pantry/.precast/service-setup.json",
+          "sha256": "sha256:4e44d00dc6756e34e987ebf0d7161f45e483e0d689c4d38f7bdb07084b2e62f4",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-05-pantry/.precast/preview/srv.json",
+          "sha256": "sha256:afb4676d1a49b70bb9d3004e4b5b3e785d79a5403f4758b0710bcdf2dde3624e",
+          "scan": "clean"
+        }
+      ],
+      "collections": [
+        {
+          "id": "items",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        }
+      ],
+      "selectedThemeVerified": true,
+      "publicChecks": {
+        "signup": true,
+        "unauthenticatedDenied": true,
+        "privateFilesNotPublished": true,
+        "fieldValidation": true,
+        "ownerInjectionDenied": true,
+        "crossOriginWritesDenied": true
+      },
+      "realGemini": {
+        "realConnectedGemini": true,
+        "streamedResponse": true,
+        "durationMs": 9293
+      },
+      "subscriptions": [
+        {
+          "listingId": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status": "ACTIVE"
+        }
+      ],
+      "geminiCalls": [
+        {
+          "status": 200,
+          "latencyMs": 2625,
+          "inputTokens": 11,
+          "outputTokens": 7
+        },
+        {
+          "status": 200,
+          "latencyMs": 3983,
+          "inputTokens": 1606,
+          "outputTokens": 132
+        },
+        {
+          "status": 200,
+          "latencyMs": 1354,
+          "inputTokens": 2294,
+          "outputTokens": 31
+        }
+      ],
+      "nativeActions": [
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "git",
+          "exitCode": 0,
+          "durationMs": 1955
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 65752
+        },
+        {
+          "operation": "file_create",
+          "state": "SUCCEEDED"
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 2549
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 3761
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 17549
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 88427
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 10311
+        }
+      ],
+      "publicUrl": "https://fuopg4rywa6buu4ad4dtf2xaci.srv.us",
+      "urlState": "verified_during_test_then_session_stopped",
+      "expiresAt": "2026-11-14T22:35:14.798Z",
+      "status": "passed",
+      "templateProvenance": {
+        "case": 5,
+        "projectName": "precast-rt-20261114-05-pantry",
+        "precastCommit": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+        "precastVersion": "0.12.4",
+        "sha256": "sha256:b8c0138ad3718f52ec779e11961023645bd008fcbe3929e1b544c274dd49df4e",
+        "artifactId": "c4b7f0c2-c435-4bf0-8521-f0d4207a250e",
+        "scan": "clean"
+      }
     },
     {
       "case": 6,
-      "idea": "followups",
       "title": "Follow-up Desk",
+      "idea": "followups",
       "scenario": "override",
-      "localMaterialization": "passed",
-      "rayaInterview": "passed",
-      "elapsedMs": 43405,
-      "sourceHash": "1a71f49c71e22105f6c0fea28ce60c0547b571c1b0ec20c2ae1ec4e693b6a3a7",
-      "exactSourceRetained": true,
-      "exactCollectionAndFieldContract": true,
-      "draftDiscardVerified": true,
-      "computerUnchanged": true,
-      "prepared": {
-        "projectName": "precast-rt-20261114-06-followups",
-        "theme": "nova",
-        "services": "existing-postgres-gemini",
-        "preview": "srv.us"
+      "conversationalChecks": {
+        "currentProjectApprovalsActivated": true
       },
-      "turns": [
+      "projectPath": "Projects/precast-rt-20261114-06-followups",
+      "templateAndBuilderCandidate": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+      "applicationId": "0c408f57-db28-4868-93dd-47547c25fb0b",
+      "runId": "c6fa18c2-7dc3-4da0-8aff-b59816b23c08",
+      "sessionId": "f145ceb8-1f9f-42c3-9d89-33d3dc1fd90a",
+      "startedAt": "2026-11-14T16:49:55.693Z",
+      "completedAt": "2026-11-14T16:56:09.500Z",
+      "conversation": [
         {
-          "workId": "c5f30e29-cd8a-4953-8f26-f948a33849a4",
-          "nativeA2aTaskId": "f63e134a-d70a-4afd-a324-5152fb55d140",
-          "elapsedMs": 17186,
-          "questionCount": 1
+          "status": "done",
+          "workId": "72ab8110-a8d4-4b0f-8926-f0322224aadd",
+          "nativeA2aTaskId": "c0d15ade-ec59-470d-b2d4-e84389ab68ad",
+          "elapsedMs": 24494,
+          "replyWasOneQuestionOrVerifiedResult": true
         },
         {
-          "workId": "aec05b9d-d973-4eeb-a054-591207a2cf39",
-          "nativeA2aTaskId": "981aa667-cb84-41eb-8cdd-93e01c4b4eb1",
-          "elapsedMs": 6512,
-          "questionCount": 0
+          "status": "done",
+          "workId": "bb7d9e17-fa5b-4749-a14b-5d5949c885b8",
+          "nativeA2aTaskId": "4565e5dd-346d-47ee-8ba5-ccd7478851f7",
+          "elapsedMs": 10806,
+          "replyWasOneQuestionOrVerifiedResult": true
         },
         {
-          "workId": "cde6bb95-6bbb-4f7b-8c26-4cca1796fce6",
-          "nativeA2aTaskId": "cdaee4f6-6ef2-48f3-a293-8c5ee7bed998",
-          "elapsedMs": 9444,
-          "questionCount": 0
-        },
-        {
-          "workId": "048f25e5-a334-4a1a-8e07-973149cb8926",
-          "nativeA2aTaskId": "36e63f17-6a04-4763-b126-aab8da78f562",
-          "elapsedMs": 8623,
-          "questionCount": 0
+          "status": "done",
+          "workId": "e285a530-8a0f-4eab-bf00-7921bbe59844",
+          "nativeA2aTaskId": "4b4820ce-4975-4425-9ad5-04b0c102d958",
+          "elapsedMs": 241879,
+          "replyWasOneQuestionOrVerifiedResult": true
         }
       ],
-      "fullComputerAndPublicApp": "blocked before build",
-      "workingAppUrl": null
+      "prdSourceHash": "1a71f49c71e22105f6c0fea28ce60c0547b571c1b0ec20c2ae1ec4e693b6a3a7",
+      "exactPrdSource": true,
+      "sourceArtifacts": [
+        {
+          "path": "Projects/precast-rt-20261114-06-followups/.precast/prd-build.json",
+          "sha256": "sha256:5efb0532aed269cc6a62f16cc80bfb453d1210f3f1aa70d7e8ee167dc1ecc4fa",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-06-followups/docs/PRD.md",
+          "sha256": "sha256:0ba205481518fc1cd3483d4c1ea0a1b0c38468adbeaad1b2af88b3b2ae2bcbcf",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-06-followups/docs/DATA_MODEL.md",
+          "sha256": "sha256:ec647e4b7f2fb7623c4d839caebd62991e66ba9d8b3f0da625f0f36e0bcabe78",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-06-followups/docs/AGENT_SPEC.md",
+          "sha256": "sha256:f1c4707d58dc192a9e039c8f0bf3506ad3a5af002989bcd4908a01453246b511",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-06-followups/docs/DESIGN_SYSTEM.md",
+          "sha256": "sha256:21382fca20729ad52a582f8692361bf84855f7dcfd3fb8f655f2700b9f0b13d5",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-06-followups/docs/PRD_ACCEPTANCE.md",
+          "sha256": "sha256:56ccd96694d6832cfbd4207422a8da5f4cb4538d43d791aabfec2b9d9d21f18e",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-06-followups/packages/shared/src/project-brief.ts",
+          "sha256": "sha256:1ee638136f64c04e9a22000ede47f5186c05e3095f6ac22cf5cdf4fcf78607ef",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-06-followups/.precast/service-setup.json",
+          "sha256": "sha256:daa05041f17103d1f8af323fe6dfd0e8dc4d118ca5c138d7f8050d7b822d8eb8",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-06-followups/.precast/preview/srv.json",
+          "sha256": "sha256:eed2f6fcb17898d357fd954797749f87a30f004ec64b358f94f8eafd530066bc",
+          "scan": "clean"
+        }
+      ],
+      "collections": [
+        {
+          "id": "contacts",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        },
+        {
+          "id": "followups",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        }
+      ],
+      "selectedThemeVerified": true,
+      "publicChecks": {
+        "signup": true,
+        "unauthenticatedDenied": true,
+        "privateFilesNotPublished": true,
+        "fieldValidation": true,
+        "ownerInjectionDenied": true,
+        "crossOriginWritesDenied": true
+      },
+      "realGemini": {
+        "realConnectedGemini": true,
+        "streamedResponse": true,
+        "durationMs": 8481
+      },
+      "subscriptions": [
+        {
+          "listingId": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status": "ACTIVE"
+        }
+      ],
+      "geminiCalls": [
+        {
+          "status": 200,
+          "latencyMs": 2925,
+          "inputTokens": 11,
+          "outputTokens": 7
+        },
+        {
+          "status": 200,
+          "latencyMs": 3121,
+          "inputTokens": 1660,
+          "outputTokens": 48
+        },
+        {
+          "status": 200,
+          "latencyMs": 1742,
+          "inputTokens": 2076,
+          "outputTokens": 34
+        }
+      ],
+      "nativeActions": [
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "git",
+          "exitCode": 0,
+          "durationMs": 1859
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 70156
+        },
+        {
+          "operation": "file_create",
+          "state": "SUCCEEDED"
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 2667
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 3663
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 16983
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 88544
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 10379
+        }
+      ],
+      "publicUrl": "https://mxroxfezbcq4lhs5q5pdros4vu.srv.us",
+      "urlState": "verified_during_test_then_session_stopped",
+      "expiresAt": "2026-11-14T22:35:15.236Z",
+      "status": "passed",
+      "templateProvenance": {
+        "case": 6,
+        "projectName": "precast-rt-20261114-06-followups",
+        "precastCommit": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+        "precastVersion": "0.12.4",
+        "sha256": "sha256:07c51303b0813c872da15dc8eba649fe6dee0af791f9777f388c4a5f34bdfc97",
+        "artifactId": "980d1272-d640-4118-a64b-c37ac98b1801",
+        "scan": "clean"
+      }
     },
     {
       "case": 7,
-      "idea": "trips",
       "title": "Trip Notebook",
+      "idea": "trips",
       "scenario": "pause",
-      "localMaterialization": "passed",
-      "rayaInterview": "passed",
-      "elapsedMs": 31710,
-      "sourceHash": "3a4e426663e4a743f710f1ae379778676d4fca11d86b8357a48b2c245435040b",
-      "exactSourceRetained": true,
-      "exactCollectionAndFieldContract": true,
-      "draftDiscardVerified": true,
-      "computerUnchanged": true,
-      "prepared": {
-        "projectName": "precast-rt-20261114-07-trips",
-        "theme": "cappadocia",
-        "services": "existing-postgres-gemini",
-        "preview": "srv.us"
+      "conversationalChecks": {
+        "currentProjectApprovalsActivated": true,
+        "pauseHonored": true
       },
-      "turns": [
+      "projectPath": "Projects/precast-rt-20261114-07-trips",
+      "templateAndBuilderCandidate": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+      "applicationId": "5aa2df01-cd63-4d46-a57b-7dd42cbd9b5d",
+      "runId": "00c5fd39-d71b-40f3-87fb-b0745d53e4b6",
+      "sessionId": "15051c36-9477-435e-b82f-3b4ca1fb0f91",
+      "startedAt": "2026-11-14T17:01:35.050Z",
+      "completedAt": "2026-11-14T17:07:48.343Z",
+      "conversation": [
         {
-          "workId": "be717942-2496-4f74-b0f6-04814499963e",
-          "nativeA2aTaskId": "ffeca3f6-fa56-4e5f-8d5b-ee6d0f2cc40a",
-          "elapsedMs": 21828,
-          "questionCount": 0
+          "status": "done",
+          "workId": "c220018b-8307-4a90-a031-bcf324e2fcea",
+          "nativeA2aTaskId": "69cd921b-a342-4f1f-af85-aa7419b85e56",
+          "elapsedMs": 22971,
+          "replyWasOneQuestionOrVerifiedResult": true
         },
         {
-          "workId": "bb2391d2-a92d-4d6b-8b9f-ffd5bc44257e",
-          "nativeA2aTaskId": "ac369690-45a5-4d41-b04b-655e99a812ba",
-          "elapsedMs": 3902,
-          "questionCount": 0
+          "status": "done",
+          "workId": "3a735ab0-dbd7-4f7d-b981-440453e16f9a",
+          "nativeA2aTaskId": "d24e6988-642b-4edc-9345-5c74d903322b",
+          "elapsedMs": 7766,
+          "replyWasOneQuestionOrVerifiedResult": true
         },
         {
-          "workId": "d65ab7ca-53f6-4482-9771-8895404647d1",
-          "nativeA2aTaskId": "7d63bfe2-e959-4390-9589-ef90b1cf9c4e",
-          "elapsedMs": 4954,
-          "questionCount": 0
+          "status": "done",
+          "workId": "5d6c3c15-d07b-4fc9-8488-1ee845fda466",
+          "nativeA2aTaskId": "15b83cd5-43e2-4085-99dd-8d62db7cf4a5",
+          "elapsedMs": 248559,
+          "replyWasOneQuestionOrVerifiedResult": true
         }
       ],
-      "fullComputerAndPublicApp": "blocked before build",
-      "workingAppUrl": null
+      "prdSourceHash": "3a4e426663e4a743f710f1ae379778676d4fca11d86b8357a48b2c245435040b",
+      "exactPrdSource": true,
+      "sourceArtifacts": [
+        {
+          "path": "Projects/precast-rt-20261114-07-trips/.precast/prd-build.json",
+          "sha256": "sha256:d4807c1ffad95a77805d27f8cc6401c7b4a3d536238b0157e727ddb28f89d45e",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-07-trips/docs/PRD.md",
+          "sha256": "sha256:f1bfe44c52f669dedb2583ee8e5c76d45be20064777f7abe536b44250791c381",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-07-trips/docs/DATA_MODEL.md",
+          "sha256": "sha256:5b6b289b37ac5745cab928dad12de5d074f616f20dde2ccd98c9499766ffab22",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-07-trips/docs/AGENT_SPEC.md",
+          "sha256": "sha256:a530f9176243124c848e3817e78ad2ec55f1b40c5bd621d17537bc78a8c49089",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-07-trips/docs/DESIGN_SYSTEM.md",
+          "sha256": "sha256:bb781d5378ff27c570d0ae410a700ce521be33c02427456ea46f3b3704046275",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-07-trips/docs/PRD_ACCEPTANCE.md",
+          "sha256": "sha256:241e740c7f78e6296c7a4bdea8adac342b02d4fc8ea0456f11310aaf189da0c6",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-07-trips/packages/shared/src/project-brief.ts",
+          "sha256": "sha256:2a2cbde0db222c9d5b3dad9193979dd900c7b006c68606f8b9da3ef17bd760de",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-07-trips/.precast/service-setup.json",
+          "sha256": "sha256:f22c38f469679d711d9f1d0d7fbe874687f6aca4e72333a63c6ac7e70c118d35",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-07-trips/.precast/preview/srv.json",
+          "sha256": "sha256:faa8079bc27f0ec80d8a3e88b4a4436e769af5920f37cd57ead22314808c415f",
+          "scan": "clean"
+        }
+      ],
+      "collections": [
+        {
+          "id": "trips",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        },
+        {
+          "id": "packing",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        }
+      ],
+      "selectedThemeVerified": true,
+      "publicChecks": {
+        "signup": true,
+        "unauthenticatedDenied": true,
+        "privateFilesNotPublished": true,
+        "fieldValidation": true,
+        "ownerInjectionDenied": true,
+        "crossOriginWritesDenied": true
+      },
+      "realGemini": {
+        "realConnectedGemini": true,
+        "streamedResponse": true,
+        "durationMs": 7558
+      },
+      "subscriptions": [
+        {
+          "listingId": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status": "ACTIVE"
+        }
+      ],
+      "geminiCalls": [
+        {
+          "status": 200,
+          "latencyMs": 2645,
+          "inputTokens": 11,
+          "outputTokens": 7
+        },
+        {
+          "status": 200,
+          "latencyMs": 2421,
+          "inputTokens": 1644,
+          "outputTokens": 46
+        },
+        {
+          "status": 200,
+          "latencyMs": 1280,
+          "inputTokens": 1965,
+          "outputTokens": 32
+        }
+      ],
+      "nativeActions": [
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "git",
+          "exitCode": 0,
+          "durationMs": 1956
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 67973
+        },
+        {
+          "operation": "file_create",
+          "state": "SUCCEEDED"
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 2486
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 3409
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 17146
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 88986
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 10303
+        }
+      ],
+      "publicUrl": "https://emyzt3qqlklntmvzh5lrp3b6xq.srv.us",
+      "urlState": "verified_during_test_then_session_stopped",
+      "expiresAt": "2026-11-14T22:35:15.621Z",
+      "status": "passed",
+      "templateProvenance": {
+        "case": 7,
+        "projectName": "precast-rt-20261114-07-trips",
+        "precastCommit": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+        "precastVersion": "0.12.4",
+        "sha256": "sha256:03ec00fff73229ed84c4e0ca60036abc890747e75b8f79ac11686d8426d917ec",
+        "artifactId": "24afc7d7-7994-4126-aaab-232586c0060f",
+        "scan": "clean"
+      }
     },
     {
       "case": 8,
-      "idea": "study",
       "title": "Study Journal",
+      "idea": "study",
       "scenario": "none",
-      "localMaterialization": "passed",
-      "rayaInterview": "passed",
-      "elapsedMs": 28901,
-      "sourceHash": "d9a0407b01a65d3bd9e59756307ed21f91cf62cea7d39212a1ed38d98d69340c",
-      "exactSourceRetained": true,
-      "exactCollectionAndFieldContract": true,
-      "draftDiscardVerified": true,
-      "computerUnchanged": true,
-      "prepared": {
-        "projectName": "precast-rt-20261114-08-study",
-        "theme": "stockholm",
-        "services": "existing-postgres-gemini",
-        "preview": "srv.us"
+      "conversationalChecks": {
+        "currentProjectApprovalsActivated": true
       },
-      "turns": [
+      "projectPath": "Projects/precast-rt-20261114-08-study",
+      "templateAndBuilderCandidate": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+      "applicationId": "52e8e208-652a-4912-9f6c-5e563dc31d97",
+      "runId": "0061130c-1d8f-4206-a5c6-871a64c242f4",
+      "sessionId": "805bcbea-7186-4e19-9748-b224b1bea7b2",
+      "startedAt": "2026-11-14T17:09:42.143Z",
+      "completedAt": "2026-11-14T17:15:35.953Z",
+      "conversation": [
         {
-          "workId": "0cbd663e-7dae-40c1-864e-f678652a1a02",
-          "nativeA2aTaskId": "de6345da-b5b6-42c7-a393-f82c8a69f033",
-          "elapsedMs": 20002,
-          "questionCount": 0
-        },
-        {
-          "workId": "0a9cc3af-4092-40db-b039-20f41d2e7d6b",
-          "nativeA2aTaskId": "e2954055-4b56-4ed0-a02a-89f0a4fa40a4",
-          "elapsedMs": 8076,
-          "questionCount": 0
+          "status": "done",
+          "workId": "0a3b97a1-3483-4c82-9c3d-c7a4fec6a682",
+          "nativeA2aTaskId": "e3d7b1a3-7678-4bff-bdc9-5ca9ece479a7",
+          "elapsedMs": 260068,
+          "replyWasOneQuestionOrVerifiedResult": true
         }
       ],
-      "fullComputerAndPublicApp": "blocked before build",
-      "workingAppUrl": null
+      "prdSourceHash": "d9a0407b01a65d3bd9e59756307ed21f91cf62cea7d39212a1ed38d98d69340c",
+      "exactPrdSource": true,
+      "sourceArtifacts": [
+        {
+          "path": "Projects/precast-rt-20261114-08-study/.precast/prd-build.json",
+          "sha256": "sha256:c0dddf0aef16f721304e033a725a39b32a9b8586e5645cf544ce405fdad08ffb",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-08-study/docs/PRD.md",
+          "sha256": "sha256:e35adf6ec88e9b9c1402ea369e58550f8ae1539e1c8ad936c5f47f4aaf50fee1",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-08-study/docs/DATA_MODEL.md",
+          "sha256": "sha256:d3a0056989081633adfb24cfd32d99f5dd436b67b4961d263a4aa73f77474ff2",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-08-study/docs/AGENT_SPEC.md",
+          "sha256": "sha256:bcb9bfab5332f146959d9e5c45025f7987662fc83fa2061215ad8c93060a4b4f",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-08-study/docs/DESIGN_SYSTEM.md",
+          "sha256": "sha256:34d7fe46e7f2e25b8cf009db3442016d5c3eda029e1dd6f19bad769a1e14f86e",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-08-study/docs/PRD_ACCEPTANCE.md",
+          "sha256": "sha256:19670dae12e6f43d0051798690f1ad5d76c0d33eb1844d78399a6f44bdbb1424",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-08-study/packages/shared/src/project-brief.ts",
+          "sha256": "sha256:0af82067ca2af50183dbf1288c43c8242661cb3e3826ef06618a5e95df09d115",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-08-study/.precast/service-setup.json",
+          "sha256": "sha256:d54481426365d22de0f0de223e195e5abe2bdd689268ae0b958ed2bf60556bd1",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-08-study/.precast/preview/srv.json",
+          "sha256": "sha256:b614dcb98ab015c6940b72efa633cad46491963d53039b964ec06ced44370f0b",
+          "scan": "clean"
+        }
+      ],
+      "collections": [
+        {
+          "id": "modules",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        },
+        {
+          "id": "sessions",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        }
+      ],
+      "selectedThemeVerified": true,
+      "publicChecks": {
+        "signup": true,
+        "unauthenticatedDenied": true,
+        "privateFilesNotPublished": true,
+        "fieldValidation": true,
+        "ownerInjectionDenied": true,
+        "crossOriginWritesDenied": true
+      },
+      "realGemini": {
+        "realConnectedGemini": true,
+        "streamedResponse": true,
+        "durationMs": 7831
+      },
+      "subscriptions": [
+        {
+          "listingId": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status": "ACTIVE"
+        }
+      ],
+      "geminiCalls": [
+        {
+          "status": 200,
+          "latencyMs": 2425,
+          "inputTokens": 11,
+          "outputTokens": 7
+        },
+        {
+          "status": 200,
+          "latencyMs": 2964,
+          "inputTokens": 1644,
+          "outputTokens": 47
+        },
+        {
+          "status": 200,
+          "latencyMs": 1368,
+          "inputTokens": 2071,
+          "outputTokens": 33
+        }
+      ],
+      "nativeActions": [
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "git",
+          "exitCode": 0,
+          "durationMs": 1813
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 67357
+        },
+        {
+          "operation": "file_create",
+          "state": "SUCCEEDED"
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 3722
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 3362
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 20270
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 88195
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 10325
+        }
+      ],
+      "publicUrl": "https://a4usdns5vyd3ng6lgyypsks6qy.srv.us",
+      "urlState": "verified_during_test_then_session_stopped",
+      "expiresAt": "2026-11-14T22:35:16.036Z",
+      "status": "passed",
+      "templateProvenance": {
+        "case": 8,
+        "projectName": "precast-rt-20261114-08-study",
+        "precastCommit": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+        "precastVersion": "0.12.4",
+        "sha256": "sha256:e5b13d1d7650cff48a7ca5c9b8f83139b3468a443362a73b22adef17ece32872",
+        "artifactId": "1f9615dd-8100-438e-b791-4e9a6bb8e724",
+        "scan": "clean"
+      }
     },
     {
       "case": 9,
-      "idea": "equipment",
       "title": "Equipment Notebook",
+      "idea": "equipment",
       "scenario": "unreadable",
-      "localMaterialization": "passed",
-      "rayaInterview": "passed",
-      "elapsedMs": 49134,
-      "sourceHash": "cfdb8df3cda40f78a63d072d6b023f661d89a427162a5c0fa4a5d1d4b9467e2f",
-      "exactSourceRetained": true,
-      "exactCollectionAndFieldContract": true,
-      "draftDiscardVerified": true,
-      "computerUnchanged": true,
-      "unreadableDiscardVerified": true,
-      "prepared": {
-        "projectName": "precast-rt-20261114-09-equipment",
-        "theme": "prague",
-        "services": "existing-postgres-gemini",
-        "preview": "srv.us"
+      "conversationalChecks": {
+        "currentProjectApprovalsActivated": true,
+        "unreadableBlocked": true
       },
-      "turns": [
+      "projectPath": "Projects/precast-rt-20261114-09-equipment",
+      "templateAndBuilderCandidate": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+      "applicationId": "743fd5a0-b14a-4805-ac13-68cd8a59a9e0",
+      "runId": "77b72fcc-8fe8-406e-adf2-3cc816c72dc8",
+      "sessionId": "bee0b2a5-89d1-4d27-baed-788dd7d9ed86",
+      "startedAt": "2026-11-14T17:17:24.260Z",
+      "completedAt": "2026-11-14T17:23:02.999Z",
+      "conversation": [
         {
-          "workId": "2610ec77-31f6-4099-a60d-9c6cb7ddeac9",
-          "nativeA2aTaskId": "9bada858-b6c7-4e89-942c-a9b808272378",
-          "elapsedMs": 8260,
-          "questionCount": 0
+          "status": "done",
+          "workId": "7af27cab-665a-49ad-a310-9640736cc725",
+          "nativeA2aTaskId": "32546957-c179-4d81-8ff7-9a80349594e0",
+          "elapsedMs": 10837,
+          "replyWasOneQuestionOrVerifiedResult": true
         },
         {
-          "workId": "0b4f0260-eb0f-47b6-bdf2-32522950c148",
-          "nativeA2aTaskId": "0e960b92-194f-4866-8558-7dd267dca8a2",
-          "elapsedMs": 10972,
-          "questionCount": 0
-        },
-        {
-          "workId": "326d43d1-b0be-453a-8ff7-e8f04d3b36e0",
-          "nativeA2aTaskId": "20387b29-4800-44aa-b881-118dd9c6645e",
-          "elapsedMs": 20186,
-          "questionCount": 0
-        },
-        {
-          "workId": "16958b7f-aaa6-49fb-9367-5537cb78d988",
-          "nativeA2aTaskId": "a207d760-0856-4d48-a3d6-88f88a466d75",
-          "elapsedMs": 8011,
-          "questionCount": 0
+          "status": "done",
+          "workId": "199b7da0-bfb5-463e-a9b6-0af10b050f41",
+          "nativeA2aTaskId": "ed201697-93c2-408a-bc8a-85f23ea05c3d",
+          "elapsedMs": 253068,
+          "replyWasOneQuestionOrVerifiedResult": true
         }
       ],
-      "fullComputerAndPublicApp": "blocked before build",
-      "workingAppUrl": null
+      "prdSourceHash": "cfdb8df3cda40f78a63d072d6b023f661d89a427162a5c0fa4a5d1d4b9467e2f",
+      "exactPrdSource": true,
+      "sourceArtifacts": [
+        {
+          "path": "Projects/precast-rt-20261114-09-equipment/.precast/prd-build.json",
+          "sha256": "sha256:7b4df70918453290352c50e193d05c18e274988cce4b016f0d5a4023a06ab1cc",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-09-equipment/docs/PRD.md",
+          "sha256": "sha256:a0ba8bc2ee21418c92ae1f9154582358fe136189335d511eb60601f6f431bf0b",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-09-equipment/docs/DATA_MODEL.md",
+          "sha256": "sha256:bacd3034df55ff2f9f2f65716312b8b00a0c3b7f4f863d28c1dca31189989b80",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-09-equipment/docs/AGENT_SPEC.md",
+          "sha256": "sha256:b41e923fc643f434365a22440d049f6980f070f8ad208c89e165c69029238911",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-09-equipment/docs/DESIGN_SYSTEM.md",
+          "sha256": "sha256:d5cb602da46225ec40005aea49d1c6bd120fbd606e3c77ea843db0bcc9dcffe5",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-09-equipment/docs/PRD_ACCEPTANCE.md",
+          "sha256": "sha256:983a2d487fb87f789e3028e0091b53e33314af134e1d9d1031bac725405a3f7b",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-09-equipment/packages/shared/src/project-brief.ts",
+          "sha256": "sha256:812d400e953d5e5ab16cf4f1c00cdab5b47e305c06b5a130919d15ed9f19bc11",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-09-equipment/.precast/service-setup.json",
+          "sha256": "sha256:2db00014a5b007712a96d89b838d4ca2eb8a4ff3c3d88fc2d0a19959630c5863",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-09-equipment/.precast/preview/srv.json",
+          "sha256": "sha256:1cf288a11ea4ce961cfed9a203f705c699997502557ebb767947c26055be64aa",
+          "scan": "clean"
+        }
+      ],
+      "collections": [
+        {
+          "id": "equipment",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        }
+      ],
+      "selectedThemeVerified": true,
+      "publicChecks": {
+        "signup": true,
+        "unauthenticatedDenied": true,
+        "privateFilesNotPublished": true,
+        "fieldValidation": true,
+        "ownerInjectionDenied": true,
+        "crossOriginWritesDenied": true
+      },
+      "realGemini": {
+        "realConnectedGemini": true,
+        "streamedResponse": true,
+        "durationMs": 9995
+      },
+      "subscriptions": [
+        {
+          "listingId": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status": "ACTIVE"
+        }
+      ],
+      "geminiCalls": [
+        {
+          "status": 200,
+          "latencyMs": 3233,
+          "inputTokens": 11,
+          "outputTokens": 7
+        },
+        {
+          "status": 200,
+          "latencyMs": 3846,
+          "inputTokens": 1604,
+          "outputTokens": 126
+        },
+        {
+          "status": 200,
+          "latencyMs": 1778,
+          "inputTokens": 2238,
+          "outputTokens": 27
+        }
+      ],
+      "nativeActions": [
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "git",
+          "exitCode": 0,
+          "durationMs": 1812
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 68670
+        },
+        {
+          "operation": "file_create",
+          "state": "SUCCEEDED"
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 3862
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 4063
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 18876
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 88609
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 10338
+        }
+      ],
+      "publicUrl": "https://kl4kn3a7ek5oxqwvur6nkraizm.srv.us",
+      "urlState": "verified_during_test_then_session_stopped",
+      "expiresAt": "2026-11-14T22:35:16.461Z",
+      "status": "passed",
+      "templateProvenance": {
+        "case": 9,
+        "projectName": "precast-rt-20261114-09-equipment",
+        "precastCommit": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+        "precastVersion": "0.12.4",
+        "sha256": "sha256:9bd4ff1601e4a06f24758d6ee090fbd3a14e378aa84bf8ffcf5d2f1a24e3b5ea",
+        "artifactId": "ad6e16d5-2d5c-4cb9-a7c7-46baa30a4f81",
+        "scan": "clean"
+      }
     },
     {
       "case": 10,
-      "idea": "events",
       "title": "Personal Event Checklist",
+      "idea": "events",
       "scenario": "rescope",
-      "localMaterialization": "passed",
-      "rayaInterview": "passed",
-      "elapsedMs": 61457,
-      "sourceHash": "5aba66b35bd4187028728bf498bb3fab8730bd49bcbe041fe8cd603471b7e97d",
-      "exactSourceRetained": true,
-      "exactCollectionAndFieldContract": true,
-      "draftDiscardVerified": true,
-      "computerUnchanged": true,
-      "prepared": {
-        "projectName": "precast-rt-20261114-10-events",
-        "theme": "arctic",
-        "services": "existing-postgres-gemini",
-        "preview": "srv.us"
+      "conversationalChecks": {
+        "currentProjectApprovalsActivated": true
       },
-      "turns": [
+      "projectPath": "Projects/precast-rt-20261114-10-events",
+      "templateAndBuilderCandidate": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+      "applicationId": "89f927f1-315d-444e-9294-043a947ef2b8",
+      "runId": "f1ed52f4-15dc-455c-9754-37ea4ea53296",
+      "sessionId": "d443ee15-a04c-4e6e-a060-edd45d9d61b8",
+      "startedAt": "2026-11-14T17:24:54.575Z",
+      "completedAt": "2026-11-14T17:37:55.197Z",
+      "conversation": [
         {
-          "workId": "0b6bf963-1bd8-47b2-b722-2d9503dbb68c",
-          "nativeA2aTaskId": "cdc194d9-e739-4b0d-958d-d21bdfadd895",
-          "elapsedMs": 27889,
-          "questionCount": 1
+          "status": "done",
+          "workId": "9108124b-285c-4951-8185-bb55aae182d0",
+          "nativeA2aTaskId": "cc8359f8-586e-4230-89a3-3b38b3170d37",
+          "elapsedMs": 34913,
+          "replyWasOneQuestionOrVerifiedResult": true
         },
         {
-          "workId": "306d538f-cfa7-4758-82a3-55187f3e4577",
-          "nativeA2aTaskId": "800dc6f4-cb23-4798-bebb-eeadb91a00a4",
-          "elapsedMs": 23235,
-          "questionCount": 0
-        },
-        {
-          "workId": "674e9481-fd18-4d6a-9c11-f3718dc4ef8d",
-          "nativeA2aTaskId": "3fe6645c-f17c-4f13-a3f8-e4c8c7c704d5",
-          "elapsedMs": 8902,
-          "questionCount": 0
+          "status": "done",
+          "workId": "3d85849a-eaae-4a60-9435-c1b6fe79e50e",
+          "nativeA2aTaskId": "e1a62248-3aa6-41d8-8db8-17a6c1a353b6",
+          "elapsedMs": 252306,
+          "replyWasOneQuestionOrVerifiedResult": true
         }
       ],
-      "fullComputerAndPublicApp": "blocked before build",
-      "workingAppUrl": null
+      "prdSourceHash": "5aba66b35bd4187028728bf498bb3fab8730bd49bcbe041fe8cd603471b7e97d",
+      "exactPrdSource": true,
+      "sourceArtifacts": [
+        {
+          "path": "Projects/precast-rt-20261114-10-events/.precast/prd-build.json",
+          "sha256": "sha256:870863ff2d2485769b6d5f61046db7f9bc9af6167f4a2e941171f692737ea043",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-10-events/docs/PRD.md",
+          "sha256": "sha256:1221d3fe70e8b164500f85c022d220cf98bad50cd450ebc447442d1aa5ff11e1",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-10-events/docs/DATA_MODEL.md",
+          "sha256": "sha256:84d667a1c1bcf2d0fcc712335ec9591c3d38cb6a27028e8222b3a35a95361e26",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-10-events/docs/AGENT_SPEC.md",
+          "sha256": "sha256:7e150937ac3073b3b10ee898260fec03c09d6aa9efa4f241fde89a0031d9791c",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-10-events/docs/DESIGN_SYSTEM.md",
+          "sha256": "sha256:edddda4053b170de85bc7be3ac21af38eff1633eb917ec92f1127a72a5e06b0f",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-10-events/docs/PRD_ACCEPTANCE.md",
+          "sha256": "sha256:d41ccb97eaf755fad666a801111f569cb2459c405cea8ddebccb321e3d4ed359",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-10-events/packages/shared/src/project-brief.ts",
+          "sha256": "sha256:78c27823cf06bde4daa7f76cb062460589de165eb505d7ce12f149ab7d29cac0",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-10-events/.precast/service-setup.json",
+          "sha256": "sha256:417038003b50ade340bdeae8bd08cb2ec79855f24e0093ffd73866a29ab2cc57",
+          "scan": "clean"
+        },
+        {
+          "path": "Projects/precast-rt-20261114-10-events/.precast/preview/srv.json",
+          "sha256": "sha256:45c7a93d2a6e5467a02ea89e91d9f5718342e66ee22cb5301670c96454e9b505",
+          "scan": "clean"
+        }
+      ],
+      "collections": [
+        {
+          "id": "events",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        },
+        {
+          "id": "tasks",
+          "fieldContract": true,
+          "crudReloadSearch": true,
+          "zeroFalseUnicode": true,
+          "xssEscaped": true,
+          "crossAccountIsolation": true,
+          "invalidValuesRefused": true
+        }
+      ],
+      "selectedThemeVerified": true,
+      "publicChecks": {
+        "signup": true,
+        "unauthenticatedDenied": true,
+        "privateFilesNotPublished": true,
+        "fieldValidation": true,
+        "ownerInjectionDenied": true,
+        "crossOriginWritesDenied": true
+      },
+      "realGemini": {
+        "realConnectedGemini": true,
+        "streamedResponse": true,
+        "durationMs": 6934
+      },
+      "subscriptions": [
+        {
+          "listingId": "db49e85a-0ec4-462a-b295-af744661a9e7",
+          "status": "ACTIVE"
+        }
+      ],
+      "geminiCalls": [
+        {
+          "status": 200,
+          "latencyMs": 2531,
+          "inputTokens": 11,
+          "outputTokens": 7
+        },
+        {
+          "status": 200,
+          "latencyMs": 2667,
+          "inputTokens": 1644,
+          "outputTokens": 50
+        },
+        {
+          "status": 200,
+          "latencyMs": 1208,
+          "inputTokens": 2005,
+          "outputTokens": 36
+        },
+        {
+          "status": 200,
+          "latencyMs": 7060,
+          "inputTokens": 1754,
+          "outputTokens": 65
+        },
+        {
+          "status": 200,
+          "latencyMs": 97237,
+          "inputTokens": 2800,
+          "outputTokens": 12481
+        },
+        {
+          "status": 200,
+          "latencyMs": 1753,
+          "inputTokens": 1644,
+          "outputTokens": 50
+        },
+        {
+          "status": 200,
+          "latencyMs": 1968,
+          "inputTokens": 1862,
+          "outputTokens": 36
+        }
+      ],
+      "nativeActions": [
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "git",
+          "exitCode": 0,
+          "durationMs": 1922
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 63404
+        },
+        {
+          "operation": "file_create",
+          "state": "SUCCEEDED"
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 2488
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 3603
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 16939
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "pnpm",
+          "exitCode": 0,
+          "durationMs": 88019
+        },
+        {
+          "operation": "command_run",
+          "state": "SUCCEEDED",
+          "executable": "node",
+          "exitCode": 0,
+          "durationMs": 10308
+        }
+      ],
+      "publicUrl": "https://7icqqfrqqlvjtsgwn2opi4i2ve.srv.us",
+      "urlState": "live",
+      "expiresAt": "2026-11-14T22:35:16.885Z",
+      "status": "passed",
+      "templateProvenance": {
+        "case": 10,
+        "projectName": "precast-rt-20261114-10-events",
+        "precastCommit": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+        "precastVersion": "0.12.4",
+        "sha256": "sha256:8aacc686c54590d1ae2cd6b84411d71add49b6d4a2a4b5767d7776addb08a02f",
+        "artifactId": "e671c56a-34ac-407a-8667-0fb0d80e627a",
+        "scan": "clean"
+      }
+    }
+  ],
+  "initialFailedAttempts": [
+    {
+      "case": 1,
+      "candidate": "a1e8659b2a6008a10dd445f9a8b418b758a280de",
+      "runId": "fd4f3bcf-a6b3-4383-8a95-faf64e56ca96",
+      "stage": "preview startup",
+      "observed": "Prepared-schema auth migration attempted CREATE SCHEMA and Postgres denied database CREATE.",
+      "fix": "a4673bfe539bfadc6860263e5d1fb9e961b25c86",
+      "retestRunId": "c3937c89-dee4-4c53-bfa6-b834f4ed281e"
+    },
+    {
+      "case": 2,
+      "candidate": "a4673bfe539bfadc6860263e5d1fb9e961b25c86",
+      "runId": "305e603d-fbf5-4f1d-8793-f1da25499497",
+      "stage": "public record UI",
+      "observed": "Untouched optional checkbox was omitted instead of persisted as false.",
+      "fix": "805883656d9e3c012686a44bccb31601c41c20af",
+      "retestRunId": "b27cf2bc-bd1a-4ff4-8492-cdcce7fdce8b"
+    },
+    {
+      "case": 3,
+      "candidate": "805883656d9e3c012686a44bccb31601c41c20af",
+      "runId": "4f0e4b3d-c7cb-4769-8358-a9c7689577cb",
+      "stage": "bootstrap dependency update",
+      "observed": "pnpm selected Better Auth 1.7.24 but its memory-adapter tarball returned registry HTTP 404 during the run.",
+      "fix": "1c870ce5cac823f374685e73e29999f7e9d7e034",
+      "retestRunId": "1c6b48bd-0660-4fbc-bd1e-722c9c78e57c"
     }
   ],
   "srvUs": {
-    "status": "passed_operator_host_probe",
-    "scope": "Data-free operator-host transport probe using the shipped preview-tunnel.mjs. Not a Raya Computer run or generated application. No model or database involved.",
-    "startedAt": "2026-11-14T09:40:49.706Z",
-    "endedAt": "2026-11-14T09:43:57.232Z",
-    "initialStream": {
-      "durationMs": 6204,
-      "firstEventMs": 1207,
-      "incremental": true
+    "realComputer": true,
+    "publicProjectsVerified": 10,
+    "streaming": "Five-second live progress SSE during A2A message/send, followed by the sanitized result; not token-by-token generation.",
+    "longActualGeminiCall": {
+      "case": 10,
+      "mode": "real Gemini output generation; no injected delay or synthetic server",
+      "url": "https://7icqqfrqqlvjtsgwn2opi4i2ve.srv.us",
+      "promptSha256": "3cbf1439e63fe9a874b4c80225bf00ee34d1b63d3ff4a24ec706d360910ccc8c",
+      "marker": "LONG_GEMINI_a7407bec3e154ce4b89038bc97034197",
+      "responseSha256": "a34eb27cc299631025e4d082ab4e432df97ad0b3d79bc69938576942382184bc",
+      "responseWords": 9340,
+      "responseCharacters": 71791,
+      "status": 200,
+      "finalStatus": 200,
+      "ok": true,
+      "contentType": "text/event-stream; charset=utf-8",
+      "headersAt": 1408,
+      "durationMs": 109495,
+      "arrivals": [
+        {
+          "ms": 1408,
+          "bytes": 60
+        },
+        {
+          "ms": 6277,
+          "bytes": 60
+        },
+        {
+          "ms": 11273,
+          "bytes": 61
+        },
+        {
+          "ms": 16278,
+          "bytes": 61
+        },
+        {
+          "ms": 21271,
+          "bytes": 61
+        },
+        {
+          "ms": 26190,
+          "bytes": 61
+        },
+        {
+          "ms": 31228,
+          "bytes": 61
+        },
+        {
+          "ms": 36232,
+          "bytes": 61
+        },
+        {
+          "ms": 41271,
+          "bytes": 61
+        },
+        {
+          "ms": 46271,
+          "bytes": 61
+        },
+        {
+          "ms": 51271,
+          "bytes": 61
+        },
+        {
+          "ms": 56273,
+          "bytes": 61
+        },
+        {
+          "ms": 61271,
+          "bytes": 61
+        },
+        {
+          "ms": 66272,
+          "bytes": 61
+        },
+        {
+          "ms": 71275,
+          "bytes": 61
+        },
+        {
+          "ms": 76273,
+          "bytes": 61
+        },
+        {
+          "ms": 81271,
+          "bytes": 61
+        },
+        {
+          "ms": 86416,
+          "bytes": 61
+        },
+        {
+          "ms": 91230,
+          "bytes": 61
+        },
+        {
+          "ms": 96233,
+          "bytes": 61
+        },
+        {
+          "ms": 101271,
+          "bytes": 62
+        },
+        {
+          "ms": 106271,
+          "bytes": 62
+        },
+        {
+          "ms": 109213,
+          "bytes": 32761
+        },
+        {
+          "ms": 109491,
+          "bytes": 39680
+        }
+      ],
+      "statuses": [
+        {
+          "arrivalMs": 1408,
+          "elapsedSeconds": 0
+        },
+        {
+          "arrivalMs": 6277,
+          "elapsedSeconds": 5
+        },
+        {
+          "arrivalMs": 11273,
+          "elapsedSeconds": 10
+        },
+        {
+          "arrivalMs": 16278,
+          "elapsedSeconds": 15
+        },
+        {
+          "arrivalMs": 21271,
+          "elapsedSeconds": 20
+        },
+        {
+          "arrivalMs": 26190,
+          "elapsedSeconds": 25
+        },
+        {
+          "arrivalMs": 31228,
+          "elapsedSeconds": 30
+        },
+        {
+          "arrivalMs": 36232,
+          "elapsedSeconds": 35
+        },
+        {
+          "arrivalMs": 41271,
+          "elapsedSeconds": 40
+        },
+        {
+          "arrivalMs": 46271,
+          "elapsedSeconds": 45
+        },
+        {
+          "arrivalMs": 51271,
+          "elapsedSeconds": 50
+        },
+        {
+          "arrivalMs": 56273,
+          "elapsedSeconds": 55
+        },
+        {
+          "arrivalMs": 61271,
+          "elapsedSeconds": 60
+        },
+        {
+          "arrivalMs": 66272,
+          "elapsedSeconds": 65
+        },
+        {
+          "arrivalMs": 71275,
+          "elapsedSeconds": 70
+        },
+        {
+          "arrivalMs": 76273,
+          "elapsedSeconds": 75
+        },
+        {
+          "arrivalMs": 81271,
+          "elapsedSeconds": 80
+        },
+        {
+          "arrivalMs": 86416,
+          "elapsedSeconds": 85
+        },
+        {
+          "arrivalMs": 91230,
+          "elapsedSeconds": 90
+        },
+        {
+          "arrivalMs": 96233,
+          "elapsedSeconds": 95
+        },
+        {
+          "arrivalMs": 101271,
+          "elapsedSeconds": 100
+        },
+        {
+          "arrivalMs": 106271,
+          "elapsedSeconds": 105
+        }
+      ],
+      "totalBytes": 73783,
+      "at": "2026-11-14T17:33:45.647Z"
     },
-    "longStream": {
-      "durationMs": 131215,
-      "eventCount": 15,
-      "incremental": true
-    },
-    "reconnect": {
+    "actualComputerSignedLeaseExpiryAndReconnect": {
+      "case": 10,
+      "url": "https://7icqqfrqqlvjtsgwn2opi4i2ve.srv.us",
+      "startedAt": "2026-11-14T17:34:19.963Z",
+      "probes": [
+        {
+          "stage": "before-shortening",
+          "at": "2026-11-14T17:34:27.557Z",
+          "status": 200,
+          "ready": true,
+          "durationMs": 1614
+        },
+        {
+          "stage": "during-live-short-lease",
+          "at": "2026-11-14T17:34:31.952Z",
+          "status": 200,
+          "ready": true,
+          "durationMs": 1675
+        },
+        {
+          "stage": "after-signed-network-expiry",
+          "at": "2026-11-14T17:36:00.178Z",
+          "status": 503,
+          "ready": false,
+          "durationMs": 774
+        },
+        {
+          "stage": "after-signed-network-expiry",
+          "at": "2026-11-14T17:36:05.949Z",
+          "status": 503,
+          "ready": false,
+          "durationMs": 764
+        },
+        {
+          "stage": "after-signed-network-expiry",
+          "at": "2026-11-14T17:36:11.650Z",
+          "status": 503,
+          "ready": false,
+          "durationMs": 698
+        },
+        {
+          "stage": "after-original-lease-restored",
+          "at": "2026-11-14T17:36:14.850Z",
+          "status": 503,
+          "ready": false,
+          "durationMs": 694
+        },
+        {
+          "stage": "after-original-lease-restored",
+          "at": "2026-11-14T17:36:21.613Z",
+          "status": 200,
+          "ready": true,
+          "durationMs": 1763
+        }
+      ],
       "sameUrl": true,
-      "healthy": true,
-      "durationMs": 9727
+      "shortenedUntil": "2026-11-14T17:35:44.402Z",
+      "originalExpiresAt": "2026-11-14T22:35:16.885Z",
+      "outageObserved": true,
+      "restoredUntil": "2026-11-14T22:35:16.885Z",
+      "authorityRestored": true,
+      "restored": true,
+      "appTimerConfigUnchanged": true,
+      "appTimerConfigSha256": "35835c14bb842aee80dab78102bed28d42b6c99a2d1d653bff08454d4a325181",
+      "passed": true,
+      "completedAt": "2026-11-14T17:36:27.020Z"
     },
-    "expiry": {
-      "processStopped": true,
-      "publicEndpointClosed": true,
-      "status": 503
-    },
-    "probeRemovedFromPublicAccess": true,
-    "limitations": [
-      "This data-free probe ran on the operator host using the shipped tunnel utility, not on the Raya Computer.",
-      "The long response was synthetic HTTP streaming, not a generated app’s Gemini call.",
-      "The script expiry timer was tested; the Computer’s signed network-lease expiry path was not tested.",
-      "No working app URL is being supplied from this probe."
-    ],
-    "reference": "https://docs.srv.us/",
-    "startup": {
-      "retryableSshTimeouts": 2,
-      "recoveredWithExistingRetry": true
-    }
+    "finalUrl": "https://7icqqfrqqlvjtsgwn2opi4i2ve.srv.us"
   },
   "database": {
-    "reuseRequired": true,
-    "host": "db.quaiszkmokmurqpdegfs.supabase.co",
-    "database": "postgres",
-    "connection": "Blocked: direct hostname resolves only IPv6; ENETUNREACH on this host.",
-    "operatorCredential": "Kept private; not committed or supplied to Raya/Precast.",
+    "mode": "reuse_existing",
+    "name": "postgres",
+    "provider": "Supabase",
+    "ipv4PoolerHost": "aws-1-ap-northeast-2.pooler.supabase.com",
+    "port": 5432,
+    "strictTls": true,
+    "caSha256": "700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7",
     "newDatabases": 0,
-    "newRuntimeRolesOrSchemas": 0,
-    "testDataWritten": 0,
-    "cleanup": "No external test data exists to truncate. For the pending full run, the operator alone will clear manifest-owned test tables without CASCADE or changes to unrelated data."
-  },
-  "blockingInputs": [
-    {
-      "need": "Exact IPv4 Supabase Session pooler host and username, or its connection string, from Dashboard → Connect.",
-      "reason": "The direct endpoint cannot be reached here. Pooler hostnames are not safely inferred from project region. The supplied password is already retained privately."
+    "hannibalCalls": 0,
+    "restrictedPerProjectRoles": true,
+    "hashedOwnedNamespaces": true,
+    "protectedOriginalTables": 41,
+    "protectedTableCountsUnchanged": true,
+    "protectedSchemaAclsUnchanged": true,
+    "operatorReset": {
+      "ownedSchemas": 39,
+      "ownedTables": 494,
+      "rowsRemoved": 115,
+      "remainingTestRows": 0,
+      "noCascade": true,
+      "noDroppedObjects": true,
+      "completedAt": "2026-11-14T17:39:49.923Z"
     },
-    {
-      "need": "Renew the agentbase AWS sign-in on this computer.",
-      "action": "aws sso login --profile agentbase",
-      "reason": "The token is expired and refresh fails. The real Computer worker must be updated before it can admit the approved Supabase preview connection."
-    }
+    "agentsHaveResetCapability": false
+  },
+  "historicalValidation": {
+    "previousBlockedReport": "https://github.com/jacobfernandez917/precast/blob/7d1ea22edc4220f1eb5b505f81a42566bdb55368/docs/validation/scaffold-regression-2026-11-14.json",
+    "blockingInputsResolved": [
+      "AWS sign-in",
+      "Verified IPv4 session pooler and official pinned CA"
+    ],
+    "earlierActualRayaInterviews": {
+      "ideas": 10,
+      "completedNativeTasks": 31
+    },
+    "earlierRelayProbe": "The earlier 131.215-second synthetic stream ran on the operator host and is not counted as a Computer/app/model result."
+  },
+  "evidenceNotes": [
+    "An initial builder Docker layer export failed; a normal reimport retry succeeded.",
+    "Operator desktop cleanup initially had competing viewers and missed input acknowledgements. The helper now uses one normal owner-control stream; browser content security policy and product gates were preserved.",
+    "Diagnostic helper expected session.profile on the wrong home field; corrected operator handling, no product failure claimed.",
+    "Artifact hash helper initially omitted the sha256 prefix; corrected and all downloaded evidence verified.",
+    "Case 2 initial failure stdout, trace and curated receipt remain; its original reporter JSON was overwritten by test discovery and is not claimed retained."
   ],
-  "remaining": [
-    "Update the actual Computer worker after AWS renewal and confirm session ownership before any stop.",
-    "Prepare ten restricted runtime roles and their hashed schemas inside the same supplied database. Do not create a database or call Hannibal.",
-    "Run all ten connected scaffold flows through real Raya and Computer, then public signup, each-collection CRUD/reload/search, cross-account isolation, invalid inputs, actual Gemini SSE and long calls.",
-    "Verify Computer lease expiry and reconnect; keep the final verified app URL live.",
-    "Perform operator-only test-data cleanup and publish the completed full-flow report."
-  ],
-  "notClaimed": [
-    "Ten real Computer builds",
-    "Ten working public applications",
-    "External Supabase connectivity, isolation or cleanup execution",
-    "Real Gemini calls from generated apps through srv.us in this run",
-    "Deployment of the updated worker manager"
-  ]
+  "remaining": []
 }
