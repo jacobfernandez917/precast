@@ -72,11 +72,29 @@ describe('AGT-037 exact PRD source and scoped draft persistence', () => {
       '[Attached: partial.pdf, first 1 of 4 pages]\nExcerpt',
     );
     expect(invalid).toMatchObject({
+      sourceName: 'partial.pdf',
       sourceComplete: false,
       analysed: false,
       analysis: { blueprint: null },
     });
     expect((await inRoom('owner-one', 'auto-capture-room', pendingPrdDraft))?.id).toBe(invalid?.id);
+  });
+  it('retains the unreadable filename and closes its pending state on explicit discard', async () => {
+    vi.stubEnv('DATABASE_URL', 'postgresql://test:test@db.invalid/test');
+    vi.stubEnv('MASTRA_DB_SCHEMA', 'test_scaffold');
+    const draft = await inRoom(
+      'owner-one',
+      'scanned-room',
+      capturePrdAttachment,
+      '[Attached: scanned.pdf — no readable text in it.]',
+    );
+    expect(draft).toMatchObject({
+      sourceName: 'scanned.pdf',
+      sourceComplete: false,
+      state: 'pending',
+    });
+    await inRoom('owner-one', 'scanned-room', () => settlePrdDraft(draft!.id, 'discarded'));
+    expect(await inRoom('owner-one', 'scanned-room', pendingPrdDraft)).toBeUndefined();
   });
   it('keeps an unanalysed PRD pending until completion or explicit discard', async () => {
     vi.stubEnv('DATABASE_URL', 'postgresql://test:test@db.invalid/test');

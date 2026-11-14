@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-const calls = vi.hoisted(() => ({ generate: vi.fn(), save: vi.fn() }));
+const calls = vi.hoisted(() => ({
+  generate: vi.fn(),
+  save: vi.fn(),
+  pending: vi.fn(),
+  settle: vi.fn(),
+}));
 vi.mock('@mastra/core/agent', () => ({
   Agent: class {
     generate = calls.generate;
@@ -9,7 +14,8 @@ vi.mock('../lib/agentbase-model', () => ({ resolveAgentModel: () => 'test-model'
 vi.mock('../lib/prd-drafts', async (original) => ({
   ...(await original<typeof import('../lib/prd-drafts')>()),
   capturePrdAttachment: async () => undefined,
-  pendingPrdDraft: async () => undefined,
+  pendingPrdDraft: calls.pending,
+  settlePrdDraft: calls.settle,
   readCurrentPrd: () => ({
     sourceName: 'actions.pdf',
     sourceText: 'Exact attached source',
@@ -34,6 +40,31 @@ beforeEach(() => {
   vi.stubEnv('PRECAST_PRD_BUILD_ENABLED', '1');
   calls.save.mockImplementation(async (value) => ({ ...value, id }));
   calls.generate.mockResolvedValue({ object: analysis });
+  calls.pending.mockResolvedValue(undefined);
+});
+describe('AGT-046 unreadable PRD cancellation', () => {
+  it('settles a blocked draft without requiring a successful read or another model call', async () => {
+    calls.pending.mockResolvedValue({
+      id,
+      sourceName: 'scanned.pdf',
+      sourceText: '',
+      sourceHash: '',
+      analysed: false,
+      sourceComplete: false,
+      analysis,
+    });
+    const result = await readPrdTool.execute!({ discard: true }, {} as never);
+    expect(result).toMatchObject({ draftId: id, sourceName: 'scanned.pdf', discarded: true });
+    expect(calls.settle).toHaveBeenCalledWith(id, 'discarded');
+    expect(calls.generate).not.toHaveBeenCalled();
+  });
+  it('does not confirm cancellation when saving the discarded state fails', async () => {
+    calls.pending.mockResolvedValue({ id });
+    calls.settle.mockRejectedValueOnce(new Error('storage unavailable'));
+    await expect(readPrdTool.execute!({ discard: true }, {} as never)).rejects.toThrow(
+      'storage unavailable',
+    );
+  });
 });
 afterEach(() => vi.unstubAllEnvs());
 describe('AGT-041 model schema guidance and failed-read retention', () => {
@@ -61,5 +92,17 @@ describe('AGT-041 model schema guidance and failed-read retention', () => {
     });
     calls.generate.mockResolvedValueOnce({ object: { blueprint: { appName: 'wrong shape' } } });
     await expect(readPrdTool.execute!({}, {} as never)).rejects.toThrow();
+  });
+  it('preserves an explicit setup override supplied in the human clarification', async () => {
+    calls.generate.mockResolvedValue({
+      object: { ...analysis, theme: 'lapland', projectName: 'my-followups' },
+    });
+    const result = await readPrdTool.execute!(
+      { clarification: 'Use project folder my-followups and theme lapland.' },
+      {} as never,
+    );
+    expect(result).toMatchObject({
+      analysis: { theme: 'lapland', projectName: 'my-followups' },
+    });
   });
 });

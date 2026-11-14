@@ -133,7 +133,14 @@ export async function capturePrdAttachment(): Promise<PrdDraft | undefined> {
     source = readCurrentPrd();
   } catch (error) {
     sourceError = (error as Error).message;
-    source = { sourceName: 'Unreadable PRD.pdf', sourceText: '', sourceHash: '' };
+    const text = currentInboundText();
+    const current = text.slice(Math.max(0, text.lastIndexOf('\n[Request from ')));
+    const names = [...current.matchAll(/^\[Attached: ([^\n\]]+?\.pdf)\b/gim)];
+    source = {
+      sourceName: names.length === 1 ? names[0]![1]! : 'Unreadable PRD.pdf',
+      sourceText: '',
+      sourceHash: '',
+    };
   }
   const prior = await pendingPrdDraft();
   if (!sourceError && prior?.sourceHash === source.sourceHash && prior.sourceComplete !== false)
