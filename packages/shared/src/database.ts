@@ -152,3 +152,29 @@ export function projectSchema(purpose: ProjectSchemaPurpose, name?: string): str
   const room = PG_IDENTIFIER_MAX - purpose.length - 1;
   return `${safe.slice(0, room).replace(/_+$/, '')}_${purpose}`;
 }
+
+/** Reused databases supply owned schemas; their runtime role cannot create schemas. */
+export async function ensureProjectSchema(
+  database: {
+    query: (sql: string, values?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>;
+  },
+  schema: string,
+): Promise<void> {
+  if (!/^[a-z][a-z0-9_]{0,62}$/.test(schema)) throw new Error('Invalid project database schema.');
+  const reuse = typeof process !== 'undefined' && process.env.PRECAST_DB_NAMESPACE !== undefined;
+  if (
+    reuse &&
+    !(['auth', 'agents', 'app'] as const).some((purpose) => projectSchema(purpose) === schema)
+  )
+    throw new Error('Schema is outside the approved project namespace.');
+  const result = await database.query(
+    'SELECT nspname AS name, pg_get_userbyid(nspowner) = current_user AS owned FROM pg_namespace WHERE nspname = $1',
+    [schema],
+  );
+  if (reuse) {
+    if (result.rows[0]?.owned !== true)
+      throw new Error('The prepared project schema is missing or belongs to another role.');
+    return;
+  }
+  if (!result.rows.length) await database.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
+}

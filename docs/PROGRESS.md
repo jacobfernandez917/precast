@@ -1,5 +1,7 @@
 # PROGRESS.md — Context Memory
 
+- **2026-11-14 · Codex · full regression resumed; prepared-schema startup fix (T-261).** AWS access is active. Located the correct Seoul IPv4 pooler through official region metadata and a password-free verified-TLS tenant challenge, obtained the CA from official pinned Supabase CLI source, and authenticated to the same postgres database. Updated only the idle worker’s egress/contract modules with hashes/backups; healthy. Ten restricted roles and thirty owned schemas prepared; cross-project/unrelated-table isolation passes and operator CRUD probes roll back. Actual SQL reproduced 42501 from unconditional CREATE SCHEMA on pre-existing schemas. Auth/PRD startup now validates prepared namespace ownership without schema DDL; five focused shared checks pass. Full local verify passed all 12 tasks (agents 219, web 413/one skipped, shared 34, A2UI 34); publish/deploy and all ten actual Computer/public flows are next. No database created, no protected data changed, no Hannibal calls.
+
 - **2026-11-14 · Codex · ten live interviews passed; full builds blocked (T-261).** Deployed `0836b9d`; all four code CI jobs and all 12 local verify tasks passed (agents 219). Ten actual PDF/Raya interviews passed across 31 completed native tasks, with exact source/field contracts, one missing question at a time, human overrides, pause, unreadable replacement, rescope and confirmed discard. Fixed the live exclusions/cancellation gaps and a reproduced source-only override bug. Opaque historical prefix absent from all retest replies; upstream cause undetermined. A separate operator-host srv.us probe passed incremental streaming, a 131215 ms response, same-URL reconnect and expiry (two transient SSH timeouts recovered). No new Computer runs, full public apps, Hannibal calls or external database changes. Direct Supabase remains IPv6-only/unreachable; AWS refresh still fails. Both inputs remain pending. Report: `docs/validation/scaffold-regression-2026-11-14.json`.
 
 - **2026-11-14 · Codex · live review gaps reproduced (T-261).** Existing-only `2dc140a` passed four CI jobs and is deployed. Real Raya PDF reviews caught a false unsupported-feature warning for explicit exclusions and an unreadable draft left pending after cancellation was claimed. Added reader negation guidance, explicit cancellation tool instructions and retained unreadable filenames. Twelve focused checks and all 12 full-verify tasks passed (agents 219), including failure propagation when discard persistence fails. A further red test caught later human name/theme overrides being discarded by the source-only check; the check now includes human clarifications. An opaque prefix is present in the native upstream answer and prior model history; tightened conversational output guidance and will assert clean replies during retest. AgentBase API external-database overlay installed without changing shared source; worker update awaits AWS renewal. Full ten-project acceptance still awaits the exact IPv4 Supabase pooler connection. External database unchanged; no Hannibal calls.
@@ -55,7 +57,7 @@
 > **This file is the ultimate cross-tool context memory.** All coding agents MUST update this file on every meaningful change. If you finish work without updating PROGRESS.md, the work is **not** considered complete.
 
 **Last Updated:** 2026-11-14
-**Updated By:** Codex (ten-idea report; full builds blocked)
+**Updated By:** Codex (active ten-project Computer run)
 **Active Branch:** develop
 
 ---
@@ -121,7 +123,7 @@ You MUST update PROGRESS.md when you:
 
 - [x] T-261: Existing-only Gemini/Postgres gates and identified regression fixes, pushed and builder/API deployed.
 - [x] T-261: Ten real Raya PRD interviews (31 native tasks), ten local materializations and operator-host srv.us transport probe.
-- [!] T-261: Ten connected Computer/public flows and operator cleanup; need the exact IPv4 Supabase pooler connection and renewed AWS access.
+- [~] T-261: Ten connected Computer/public flows and operator cleanup; AWS/pooler resolved, idle worker updated, ten restricted schema sets prepared.
 
 ---
 
@@ -135,10 +137,8 @@ You MUST update PROGRESS.md when you:
 
 ## 5. Known Blockers
 
-| ID        | Blocker                                                                | Impact                                      | Workaround                                                                          |
-| --------- | ---------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------- |
-| T-261-DB  | Supplied direct Supabase endpoint resolves only IPv6; ENETUNREACH here | No live external DB setup or app acceptance | Exact IPv4 Session pooler details requested; never guess or provision a replacement |
-| T-261-AWS | agentbase SSO token expired; refresh fails                             | Cannot update the actual Computer worker    | Operator renewal requested; builder/API are already deployed                        |
+| ID  | Blocker | Impact | Workaround |
+| --- | ------- | ------ | ---------- |
 
 ---
 
@@ -166,6 +166,8 @@ You MUST update PROGRESS.md when you:
 ---
 
 ## 8. Session Log
+
+- **2026-11-14 · Codex · full regression resumed; prepared-schema startup fix (T-261).** AWS access is active. Located the correct Seoul IPv4 pooler through official region metadata and a password-free verified-TLS tenant challenge, obtained the CA from official pinned Supabase CLI source, and authenticated to the same postgres database. Updated only the idle worker’s egress/contract modules with hashes/backups; healthy. Ten restricted roles and thirty owned schemas prepared; cross-project/unrelated-table isolation passes and operator CRUD probes roll back. Actual SQL reproduced 42501 from unconditional CREATE SCHEMA on pre-existing schemas. Auth/PRD startup now validates prepared namespace ownership without schema DDL; five focused shared checks pass. Full local verify passed all 12 tasks (agents 219, web 413/one skipped, shared 34, A2UI 34); publish/deploy and all ten actual Computer/public flows are next. No database created, no protected data changed, no Hannibal calls.
 
 - **2026-11-14 · Codex · ten live interviews passed; full builds blocked (T-261).** Deployed `0836b9d`; all four code CI jobs and all 12 local verify tasks passed (agents 219). Ten actual PDF/Raya interviews passed across 31 completed native tasks, with exact source/field contracts, one missing question at a time, human overrides, pause, unreadable replacement, rescope and confirmed discard. Fixed the live exclusions/cancellation gaps and a reproduced source-only override bug. Opaque historical prefix absent from all retest replies; upstream cause undetermined. A separate operator-host srv.us probe passed incremental streaming, a 131215 ms response, same-URL reconnect and expiry (two transient SSH timeouts recovered). No new Computer runs, full public apps, Hannibal calls or external database changes. Direct Supabase remains IPv6-only/unreachable; AWS refresh still fails. Both inputs remain pending. Report: `docs/validation/scaffold-regression-2026-11-14.json`.
 

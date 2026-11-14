@@ -5,6 +5,7 @@ import {
   assertPostgresUrl,
   isPostgresUrl,
   projectSchema,
+  ensureProjectSchema,
   resolvePostgresSsl,
 } from './database.js';
 
@@ -141,5 +142,42 @@ describe('SHARED-011 existing-database project namespace isolation', () => {
   it('refuses malformed namespace configuration rather than falling back to another project', () => {
     vi.stubEnv('PRECAST_DB_NAMESPACE', '../public');
     expect(() => projectSchema('app')).toThrow(/namespace/);
+  });
+});
+
+describe('SHARED-012 prepared schemas without database CREATE privilege', () => {
+  it('uses an owned prepared schema without issuing schema DDL', async () => {
+    vi.stubEnv('PRECAST_DB_NAMESPACE', 'p_regression');
+    const query = vi.fn().mockResolvedValue({ rows: [{ name: 'p_regression_auth', owned: true }] });
+    await ensureProjectSchema({ query }, 'p_regression_auth');
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls[0]![0]).toMatch(/^SELECT/);
+  });
+  it.each([{ rows: [] }, { rows: [{ name: 'p_regression_app', owned: false }] }])(
+    'refuses missing or differently owned prepared schemas without creating a replacement',
+    async ({ rows }) => {
+      vi.stubEnv('PRECAST_DB_NAMESPACE', 'p_regression');
+      const query = vi.fn().mockResolvedValue({ rows });
+      await expect(ensureProjectSchema({ query }, 'p_regression_app')).rejects.toThrow(
+        /prepared project schema/,
+      );
+      expect(query).toHaveBeenCalledTimes(1);
+      expect(query.mock.calls[0]![0]).toMatch(/^SELECT/);
+    },
+  );
+  it('refuses another project or an unsafe identifier before querying', async () => {
+    vi.stubEnv('PRECAST_DB_NAMESPACE', 'p_regression');
+    const query = vi.fn();
+    await expect(ensureProjectSchema({ query }, 'another_app')).rejects.toThrow(/namespace/);
+    await expect(ensureProjectSchema({ query }, 'p_regression_app";DROP')).rejects.toThrow(
+      /Invalid/,
+    );
+    expect(query).not.toHaveBeenCalled();
+  });
+  it('retains normal schema creation for an ordinary project', async () => {
+    vi.stubEnv('PRECAST_DB_NAMESPACE', undefined);
+    const query = vi.fn().mockResolvedValue({ rows: [] });
+    await ensureProjectSchema({ query }, 'ordinary_auth');
+    expect(query).toHaveBeenLastCalledWith('CREATE SCHEMA IF NOT EXISTS "ordinary_auth"');
   });
 });

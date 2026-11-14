@@ -4,7 +4,7 @@ import { nextCookies } from 'better-auth/next-js';
 import { genericOAuth } from 'better-auth/plugins';
 import { PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
-import { projectSchema, resolvePostgresSsl } from '@precast/shared';
+import { projectSchema, ensureProjectSchema, resolvePostgresSsl } from '@precast/shared';
 import { log } from './logger';
 
 /**
@@ -166,7 +166,7 @@ export async function migrateAuthSchema(): Promise<void> {
     return;
   }
   try {
-    await authPool().query(`CREATE SCHEMA IF NOT EXISTS "${AUTH_DB_SCHEMA}"`);
+    await ensureProjectSchema(authPool(), AUTH_DB_SCHEMA);
     const { toBeCreated, toBeAdded, runMigrations } = await getMigrations(authOptions());
     if (toBeCreated.length === 0 && toBeAdded.length === 0) {
       tables.set(true);

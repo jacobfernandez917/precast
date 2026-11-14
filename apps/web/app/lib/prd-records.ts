@@ -1,5 +1,11 @@
 import { Pool } from 'pg';
-import { projectSchema, prdRecordSchema, type PrdBlueprint, type PrdRecord } from '@precast/shared';
+import {
+  projectSchema,
+  ensureProjectSchema,
+  prdRecordSchema,
+  type PrdBlueprint,
+  type PrdRecord,
+} from '@precast/shared';
 import { poolConfig } from './auth';
 
 let pool: Pool | undefined;
@@ -10,8 +16,7 @@ function database() {
   return pool;
 }
 async function ready() {
-  initialized ??= database()
-    .query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`)
+  initialized ??= ensureProjectSchema(database(), schema)
     .then(async () => {
       await database().query(`CREATE TABLE IF NOT EXISTS "${schema}".records (
       id uuid PRIMARY KEY, owner_id text NOT NULL, collection_id text NOT NULL,
