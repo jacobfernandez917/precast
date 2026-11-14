@@ -78,11 +78,15 @@ export function poolConfig(connectionString: string | undefined) {
 }
 
 function authPool(): Pool {
-  pool ??= new Pool({ ...poolConfig(read('DATABASE_URL')), max: 5 });
+  pool ??= new Pool({
+    ...poolConfig(read('DATABASE_URL')),
+    max: 5,
+    options: `-c search_path=${AUTH_DB_SCHEMA}`,
+  });
   return pool;
 }
 
-function authOptions(): BetterAuthOptions {
+function authOptions(migration = false): BetterAuthOptions {
   const issuer = read('OIDC_ISSUER_URI');
   const clientId = read('OIDC_CLIENT_ID');
   return {
@@ -91,7 +95,8 @@ function authOptions(): BetterAuthOptions {
     database: {
       dialect: new PostgresDialect({ pool: authPool() }),
       type: 'postgres',
-      schemaName: AUTH_DB_SCHEMA,
+      // Better Auth emits CREATE SCHEMA when this is set, even for an existing schema.
+      ...(migration && read('PRECAST_DB_NAMESPACE') ? {} : { schemaName: AUTH_DB_SCHEMA }),
     },
     emailAndPassword: { enabled: true },
     // Explicit so it is on everywhere, not only where NODE_ENV says production:
@@ -167,7 +172,7 @@ export async function migrateAuthSchema(): Promise<void> {
   }
   try {
     await ensureProjectSchema(authPool(), AUTH_DB_SCHEMA);
-    const { toBeCreated, toBeAdded, runMigrations } = await getMigrations(authOptions());
+    const { toBeCreated, toBeAdded, runMigrations } = await getMigrations(authOptions(true));
     if (toBeCreated.length === 0 && toBeAdded.length === 0) {
       tables.set(true);
       return;

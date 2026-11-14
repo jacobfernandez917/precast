@@ -301,3 +301,5 @@ Live Raya validation (2026-11-13): **Passed end to end** on signed image `202611
 | TOOL-021   | Shipped srv.us tunnel utility on operator host: incremental SSE, 130-second response, same-URL reconnect and expiry                                                             | Passing (131215 ms long stream, 9727 ms reconnect; synthetic HTTP, no Computer/model/database)    |
 
 | SHARED-012 | Reused prepared schemas require matching project ownership and no database CREATE; missing/foreign schemas refuse replacement; ordinary projects retain creation | Passing (5 cases; SQL 42501 reproduced before fix; ten real restricted roles pass helper/CRUD/isolation) |
+
+| WEB-044 | Prepared sign-in migrations use only the owned auth search path without CREATE SCHEMA; foreign owners fail before migration; ordinary projects retain explicit schema selection | Passing (3 unit cases; actual restricted pooler created four auth tables then rolled back; full verify passed) |
