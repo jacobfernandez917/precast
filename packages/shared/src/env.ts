@@ -75,6 +75,8 @@ export const EnvSchema = z.object({
   // Precast never runs Postgres on the developer's computer (CLAUDE.md §4.5):
   // point this at a managed instance, or let `pnpm db:provision` create one.
   DATABASE_URL: postgresUrl('DATABASE_URL'),
+  // Public trust material for managed providers with a private CA. Never disables TLS checks.
+  DATABASE_CA_PEM: z.string().trim().min(1).max(65000).optional(),
 
   // ── Redis (remote / managed) ───────────────────────────────────────────────
   // Point at a managed Redis (Upstash, Redis Cloud, …). The localhost default is

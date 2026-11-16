@@ -93,7 +93,8 @@ export function assertPostgresUrl(url: string, varName = 'DATABASE_URL'): string
  */
 export function resolvePostgresSsl(
   url: string,
-): false | { rejectUnauthorized: boolean } | undefined {
+  caPem = typeof process !== 'undefined' ? process.env.DATABASE_CA_PEM : undefined,
+): false | { rejectUnauthorized: boolean; ca?: string } | undefined {
   let mode: string | null;
   try {
     mode = new URL(url).searchParams.get('sslmode');
@@ -111,7 +112,7 @@ export function resolvePostgresSsl(
       return { rejectUnauthorized: false };
     case 'verify-ca':
     case 'verify-full':
-      return { rejectUnauthorized: true };
+      return { rejectUnauthorized: true, ...(caPem?.trim() ? { ca: caPem.trim() } : {}) };
     default:
       return undefined;
   }

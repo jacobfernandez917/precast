@@ -62,6 +62,16 @@ describe('assertPostgresUrl', () => {
 });
 
 describe('resolvePostgresSsl — libpq semantics, not node-postgres defaults', () => {
+  it('supports an operator-supplied CA for hosted agents without weakening verification', () => {
+    const ca = '-----BEGIN CERTIFICATE-----\nfixture-trust-material\n-----END CERTIFICATE-----';
+    expect(resolvePostgresSsl('postgresql://user:pass@host/db?sslmode=verify-full', ca)).toEqual({
+      rejectUnauthorized: true,
+      ca,
+    });
+    expect(resolvePostgresSsl('postgresql://user:pass@host/db?sslmode=require', ca)).toEqual({
+      rejectUnauthorized: false,
+    });
+  });
   /**
    * Regression: an AWS RDS instance with `?sslmode=require` crashed the agents
    * container at boot with SELF_SIGNED_CERT_IN_CHAIN. node-postgres verifies

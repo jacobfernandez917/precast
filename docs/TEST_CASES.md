@@ -263,3 +263,5 @@ Scaffold network scope: `agent-mode.spec.ts` checks that only `scaffold-builder`
 | TOOL-PRD-COMPUTER | Derived product manifests remove builder access and propose only exact sites for the generated assistant, with no project paths, command profiles or secrets. | Automated |
 
 | TOOL-BOOTSTRAP-SPACE | Bootstrap checks the project volume before a cold dependency install and reserves remaining build space for an installed workspace. It deletes nothing. Failed Computer commands retain stdout diagnostics even when stderr contains only a generic wrapper error. | Automated |
+
+| SHARED-HOSTED-TLS | An operator-supplied Postgres CA remains verified in hosted agent memory; URL parsing cannot discard the explicit CA. Cold scaffold builds read matching Turbo caches without writing duplicate runtime archives. | Automated |

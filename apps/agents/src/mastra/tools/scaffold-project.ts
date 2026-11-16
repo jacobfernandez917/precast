@@ -194,7 +194,9 @@ export async function scaffoldProject(
       id: 'build',
       label: 'Build the scaffold',
       executable: 'pnpm' as const,
-      argv: ['run', 'build'],
+      // A fresh scaffold is built once. Read matching caches but do not archive a
+      // second copy of its complete runtime dependencies into the member's disk.
+      argv: ['run', 'build', '--cache=local:r'],
       cwd: projectPath,
       timeoutMs: 30 * 60_000,
       memoryMiB: 3072,

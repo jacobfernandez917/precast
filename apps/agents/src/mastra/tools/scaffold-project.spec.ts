@@ -170,6 +170,7 @@ describe('AGT-034 connected scaffold gates', () => {
     expect(calls.commands.map((c) => c.id)).toEqual(['clone', 'bootstrap', 'verify', 'build']);
     expect(calls.commands.every((c) => c.secrets === undefined)).toBe(true);
     expect(calls.commands.find((c) => c.id === 'bootstrap')?.argv).toContain('--skip-deps');
+    expect(calls.commands.find((c) => c.id === 'build')?.argv).toContain('--cache=local:r');
     expect(calls.verify).not.toHaveBeenCalled();
   });
   it('runs connected setup with an alias only, verifies before building and returns no private receipt', async () => {

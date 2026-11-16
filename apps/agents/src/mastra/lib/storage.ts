@@ -21,8 +21,11 @@ let store: PostgresStore | undefined;
 export function getMastraStore(): PostgresStore {
   if (!store) {
     const env = parseApiEnv();
-    const connectionString = resolveMastraDbUrl(env);
-    const ssl = resolvePostgresSsl(connectionString);
+    const sourceUrl = resolveMastraDbUrl(env);
+    const ssl = resolvePostgresSsl(sourceUrl);
+    const parsedUrl = new URL(sourceUrl);
+    if (ssl !== undefined) parsedUrl.searchParams.delete('sslmode');
+    const connectionString = ssl === undefined ? sourceUrl : parsedUrl.toString();
     store = new PostgresStore({
       id: 'precast-store',
       connectionString,
