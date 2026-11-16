@@ -95,14 +95,20 @@ export async function POST(
     );
   }
 
-  const reply = async () => {
+  const reply = async (onText?: (text: string) => void, signal = request.signal) => {
     try {
       const { resourceId, threadId, conversationId } = resolveAgentContext(
         user,
         requestedConversation,
       );
 
-      const reply = await callAgent(agentId, text, { threadId, resourceId, onBehalfOf: user.id });
+      const reply = await callAgent(agentId, text, {
+        threadId,
+        resourceId,
+        onBehalfOf: user.id,
+        signal,
+        onText,
+      });
 
       if (reply.ok) {
         log.info(
@@ -149,6 +155,6 @@ export async function POST(
     }
   };
   return request.headers.get('accept')?.includes('text/event-stream')
-    ? streamChatResult(reply)
+    ? streamChatResult(reply, request.signal)
     : reply();
 }

@@ -4,6 +4,31 @@ import { readChatResponse, streamChatResult } from '../app/lib/chat-stream';
 afterEach(() => vi.useRealTimers());
 
 describe('WEB-029 streamed A2A turn results', () => {
+  it('forwards real token deltas before the final result and aborts upstream on disconnect', async () => {
+    let emit!: (text: string) => void;
+    let finish!: (response: Response) => void;
+    let upstream!: AbortSignal;
+    const response = streamChatResult((onText, signal) => {
+      emit = onText;
+      upstream = signal;
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    });
+    const updates = vi.fn();
+    const read = readChatResponse(response, () => {}, updates);
+    emit('Hello');
+    emit('Hello world');
+    await vi.waitFor(() => expect(updates).toHaveBeenLastCalledWith('Hello world'));
+    finish(Response.json({ ok: true, text: 'Hello world' }));
+    await read;
+    const disconnected = streamChatResult(async (_onText, signal) => {
+      upstream = signal;
+      return new Promise(() => {});
+    });
+    await disconnected.body!.cancel();
+    expect(upstream.aborted).toBe(true);
+  });
   it('delivers working updates before a long turn completes, then preserves its result', async () => {
     vi.useFakeTimers();
     let finish!: (response: Response) => void;

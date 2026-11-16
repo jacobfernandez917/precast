@@ -21,10 +21,15 @@ vi.mock('@precast/shared', async (original) => ({
   },
 }));
 vi.mock('../app/lib/auth', () => ({ getSignedInUser: vi.fn() }));
+vi.mock('../app/lib/prd-teams', () => ({
+  resolvePrdOwner: vi.fn(async (user: string) => user),
+  PrdAccessError: class extends Error {},
+}));
 vi.mock('../app/lib/prd-records', () => ({
   listPrdRecords: vi.fn(),
   savePrdRecord: vi.fn(),
   deletePrdRecord: vi.fn(),
+  PrdDataError: class extends Error {},
 }));
 import { GET, POST, PATCH, DELETE } from '../app/api/project-records/route';
 import { getSignedInUser } from '../app/lib/auth';

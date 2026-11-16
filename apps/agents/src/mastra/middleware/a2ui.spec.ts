@@ -21,7 +21,7 @@ const card = {
 type Turn = { sawParts: unknown[]; drawCard: boolean };
 
 function app(
-  opts: { drawCard?: boolean; stream?: boolean; signed?: boolean; skills?: string[] } = {},
+  opts: { drawCard?: boolean; stream?: boolean | 'task'; signed?: boolean; skills?: string[] } = {},
 ) {
   const log = { warn: vi.fn(), debug: vi.fn() };
   const turn: Turn = { sawParts: [], drawCard: opts.drawCard ?? false };
@@ -56,6 +56,50 @@ function app(
         : 0;
     if (wait) await new Promise((r) => setTimeout(r, wait));
     if (opts.stream) {
+      if (opts.stream === 'task')
+        return new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  'data: ' +
+                    JSON.stringify({
+                      jsonrpc: '2.0',
+                      result: {
+                        kind: 'task',
+                        id: 't1',
+                        status: { state: 'working' },
+                        artifacts: [],
+                      },
+                    }) +
+                    '\n\n',
+                ),
+              );
+              setTimeout(() => {
+                showCard(card, 'stream-card');
+                controller.enqueue(
+                  new TextEncoder().encode(
+                    'data: ' +
+                      JSON.stringify({
+                        jsonrpc: '2.0',
+                        result: {
+                          kind: 'task',
+                          id: 't1',
+                          status: { state: 'completed' },
+                          artifacts: [
+                            { artifactId: 'answer', parts: [{ kind: 'text', text: 'Finished.' }] },
+                          ],
+                        },
+                      }) +
+                      '\n\n',
+                  ),
+                );
+                controller.close();
+              }, 15);
+            },
+          }),
+          { headers: { 'content-type': 'text/event-stream' } },
+        );
       return new Response('data: {"jsonrpc":"2.0"}\n\n', {
         headers: { 'content-type': 'text/event-stream' },
       });
@@ -165,11 +209,30 @@ describe('AGT-014 A2UI cards on replies', () => {
     expect(lastParts(await res.json())).toHaveLength(1);
   });
 
-  it('passes a stream through untouched and says the card was dropped', async () => {
+  it('passes an unrecognized stream through untouched', async () => {
     const { h, log } = app({ drawCard: true, stream: true });
     const res = await post(h, send([{ kind: 'text', text: 'hi' }]));
     expect(await res.text()).toBe('data: {"jsonrpc":"2.0"}\n\n');
-    expect(log.warn).toHaveBeenCalledWith(expect.stringMatching(/streams/));
+    expect(log.warn).not.toHaveBeenCalled();
+  });
+
+  it('preserves the card drawn after streaming starts and attaches it only to this request’s final Task', async () => {
+    const { h } = app({ stream: 'task' });
+    const res = await post(h, send([{ kind: 'text', text: 'draw a card' }]));
+    const reader = res.body!.getReader();
+    const first = new TextDecoder().decode((await reader.read()).value);
+    expect(first).toContain('working');
+    expect(first).not.toContain(A2UI_MIME_TYPE);
+    let remaining = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      remaining += new TextDecoder().decode(value);
+    }
+    const reply = JSON.parse(remaining.trim().slice('data: '.length));
+    expect(lastParts(reply)).toContainEqual(
+      expect.objectContaining({ metadata: { mimeType: A2UI_MIME_TYPE } }),
+    );
   });
 
   it('never attaches across turns: each request has its own card slot', async () => {

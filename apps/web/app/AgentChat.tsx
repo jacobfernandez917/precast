@@ -63,6 +63,8 @@ export function AgentChat({ presentation = 'demo' }: { presentation?: 'demo' | '
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [streamingText, setStreamingText] = useState('');
+  const activeRequest = useRef<AbortController | null>(null);
   const gate = useRef(createConversationGate());
   const logRef = useRef<HTMLDivElement>(null);
   const followEnd = useRef(true);
@@ -92,6 +94,8 @@ export function AgentChat({ presentation = 'demo' }: { presentation?: 'demo' | '
   }, []);
 
   function startNewConversation() {
+    activeRequest.current?.abort();
+    setStreamingText('');
     gate.current.reset();
     setConversationId(null);
     setTurns([]);
@@ -107,6 +111,9 @@ export function AgentChat({ presentation = 'demo' }: { presentation?: 'demo' | '
     const token = gate.current.begin();
     setIsSending(true);
     setElapsedSeconds(0);
+    setStreamingText('');
+    const abort = new AbortController();
+    activeRequest.current = abort;
     setError(null);
     try {
       const res = await fetch(`/api/a2a/${agentId}`, {
@@ -116,10 +123,17 @@ export function AgentChat({ presentation = 'demo' }: { presentation?: 'demo' | '
         // server's business — sending a resourceId from here would be the bug
         // this whole seam exists to prevent.
         body: JSON.stringify({ ...body, ...(conversationId ? { conversationId } : {}) }),
+        signal: abort.signal,
       });
-      const response = await readChatResponse(res, (seconds) => {
-        if (gate.current.isCurrent(token)) setElapsedSeconds(seconds);
-      });
+      const response = await readChatResponse(
+        res,
+        (seconds) => {
+          if (gate.current.isCurrent(token)) setElapsedSeconds(seconds);
+        },
+        (text) => {
+          if (gate.current.isCurrent(token)) setStreamingText(text);
+        },
+      );
       const outcome = interpretRouteReply(response.status, response.text);
       if (!gate.current.isCurrent(token)) return false;
 
@@ -138,7 +152,10 @@ export function AgentChat({ presentation = 'demo' }: { presentation?: 'demo' | '
       if (gate.current.isCurrent(token)) setError('Could not reach the server. Try again.');
       return false;
     } finally {
-      if (gate.current.isCurrent(token)) setIsSending(false);
+      if (gate.current.isCurrent(token)) {
+        setIsSending(false);
+        setStreamingText('');
+      }
     }
   }
 
@@ -205,6 +222,11 @@ export function AgentChat({ presentation = 'demo' }: { presentation?: 'demo' | '
                 </div>
               </div>
             ))}
+            {isSending && streamingText && (
+              <div aria-label="Assistant response in progress">
+                <Text as="p">{streamingText}</Text>
+              </div>
+            )}
             {turns.length > 0 && (
               <Text type="supporting">
                 {isAssistant

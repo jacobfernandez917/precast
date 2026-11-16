@@ -685,3 +685,11 @@ Liveness probes (`GET /api/agents`, which `pnpm poc` and AgentBase's readiness c
 - `src/agent-llm-config/*` — §7.9: `GET/PUT /agents/:id/llm-config` (org admin picks a model for an imported agent)
 - `src/llm-gateway/llm-gateway.service.ts` `resolveTarget()` — resolves both COMPOSED (`agent_definitions`) and IMPORTED (`agent_llm_configs`) callers
 - `src/source-imports/source-imports.service.ts` `injectLlmGatewayEnv()` — mints the per-agent service Application + injects its gateway env on (re)deploy
+
+### Product assistants with Computer access
+
+`apply-prd.mjs` writes a separate Computer-needs proposal when the approved blueprint includes `capabilities.computer`. It binds only `example-agent`, uses the General browser profile and exact declared domains, and requests approval for external browser actions. It removes the template builder's declaration from the derived project. Full-crew import keeps this assistant independently addressable. Importing a proposal never grants access: the owner selects their Computer, approves this agent's scope and grants access to signed-in sites when needed.
+
+The browser tool runs under this agent's managed service identity and a verified Raya conversation. The web app's ordinary developer Application cannot substitute for it. It can open, inspect, click and scroll approved pages, hand sign-in/MFA/CAPTCHA to the owner, and finish the task. Shell commands, typing, sending mail, deleting and payments are absent. Browser content is untrusted data. A lost action response is checked by its recorded action ID instead of replaying the external effect.
+
+To host multiple product assistants from the existing Precast repository, select `PRECAST_AGENT_MODE=project` in separate AgentBase environments and set the operator-owned `PRECAST_PRODUCT_BLUEPRINT_JSON` to a valid blueprint. Omit it to use the compiled product definition. This setting does not configure the web UI and cannot override scaffold-builder mode. When using the template directly, explicitly configure and approve the product agent's Computer scope in AgentBase; no builder grant applies to it.

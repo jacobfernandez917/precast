@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 const fixtures = JSON.parse(
   readFileSync(
-    new URL('../../../docs/fixtures/scaffold-project-ideas.json', import.meta.url),
+    process.env.SCAFFOLD_E2E_FIXTURES ??
+      new URL('../../../docs/fixtures/scaffold-project-ideas.json', import.meta.url),
     'utf8',
   ),
 );
@@ -88,6 +89,57 @@ test('E2E-019 fixture-specific public app, every collection, account isolation a
           await page
             .getByRole('combobox', { name: field.label, exact: true })
             .selectOption(field.choices[0]);
+        } else if (field.type === 'reference') {
+          const target = trial.blueprint.collections.find(
+            (c: { id: string }) => c.id === field.referenceCollection,
+          );
+          expect(target).toBeTruthy();
+          const values = Object.fromEntries(
+            target.fields
+              .filter(
+                (f: { required: boolean; type: string }) => f.required || f.type === 'boolean',
+              )
+              .map((f: { id: string; type: string; choices: string[] }) => [
+                f.id,
+                f.type === 'text'
+                  ? 'Linked fixture ' + randomUUID()
+                  : f.type === 'boolean'
+                    ? false
+                    : f.type === 'number'
+                      ? 0
+                      : f.type === 'choice'
+                        ? f.choices[0]
+                        : '2026-11-16',
+              ]),
+          );
+          const created = await page.request.post('/api/project-records', {
+            headers: jsonHeaders,
+            data: { collection: target.id, data: values },
+          });
+          expect(created.status()).toBe(201);
+          const linked = await created.json();
+          data[field.id] = linked.id;
+          await page.reload();
+          await page
+            .getByRole('navigation', { name: 'Collections' })
+            .getByRole('button', { name: collection.label, exact: true })
+            .click();
+          // Reload also resets form values. Fill the already chosen values again.
+          for (const previous of collection.fields.slice(0, collection.fields.indexOf(field))) {
+            if (previous.type === 'text')
+              await page
+                .getByRole('textbox', {
+                  name: new RegExp('^' + escaped(previous.label) + '(?:\\s|$)'),
+                })
+                .fill(String(data[previous.id]));
+            else if (previous.type === 'boolean')
+              await page
+                .getByRole('checkbox', { name: previous.label, exact: true })
+                .setChecked(data[previous.id] === true);
+          }
+          await page
+            .getByRole('combobox', { name: field.label, exact: true })
+            .selectOption(linked.id);
         } else if (field.type === 'number') {
           data[field.id] = 0;
           await page.getByRole('spinbutton', { name: field.label, exact: true }).fill('0');
@@ -117,17 +169,19 @@ test('E2E-019 fixture-specific public app, every collection, account isolation a
       expect(record.data).toEqual(data);
       for (const field of collection.fields) {
         const bad =
-          field.type === 'date'
-            ? '2026-02-30'
-            : field.type === 'choice'
-              ? 'NOT_AN_ALLOWED_CHOICE'
-              : field.type === 'number'
-                ? 'not-a-number'
-                : field.type === 'boolean'
-                  ? 'false'
-                  : field.required
-                    ? ''
-                    : undefined;
+          field.type === 'reference'
+            ? 'not-a-record-uuid'
+            : field.type === 'date'
+              ? '2026-02-30'
+              : field.type === 'choice'
+                ? 'NOT_AN_ALLOWED_CHOICE'
+                : field.type === 'number'
+                  ? 'not-a-number'
+                  : field.type === 'boolean'
+                    ? 'false'
+                    : field.required
+                      ? ''
+                      : undefined;
         if (bad !== undefined)
           expect(
             (

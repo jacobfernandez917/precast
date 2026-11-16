@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
@@ -11,6 +11,7 @@ import type { PrdBlueprint, PrdRecord } from '@precast/shared';
 import { authClient } from './lib/auth-client';
 import { AccountBar } from './AccountBar';
 import { AgentChat } from './AgentChat';
+import { PrdCapabilitiesPanel } from './PrdCapabilitiesPanel';
 
 export function PrdWorkspace({ brief }: { brief: PrdBlueprint }) {
   const router = useRouter();
@@ -22,17 +23,44 @@ export function PrdWorkspace({ brief }: { brief: PrdBlueprint }) {
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [workspace, setWorkspace] = useState('');
+  const [workspaceRole, setWorkspaceRole] = useState('owner');
+  const [references, setReferences] = useState<Record<string, PrdRecord[]>>({});
   const collection = brief.collections.find((item) => item.id === selected)!;
   const userId = session?.user.id;
+  const currentScope = `${userId}:${workspace}:${selected}`;
+  const scopeRef = useRef(currentScope);
+  scopeRef.current = currentScope;
   const reload = useCallback(async () => {
     if (!userId) return;
-    const response = await fetch(`/api/project-records?collection=${encodeURIComponent(selected)}`);
+    const scope = `${userId}:${workspace}:${selected}`;
+    const response = await fetch(
+      `/api/project-records?collection=${encodeURIComponent(selected)}${workspace ? `&workspace=${encodeURIComponent(workspace)}` : ''}`,
+    );
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Could not load your records.');
-    setRecords(result.records);
-  }, [selected, userId]);
+    const targets = [
+      ...new Set(
+        collection.fields.filter((f) => f.type === 'reference').map((f) => f.referenceCollection!),
+      ),
+    ];
+    const options: Record<string, PrdRecord[]> = {};
+    for (const target of targets) {
+      const response = await fetch(
+        `/api/project-records?collection=${encodeURIComponent(target)}${workspace ? `&workspace=${encodeURIComponent(workspace)}` : ''}`,
+      );
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Could not load linked records.');
+      options[target] = body.records;
+    }
+    if (scopeRef.current === scope) {
+      setRecords(result.records);
+      setReferences(options);
+    }
+  }, [selected, userId, workspace, collection]);
   useEffect(() => {
     setRecords([]);
+    setReferences({});
     setValues({});
     setEditing(undefined);
     setError(null);
@@ -61,7 +89,12 @@ export function PrdWorkspace({ brief }: { brief: PrdBlueprint }) {
       const response = await fetch('/api/project-records', {
         method: editing ? 'PATCH' : 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ collection: selected, data, ...(editing ? { id: editing } : {}) }),
+        body: JSON.stringify({
+          collection: selected,
+          data,
+          ...(editing ? { id: editing } : {}),
+          ...(workspace ? { workspace } : {}),
+        }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save your changes.');
@@ -82,7 +115,7 @@ export function PrdWorkspace({ brief }: { brief: PrdBlueprint }) {
       const response = await fetch('/api/project-records', {
         method: 'DELETE',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ collection: selected, id }),
+        body: JSON.stringify({ collection: selected, id, ...(workspace ? { workspace } : {}) }),
       });
       if (!response.ok) throw new Error('Could not delete that record.');
       if (editing === id) {
@@ -117,6 +150,14 @@ export function PrdWorkspace({ brief }: { brief: PrdBlueprint }) {
   return (
     <div className="flex min-h-0 flex-col gap-6">
       <AccountBar email={session.user.email} />
+      <PrdCapabilitiesPanel
+        brief={brief}
+        workspace={workspace}
+        onWorkspace={(id, role) => {
+          setWorkspace(id);
+          setWorkspaceRole(role);
+        }}
+      />
       <nav aria-label="Collections" className="flex flex-wrap gap-2">
         {brief.collections.map((item) => (
           <Button
@@ -171,6 +212,7 @@ export function PrdWorkspace({ brief }: { brief: PrdBlueprint }) {
                   <Button
                     label={`Edit ${collection.singular.toLowerCase()}`}
                     variant="secondary"
+                    isDisabled={workspaceRole === 'viewer'}
                     onClick={() => {
                       setEditing(record.id);
                       setValues(
@@ -186,7 +228,7 @@ export function PrdWorkspace({ brief }: { brief: PrdBlueprint }) {
                   <Button
                     label={`Delete ${collection.singular.toLowerCase()}`}
                     variant="secondary"
-                    isDisabled={busy}
+                    isDisabled={busy || workspaceRole === 'viewer'}
                     onClick={() => void remove(record.id)}
                   />
                 </div>
@@ -200,7 +242,25 @@ export function PrdWorkspace({ brief }: { brief: PrdBlueprint }) {
               {editing ? 'Edit' : 'Add'} {collection.singular.toLowerCase()}
             </Heading>
             {collection.fields.map((field) =>
-              field.type === 'choice' ? (
+              field.type === 'reference' ? (
+                <label key={field.id} className="flex flex-col gap-2 text-sm">
+                  {field.label}
+                  <select
+                    aria-label={field.label}
+                    required={field.required}
+                    value={String(values[field.id] ?? '')}
+                    onChange={(e) => setValues((v) => ({ ...v, [field.id]: e.target.value }))}
+                    className="rounded-lg border border-border bg-surface p-3 text-primary"
+                  >
+                    <option value="">Choose linked record…</option>
+                    {(references[field.referenceCollection!] ?? []).map((record) => (
+                      <option key={record.id} value={record.id}>
+                        {String(Object.values(record.data)[0] ?? record.id)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : field.type === 'choice' ? (
                 <label key={field.id} className="flex flex-col gap-2 text-sm">
                   {field.label}
                   <select
@@ -253,6 +313,7 @@ export function PrdWorkspace({ brief }: { brief: PrdBlueprint }) {
               variant="primary"
               type="submit"
               isLoading={busy}
+              isDisabled={workspaceRole === 'viewer'}
             />
             {editing && (
               <Button

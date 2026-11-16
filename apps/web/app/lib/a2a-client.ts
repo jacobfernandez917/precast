@@ -49,6 +49,7 @@ import { A2UI_EXTENSION_URI, a2uiClientCapabilities, a2uiMessagesFromReply } fro
 import { log } from './logger';
 import { getAgentBaseAccessToken } from './agentbase-auth';
 import { resolveAgentUrl } from './agentbase-discovery';
+import { readA2aStream } from './a2a-stream';
 
 export type A2aTransport = 'agentbase' | 'direct';
 
@@ -153,6 +154,8 @@ interface CallOptions {
    */
   onBehalfOf?: string;
   signal?: AbortSignal;
+  /** Cumulative text from validated A2A artifact deltas; no transport metadata. */
+  onText?: (text: string) => void;
 }
 
 /**
@@ -203,7 +206,7 @@ function buildA2aMessageEnvelope(text: string, options?: CallOptions): unknown {
   return {
     jsonrpc: '2.0',
     id: crypto.randomUUID(),
-    method: 'message/send',
+    method: options?.onText ? 'message/stream' : 'message/send',
     params: {
       message: {
         kind: 'message',
@@ -291,7 +294,7 @@ async function postJsonRpc(
   endpoint: string,
   body: unknown,
   bearer: string,
-  options?: Pick<CallOptions, 'signal' | 'onBehalfOf'>,
+  options?: Pick<CallOptions, 'signal' | 'onBehalfOf' | 'onText'>,
 ): Promise<RpcOutcome> {
   const signal = options?.signal;
   // The A2UI extension, requested on every call. AgentBase forwards a validated
@@ -302,6 +305,7 @@ async function postJsonRpc(
   };
   if (bearer) headers['Authorization'] = `Bearer ${bearer}`;
   if (options?.onBehalfOf) headers[ON_BEHALF_OF_HEADER] = options.onBehalfOf;
+  if (options?.onText) headers.Accept = 'text/event-stream';
 
   // Debug-level so the full A2A wire traffic shows under `dev:verbose` /
   // LOG_LEVEL=debug, without noising up the default `info` terminal. Auth
@@ -328,6 +332,22 @@ async function postJsonRpc(
   const ms = Math.round(performance.now() - startedAt);
   log.debug({ endpoint, status: res.status, ms }, 'A2A ← response');
 
+  if (res.ok && res.headers.get('content-type')?.includes('text/event-stream')) {
+    try {
+      return {
+        kind: 'json',
+        status: res.status,
+        body: await readA2aStream(res, options?.onText ?? (() => undefined)),
+      };
+    } catch {
+      // Never retry with message/send: a partially streamed turn may have used tools.
+      return {
+        kind: 'network',
+        timedOut: Boolean(signal?.aborted),
+        message: 'The reply stream did not complete.',
+      };
+    }
+  }
   // Read the body once as text: a gateway's HTML error page or an empty body must
   // become an answer, not a SyntaxError thrown out of the route.
   const textBody = await res.text().catch(() => '');

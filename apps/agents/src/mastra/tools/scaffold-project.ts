@@ -80,6 +80,11 @@ export async function scaffoldProject(
   input: z.input<typeof scaffoldProjectInput>,
 ): Promise<z.infer<typeof scaffoldProjectOutput>> {
   const parsed = scaffoldProjectInput.parse(input);
+  const templateRevision = z
+    .string()
+    .regex(/^[a-f0-9]{40}$/)
+    .optional()
+    .parse(process.env.PRECAST_TEMPLATE_REVISION?.trim() || undefined);
   if (!parsed.prdId && process.env.PRECAST_PRD_BUILD_ENABLED === '1' && (await pendingPrdDraft()))
     throw new Error(
       'This conversation has a pending PRD. Read it successfully and include its draft ID, or explicitly discard it before a plain scaffold. No project was created.',
@@ -144,7 +149,15 @@ export async function scaffoldProject(
       id: 'clone',
       label: 'Clone the Precast template',
       executable: 'git' as const,
-      argv: ['clone', '--depth', '1', TEMPLATE_REPOSITORY, parsed.projectName],
+      argv: [
+        'clone',
+        '--depth',
+        '1',
+        '--branch',
+        'develop',
+        TEMPLATE_REPOSITORY,
+        parsed.projectName,
+      ],
       cwd: 'Projects',
       timeoutMs: 5 * 60_000,
     },
@@ -162,6 +175,7 @@ export async function scaffoldProject(
         '--llm-provider=skip',
         '--db=later',
         `--theme=${parsed.theme}`,
+        ...(templateRevision ? [`--expected-template-commit=${templateRevision}`] : []),
       ],
       cwd: projectPath,
       timeoutMs: 30 * 60_000,

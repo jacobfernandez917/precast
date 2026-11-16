@@ -148,6 +148,14 @@ describe('AGT-039 PRD Computer orchestration', () => {
 });
 afterEach(() => vi.unstubAllEnvs());
 describe('AGT-034 connected scaffold gates', () => {
+  it('pins every scaffold to develop and checks an operator-approved revision before bootstrap', async () => {
+    vi.stubEnv('PRECAST_TEMPLATE_REVISION', 'a'.repeat(40));
+    await scaffoldProject({ projectName: 'revision-probe', services: 'deferred' });
+    expect(calls.commands.find((c) => c.id === 'clone')?.argv).toContain('develop');
+    expect(calls.commands.find((c) => c.id === 'bootstrap')?.argv).toContain(
+      '--expected-template-commit=' + 'a'.repeat(40),
+    );
+  });
   it('refuses service setup before any Computer run unless builder mode and the operator gate are enabled', async () => {
     vi.stubEnv('PRECAST_AGENT_MODE', 'project');
     vi.stubEnv('PRECAST_SERVICE_SETUP_ENABLED', '1');

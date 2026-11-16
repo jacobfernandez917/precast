@@ -127,6 +127,16 @@ export function takePendingCard(): unknown[] | undefined {
   return card;
 }
 
+/** Capture this request's card slot before an SSE body outlives the middleware call. */
+export function pendingCardReader(): () => unknown[] | undefined {
+  const store = storage.getStore();
+  return () => {
+    const card = store?.pendingCard;
+    if (store) delete store.pendingCard;
+    return card;
+  };
+}
+
 /**
  * The subject to act as, applying the documented precedence:
  *

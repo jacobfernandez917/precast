@@ -8,6 +8,7 @@ import {
   currentRayaScopeKey,
 } from '../lib/request-context';
 import { resolveAgentMode } from '../lib/agent-mode';
+import { sanitizeScaffoldReply } from '../lib/scaffold-reply';
 import { capturePrdAttachment } from '../lib/prd-drafts';
 
 /**
@@ -173,6 +174,25 @@ export function createAuthMiddleware() {
         await next();
       },
     );
+
+    if (
+      resolveAgentMode() === 'scaffold-builder' &&
+      c.req.path.startsWith('/api/a2a/') &&
+      c.res.headers.get('content-type')?.includes('application/json')
+    ) {
+      const payload = await c.res
+        .clone()
+        .json()
+        .catch(() => null);
+      if (payload) {
+        const headers = new Headers(c.res.headers);
+        headers.delete('content-length');
+        c.res = new Response(JSON.stringify(sanitizeScaffoldReply(payload)), {
+          status: c.res.status,
+          headers,
+        });
+      }
+    }
 
     // 3. When auth is on, make the agent card advertise the bearer scheme.
     if (token && isAgentCardPath(c.req.path)) {

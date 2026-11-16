@@ -2,7 +2,13 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { projectBrief, prdRecordSchema } from '@precast/shared';
 import { getSignedInUser } from '../../lib/auth';
-import { deletePrdRecord, listPrdRecords, savePrdRecord } from '../../lib/prd-records';
+import {
+  deletePrdRecord,
+  listPrdRecords,
+  savePrdRecord,
+  PrdDataError,
+} from '../../lib/prd-records';
+import { resolvePrdOwner, PrdAccessError } from '../../lib/prd-teams';
 import { log } from '../../lib/logger';
 
 const mutation = z
@@ -10,6 +16,7 @@ const mutation = z
     collection: z.string(),
     id: z.string().uuid().optional(),
     data: z.unknown().optional(),
+    workspace: z.string().uuid().optional(),
   })
   .strict();
 
@@ -24,7 +31,10 @@ async function handle(request: Request) {
     return NextResponse.json({ error: 'Use this app to make changes.' }, { status: 403 });
   const parsed =
     request.method === 'GET'
-      ? mutation.safeParse({ collection: new URL(request.url).searchParams.get('collection') })
+      ? mutation.safeParse({
+          collection: new URL(request.url).searchParams.get('collection'),
+          workspace: new URL(request.url).searchParams.get('workspace') ?? undefined,
+        })
       : mutation.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
     return NextResponse.json({ error: 'Check the record details.' }, { status: 400 });
@@ -32,11 +42,17 @@ async function handle(request: Request) {
   if (!collection)
     return NextResponse.json({ error: 'That collection does not exist.' }, { status: 404 });
   try {
+    const owner = await resolvePrdOwner(
+      user.id,
+      projectBrief,
+      parsed.data.workspace,
+      request.method !== 'GET',
+    );
     if (request.method === 'GET')
-      return NextResponse.json({ records: await listPrdRecords(user.id, collection.id) });
+      return NextResponse.json({ records: await listPrdRecords(owner, collection.id) });
     if (request.method === 'DELETE') {
       if (!parsed.data.id) return NextResponse.json({ error: 'Choose a record.' }, { status: 400 });
-      return (await deletePrdRecord(user.id, collection.id, parsed.data.id))
+      return (await deletePrdRecord(owner, collection.id, parsed.data.id))
         ? NextResponse.json({ ok: true })
         : NextResponse.json({ error: 'That record does not exist.' }, { status: 404 });
     }
@@ -53,11 +69,15 @@ async function handle(request: Request) {
         { error: 'New records cannot supply an identifier.' },
         { status: 400 },
       );
-    const id = await savePrdRecord(user.id, collection, data.data, parsed.data.id);
+    const id = await savePrdRecord(owner, collection, data.data, parsed.data.id);
     return id
       ? NextResponse.json({ id }, { status: request.method === 'POST' ? 201 : 200 })
       : NextResponse.json({ error: 'That record does not exist.' }, { status: 404 });
   } catch (error) {
+    if (error instanceof PrdAccessError)
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    if (error instanceof PrdDataError)
+      return NextResponse.json({ error: error.message }, { status: 409 });
     log.error({ err: (error as Error).message }, 'Product record operation failed');
     return NextResponse.json(
       { error: 'Could not save your changes. Please try again.' },

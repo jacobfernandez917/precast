@@ -324,3 +324,11 @@ Full list: [docs/SCRIPTS.md](docs/SCRIPTS.md).
 
 - **`develop`** — default branch; integration state. A bootstrapped project starts here.
 - Feature branches: `feat/<description>`, `fix/<description>`, `chore/<description>`.
+
+### PRD product capabilities
+
+A PDF PRD can request private records, team workspaces with owner/editor/viewer roles, and links between collections. Reminder and payment workflows are available as clearly labeled local test adapters: no email is delivered and no money is charged. Production providers remain a separate integration.
+
+A generated assistant can also request its own Raya Computer browser access for exact named sites. Its import manifest proposes access only for that assistant; the owner still approves it in AgentBase. It inherits no scaffold-builder grant, browser credentials, shell access or permission to send messages. Use the Computer-enabled agent through Raya and complete sign-in, MFA or CAPTCHA yourself.
+
+Chat supports A2A token streaming and stops an in-flight request when a new conversation is started.

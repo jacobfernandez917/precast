@@ -4,7 +4,8 @@ import { cardTools, SHOW_CARD_INSTRUCTIONS } from '../tools/show-card';
 import { resolveAgentModel } from '../lib/agentbase-model';
 import { createAgentMemory } from '../lib/memory';
 import { createAgentMcpToolset } from '../lib/agentbase-mcp';
-import { projectBrief } from '@precast/shared';
+import { resolveProductBrief } from '../lib/product-brief';
+import { createProductComputerTools } from '../lib/product-computer';
 
 const AGENT_ID = 'example-agent';
 
@@ -25,6 +26,7 @@ const AGENT_ID = 'example-agent';
  * docs (see templates/AGENT_SPEC.md) and the tech stack — not from this example.
  */
 export async function createExampleAgent() {
+  const projectBrief = resolveProductBrief();
   const mcpTools = createAgentMcpToolset(AGENT_ID);
   await mcpTools.preflight();
   return new Agent({
@@ -47,7 +49,12 @@ export async function createExampleAgent() {
     // Local tools, plus the MCP tools for whoever this turn acts for. A function,
     // so Mastra asks per turn (and for the A2A card, which has no caller and gets
     // the container's own toolset).
-    tools: async () => ({ exampleTool, ...cardTools, ...(await mcpTools.current()) }),
+    tools: async () => ({
+      exampleTool,
+      ...cardTools,
+      ...createProductComputerTools(AGENT_ID, projectBrief),
+      ...(await mcpTools.current()),
+    }),
     // Durable, Postgres-backed conversation memory. Engages only when the caller
     // sends an A2A `contextId` (→ threadId) — see lib/memory.ts for why, and for
     // why the caller must also send a real `resourceId`.

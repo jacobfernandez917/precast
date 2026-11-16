@@ -96,7 +96,7 @@ export class AgentBaseComputerClient {
     this.base = base.replace(/\/+$/, '');
   }
 
-  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  protected async request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const url = `${this.base}${path}`;
     const headers = new Headers(init.headers);
     headers.set('accept', 'application/json');

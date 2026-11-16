@@ -8,7 +8,9 @@ import {
   prepareInboundMessage,
   SHOW_CARD_TOOL,
 } from '@precast/a2ui';
-import { takePendingCard } from '../lib/request-context';
+import { takePendingCard, pendingCardReader } from '../lib/request-context';
+import { resolveAgentMode } from '../lib/agent-mode';
+import { sanitizeScaffoldReply } from '../lib/scaffold-reply';
 
 /**
  * A2UI for Mastra's A2A server, which has no hook for either half of it:
@@ -25,8 +27,8 @@ import { takePendingCard } from '../lib/request-context';
  *
  * Must run INSIDE the auth middleware: it reads the per-request store that one opens.
  *
- * Covers `message/send`. A streamed reply (`message/stream`, SSE) is passed through as Mastra sent
- * it and its card is dropped, and so is a non-blocking send whose answer arrives later.
+ * Covers `message/send` and the terminal Task in `message/stream`. Text deltas pass
+ * through immediately; only the terminal frame receives the request's card.
  */
 
 /** Minimal slice of Hono's Context we rely on (avoids a direct `hono` dep). */
@@ -129,7 +131,75 @@ export function createA2uiMiddleware(log: Logger = console) {
     // A card left over from an earlier turn cannot exist (the store is per request), but take it
     // anyway so this turn only ever attaches what this turn drew.
     takePendingCard();
+    const readCard = pendingCardReader();
     await next();
+    if (
+      c.res.headers.get('content-type')?.includes('text/event-stream') &&
+      c.res.body &&
+      (resolveAgentMode() === 'scaffold-builder' || clientAcceptsCatalog(metadata))
+    ) {
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder();
+      let pending = '';
+      const rewrite = (frame: string) => {
+        const lines = frame.split(/\r?\n/);
+        const data = lines
+          .filter((line) => line.startsWith('data:'))
+          .map((line) => line.slice(5).trimStart())
+          .join('\n');
+        try {
+          const payload = JSON.parse(data);
+          if (resolveAgentMode() === 'scaffold-builder') {
+            // Builder streams retain progress and a sanitized final Task. Internal
+            // markers split across intermediate deltas must not escape as tokens.
+            if (payload?.result?.artifact || payload?.result?.artifactUpdate) return '';
+            sanitizeScaffoldReply(payload);
+          }
+          const state = payload?.result?.status?.state ?? payload?.result?.task?.status?.state;
+          if (
+            typeof state === 'string' &&
+            ['completed', 'input-required', 'auth-required'].includes(
+              state
+                .toLowerCase()
+                .replace(/^task_state_/, '')
+                .replaceAll('_', '-'),
+            )
+          ) {
+            const card = readCard();
+            if (
+              card &&
+              clientAcceptsCatalog(metadata) &&
+              attachPartToReply(payload, a2uiDataPart(card, wire))
+            )
+              return `data: ${JSON.stringify(payload)}\n\n`;
+          }
+          if (resolveAgentMode() === 'scaffold-builder')
+            return `data: ${JSON.stringify(payload)}\n\n`;
+        } catch {
+          /* Unrecognized frames pass through unchanged. */
+        }
+        return frame + '\n\n';
+      };
+      const transform = new TransformStream<Uint8Array, Uint8Array>({
+        transform(chunk, controller) {
+          pending += decoder.decode(chunk, { stream: true });
+          if (pending.length > 1_000_000) throw new Error('A2A frame exceeds its limit.');
+          let boundary: RegExpExecArray | null;
+          while ((boundary = /\r?\n\r?\n/.exec(pending))) {
+            controller.enqueue(encoder.encode(rewrite(pending.slice(0, boundary.index))));
+            pending = pending.slice(boundary.index + boundary[0].length);
+          }
+        },
+        flush(controller) {
+          pending += decoder.decode();
+          if (pending) controller.enqueue(encoder.encode(rewrite(pending)));
+        },
+      });
+      const headers = new Headers(c.res.headers);
+      headers.delete('content-length');
+      c.res = new Response(c.res.body.pipeThrough(transform), { status: c.res.status, headers });
+      return;
+    }
     const card = takePendingCard();
     if (!card) return;
 

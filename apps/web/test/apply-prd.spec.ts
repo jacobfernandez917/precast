@@ -23,6 +23,7 @@ function fixture() {
   for (const path of ['.precast', 'packages/shared/src', 'packages/shared/dist', 'docs'])
     mkdirSync(join(root, path), { recursive: true });
   writeFileSync(join(root, 'package.json'), ' {"name":"action-desk","type":"module"}');
+  cpSync(join(ROOT, 'agentbase.import.json'), join(root, 'agentbase.import.json'));
   cpSync(join(ROOT, 'packages/shared/dist'), join(root, 'packages/shared/dist'), {
     recursive: true,
   });
@@ -65,6 +66,45 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 describe('TOOL-018 bounded PRD materialization', () => {
+  it('removes builder Computer permissions from an ordinary derived product', async () => {
+    const { root } = fixture();
+    await applyPrd(root, 'action-desk', () => {});
+    expect(
+      JSON.parse(readFileSync(join(root, 'agentbase.import.json'), 'utf8')).computer,
+    ).toBeUndefined();
+  });
+  it('proposes Computer access only for the generated assistant, with no builder paths or secrets', async () => {
+    const { root, input } = fixture();
+    const blueprint = {
+      ...input.blueprint,
+      capabilities: {
+        computer: {
+          domains: ['mail.google.com'],
+          authenticatedSites: true,
+          purpose: 'Read the owner’s approved Gmail inbox through Raya.',
+        },
+      },
+    };
+    writeFileSync(join(root, '.precast/prd-build.json'), JSON.stringify({ ...input, blueprint }));
+    await applyPrd(root, 'action-desk', () => {});
+    const manifest = JSON.parse(readFileSync(join(root, 'agentbase.import.json'), 'utf8'));
+    expect(manifest.computer).toMatchObject({
+      agents: ['example-agent'],
+      needs: {
+        profile: 'general',
+        paths: [],
+        commandProfiles: [],
+        secretAliases: [],
+        domains: [{ domain: 'mail.google.com' }],
+        authenticatedSites: expect.any(Object),
+        externalWrite: { policy: 'approval' },
+      },
+    });
+    expect(manifest.orchestration.defaultImport).toBe('full-crew');
+    expect(readFileSync(join(ROOT, 'agentbase.import.json'), 'utf8')).not.toContain(
+      'mail.google.com',
+    );
+  });
   it('writes the exact PRD, product configuration and feed-forward specs, then refuses to clobber the app', async () => {
     const { root, input } = fixture();
     const receipt = await applyPrd(root, 'action-desk', () => {});

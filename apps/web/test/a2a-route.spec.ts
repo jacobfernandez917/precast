@@ -79,6 +79,8 @@ describe('POST /api/a2a/:agentId — card presses', () => {
       threadId: 'r1:c1',
       resourceId: 'r1',
       onBehalfOf: 'u-123',
+      signal: expect.any(AbortSignal),
+      onText: expect.any(Function),
     });
   });
 
@@ -113,7 +115,13 @@ describe('POST /api/a2a/:agentId — card presses', () => {
 
     const [agentId, text, options] = mockedCall.mock.calls[0]!;
     expect(agentId).toBe('example-agent');
-    expect(options).toEqual({ threadId: 'r1:c1', resourceId: 'r1', onBehalfOf: 'u-123' });
+    expect(options).toEqual({
+      threadId: 'r1:c1',
+      resourceId: 'r1',
+      onBehalfOf: 'u-123',
+      signal: expect.any(AbortSignal),
+      onText: undefined,
+    });
     expect(text).toMatch(/press on your card/);
     const payload = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
     expect(payload.a2ui.action).toEqual({

@@ -1,8 +1,16 @@
 /** Stream elapsed-time updates while the existing A2A turn runs, then its sanitized reply. */
-export function streamChatResult(reply: () => Promise<Response>): Response {
+export function streamChatResult(
+  reply: (onText: (text: string) => void, signal: AbortSignal) => Promise<Response>,
+  signal?: AbortSignal,
+): Response {
   const encoder = new TextEncoder();
   let stopped = false;
   let timer: ReturnType<typeof setInterval> | undefined;
+  const abort = new AbortController();
+  let lastText = '';
+  const stop = () => abort.abort();
+  signal?.addEventListener('abort', stop, { once: true });
+  if (signal?.aborted) abort.abort();
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
       const started = Date.now();
@@ -21,7 +29,11 @@ export function streamChatResult(reply: () => Promise<Response>): Response {
       );
       void (async () => {
         try {
-          const response = await reply();
+          const response = await reply((text) => {
+            if (text.startsWith(lastText)) emit('text', { delta: text.slice(lastText.length) });
+            else emit('text', { text });
+            lastText = text;
+          }, abort.signal);
           emit('result', { status: response.status, body: await response.json() });
         } catch {
           emit('result', {
@@ -30,6 +42,7 @@ export function streamChatResult(reply: () => Promise<Response>): Response {
           });
         } finally {
           clearInterval(timer);
+          signal?.removeEventListener('abort', stop);
           if (!stopped) {
             stopped = true;
             controller.close();
@@ -40,6 +53,8 @@ export function streamChatResult(reply: () => Promise<Response>): Response {
     cancel() {
       stopped = true;
       clearInterval(timer);
+      abort.abort();
+      signal?.removeEventListener('abort', stop);
     },
   });
   return new Response(body, {
@@ -55,6 +70,7 @@ export function streamChatResult(reply: () => Promise<Response>): Response {
 export async function readChatResponse(
   response: Response,
   onStatus: (seconds: number) => void,
+  onText: (text: string) => void = () => undefined,
 ): Promise<{ status: number; text: string }> {
   if (!response.headers.get('content-type')?.includes('text/event-stream'))
     return { status: response.status, text: await response.text() };
@@ -63,6 +79,7 @@ export async function readChatResponse(
   const decoder = new TextDecoder();
   let pending = '';
   let bytes = 0;
+  let text = '';
   try {
     for (;;) {
       const { value, done } = await reader.read();
@@ -83,9 +100,15 @@ export async function readChatResponse(
           .filter((line) => line.startsWith('data:'))
           .map((line) => line.slice(5).trimStart())
           .join('\n');
-        if (!data || !['status', 'result'].includes(event ?? '')) continue;
+        if (!data || !['status', 'text', 'result'].includes(event ?? '')) continue;
         const parsed = JSON.parse(data);
-        if (event === 'status') {
+        if (event === 'text') {
+          if (typeof parsed.text === 'string') text = parsed.text;
+          else if (typeof parsed.delta === 'string') text += parsed.delta;
+          else throw new Error('The reply stream is invalid.');
+          if (text.length > 1_000_000) throw new Error('The reply stream is invalid.');
+          onText(text);
+        } else if (event === 'status') {
           if (
             Number.isInteger(parsed.elapsedSeconds) &&
             parsed.elapsedSeconds >= 0 &&

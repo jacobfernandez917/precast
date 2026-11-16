@@ -1,13 +1,40 @@
 import { z } from 'zod';
 
 const identifier = z.string().regex(/^[a-z][a-z0-9_]{0,47}$/);
+const computerDomain = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(253)
+  .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/);
+
+/** A product's request is a proposal, never an owner grant or a credential. */
+export const prdCapabilitiesSchema = z
+  .object({
+    collaboration: z.enum(['private', 'team']).default('private'),
+    reminders: z.boolean().default(false),
+    payments: z.enum(['disabled', 'test']).default('disabled'),
+    computer: z
+      .object({
+        domains: z.array(computerDomain).min(1).max(10),
+        authenticatedSites: z.boolean().default(false),
+        purpose: z.string().trim().min(8).max(1000),
+      })
+      .strict()
+      .nullable()
+      .default(null),
+  })
+  .strict();
+export type PrdCapabilities = z.infer<typeof prdCapabilitiesSchema>;
+
 export const prdFieldSchema = z
   .object({
     id: identifier,
     label: z.string().min(1).max(80),
-    type: z.enum(['text', 'number', 'date', 'boolean', 'choice']),
+    type: z.enum(['text', 'number', 'date', 'boolean', 'choice', 'reference']),
     required: z.boolean(),
     choices: z.array(z.string().min(1).max(80)).max(20),
+    referenceCollection: identifier.nullable().optional(),
   })
   .strict();
 
@@ -17,6 +44,7 @@ export const prdBlueprintSchema = z
     mission: z.string().min(1).max(2000),
     audience: z.string().min(1).max(1000),
     agentJob: z.string().min(1).max(2000),
+    capabilities: prdCapabilitiesSchema.optional(),
     collections: z
       .array(
         z
@@ -64,11 +92,37 @@ export const prdBlueprintSchema = z
             path: ['collections', i, 'fields', j, 'choices'],
             message: 'Choice values must be unique.',
           });
+        if (
+          field.type === 'reference' &&
+          (!field.referenceCollection ||
+            !brief.collections.some((target) => target.id === field.referenceCollection))
+        )
+          ctx.addIssue({
+            code: 'custom',
+            path: ['collections', i, 'fields', j, 'referenceCollection'],
+            message: 'A reference must name a collection in this product.',
+          });
+        if (field.type !== 'reference' && field.referenceCollection)
+          ctx.addIssue({
+            code: 'custom',
+            path: ['collections', i, 'fields', j, 'referenceCollection'],
+            message: 'Only reference fields can name another collection.',
+          });
       }
     }
+    const domains = brief.capabilities?.computer?.domains;
+    if (domains && new Set(domains).size !== domains.length)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['capabilities', 'computer', 'domains'],
+        message: 'Computer sites must be unique exact hostnames.',
+      });
   });
 
 export type PrdBlueprint = z.infer<typeof prdBlueprintSchema>;
+export function prdCapabilities(brief: PrdBlueprint): PrdCapabilities {
+  return prdCapabilitiesSchema.parse(brief.capabilities ?? {});
+}
 export type PrdRecord = {
   id: string;
   collection: string;
@@ -83,24 +137,28 @@ export function prdRecordSchema(collection: PrdBlueprint['collections'][number])
       Object.fromEntries(
         collection.fields.map((field) => {
           let value: z.ZodTypeAny =
-            field.type === 'number'
-              ? z.number().finite()
-              : field.type === 'boolean'
-                ? z.boolean()
-                : field.type === 'choice'
-                  ? z.string().refine((v) => field.choices.includes(v), 'Choose an allowed value.')
-                  : field.type === 'date'
+            field.type === 'reference'
+              ? z.string().uuid()
+              : field.type === 'number'
+                ? z.number().finite()
+                : field.type === 'boolean'
+                  ? z.boolean()
+                  : field.type === 'choice'
                     ? z
                         .string()
-                        .regex(/^\d{4}-\d{2}-\d{2}$/)
-                        .refine((v) => {
-                          const parsed = Date.parse(v);
-                          return (
-                            !Number.isNaN(parsed) &&
-                            new Date(parsed).toISOString().slice(0, 10) === v
-                          );
-                        }, 'Use a valid date.')
-                    : z.string().trim().max(5000);
+                        .refine((v) => field.choices.includes(v), 'Choose an allowed value.')
+                    : field.type === 'date'
+                      ? z
+                          .string()
+                          .regex(/^\d{4}-\d{2}-\d{2}$/)
+                          .refine((v) => {
+                            const parsed = Date.parse(v);
+                            return (
+                              !Number.isNaN(parsed) &&
+                              new Date(parsed).toISOString().slice(0, 10) === v
+                            );
+                          }, 'Use a valid date.')
+                      : z.string().trim().max(5000);
           if (field.required && field.type === 'text') value = z.string().trim().min(1).max(5000);
           if (!field.required) value = value.optional();
           return [field.id, value];

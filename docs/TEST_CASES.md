@@ -255,3 +255,9 @@ Scaffold network scope: `agent-mode.spec.ts` checks that only `scaffold-builder`
 | WEB-044 | Prepared sign-in migrations use the owned auth search path without schema creation; foreign owners fail before migration; ordinary projects retain explicit schema selection | Covered by the auth database unit suite |
 
 | APP-036 | Automated scaffolds use existing skip-deps mode with frozen installation; manual bootstrap retains its compatible dependency update | Covered by bootstrap and scaffold orchestration checks |
+
+| AGT-PRODUCT-COMPUTER | Generated-agent browser tools default off; exact HTTPS domains only; separate service identity and General profile; no shell, typing, mail sending or payments; pending approvals do not execute; uncertain external effects are reconciled without replay. | Automated |
+| AGT-PRODUCT-CONFIG | Product blueprint environment overrides are validated and allowed only in project mode, never on the scaffold-builder surface. | Automated |
+| WEB-PRD-CAPABILITIES | Team/workflow routes reject cross-origin writes, wrong roles, owner injection and production modes; reminders/payments remain local test adapters. | Automated |
+| WEB-A2A-TOKENS | A2A artifact deltas arrive before completion, survive arbitrary UTF-8 boundaries and replacements, exclude private metadata from token callbacks, reject incomplete streams, and abort upstream on disconnect. | Automated |
+| TOOL-PRD-COMPUTER | Derived product manifests remove builder access and propose only exact sites for the generated assistant, with no project paths, command profiles or secrets. | Automated |

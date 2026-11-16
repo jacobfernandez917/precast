@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { prdBlueprintSchema, prdRecordSchema } from './prd.js';
+import { prdBlueprintSchema, prdRecordSchema, prdCapabilities } from './prd.js';
 
 const collection = {
   id: 'actions',
@@ -27,6 +27,46 @@ const brief = {
 };
 
 describe('SHARED-009 PRD application contracts', () => {
+  it('defaults privileged capabilities off and refuses production payments or wildcard Computer domains', () => {
+    expect(prdCapabilities(prdBlueprintSchema.parse(brief))).toEqual({
+      collaboration: 'private',
+      reminders: false,
+      payments: 'disabled',
+      computer: null,
+    });
+    for (const capabilities of [
+      { payments: 'live' },
+      { computer: { domains: ['*.google.com'], purpose: 'Read approved mail' } },
+      {
+        computer: {
+          domains: ['mail.google.com', 'mail.google.com'],
+          purpose: 'Read approved mail',
+        },
+      },
+    ])
+      expect(prdBlueprintSchema.safeParse({ ...brief, capabilities }).success).toBe(false);
+  });
+  it('requires reference fields to name an existing product collection and store a UUID', () => {
+    const field = {
+      id: 'parent',
+      label: 'Parent',
+      type: 'reference' as const,
+      required: true,
+      choices: [],
+      referenceCollection: 'actions',
+    };
+    const related = { ...collection, fields: [field] };
+    expect(prdBlueprintSchema.safeParse({ ...brief, collections: [related] }).success).toBe(true);
+    expect(prdRecordSchema(related).safeParse({ parent: 'another-user-record-name' }).success).toBe(
+      false,
+    );
+    expect(
+      prdBlueprintSchema.safeParse({
+        ...brief,
+        collections: [{ ...related, fields: [{ ...field, referenceCollection: 'not_declared' }] }],
+      }).success,
+    ).toBe(false);
+  });
   it('validates typed records without accepting extra fields, invented choices or empty required values', () => {
     const schema = prdRecordSchema(collection);
     expect(schema.parse({ title: '  Follow up  ', status: 'Open', effort: 3 })).toEqual({

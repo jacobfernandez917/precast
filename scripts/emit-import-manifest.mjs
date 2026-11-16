@@ -89,7 +89,9 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   manifest.requiredEnv = required;
   manifest.orchestration = {
     orchestrator: orchestratorId,
-    defaultImport: DEFAULT_IMPORT,
+    defaultImport: manifest.computer?.agents?.includes('example-agent')
+      ? 'full-crew'
+      : DEFAULT_IMPORT,
   };
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   console.log('agentbase.import.json requiredEnv =', JSON.stringify(required));
