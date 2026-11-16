@@ -5,6 +5,46 @@ vi.mock('./agentbase-model', () => ({ getAgentBaseToken: async () => 'test-token
 vi.mock('./request-context', () => ({ attachAgentBaseProof: () => undefined }));
 
 describe('AgentBase Computer command binding', () => {
+  it('keeps the real stdout failure when stderr only has a generic bootstrap error', async () => {
+    const fetcher = vi.fn(async (url: string | URL | Request) =>
+      Response.json(
+        String(url).endsWith('/actions')
+          ? { action: { id: 'action' }, decision: { verdict: 'allow' } }
+          : String(url).includes('/command?')
+            ? {
+                action: { state: 'FAILED' },
+                command: { exitCode: 1 },
+                output: {
+                  content: String(url).includes('stream=stderr')
+                    ? 'Bootstrap aborted'
+                    : 'ERR_PNPM_ENOSPC: no space left on device',
+                },
+              }
+            : {},
+      ),
+    );
+    const client = new AgentBaseComputerClient(
+      'scaffold-builder',
+      'https://agentbase.test',
+      fetcher,
+    );
+    await expect(
+      client.runCommand(
+        'run',
+        'lease',
+        1,
+        {
+          id: 'bootstrap',
+          label: 'Bootstrap',
+          executable: 'pnpm',
+          argv: ['run', 'bootstrap'],
+          cwd: 'Projects/test',
+          timeoutMs: 1000,
+        },
+        'seed',
+      ),
+    ).rejects.toThrow(/no space left on device/);
+  });
   it('matches AgentBase canonical argument hashing', () => {
     expect(argumentDigest({ b: 1, a: 2 })).toBe(argumentDigest({ a: 2, b: 1 }));
     expect(argumentDigest({ a: 2, omitted: undefined })).toBe(argumentDigest({ a: 2 }));

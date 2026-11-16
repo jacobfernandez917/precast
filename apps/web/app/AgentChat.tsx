@@ -37,8 +37,8 @@ const AgentCards = dynamic(() => import('./a2ui/AgentCards').then((m) => m.Agent
  * which sends it to the agent as text on the same thread, so the agent answers
  * the press like any other turn.
  *
- * START OVER while a turn is in flight: the agent keeps working (the browser
- * cannot stop it), and its answer belongs to the cleared conversation. A turn
+ * START OVER while a turn is in flight: abort asks the upstream to stop. An answer
+ * already in flight still belongs to the cleared conversation. A turn
  * that finishes after a reset changes nothing here, typed message or card press
  * alike (see `lib/chat-turns.ts`).
  *

@@ -223,8 +223,13 @@ export class AgentBaseComputerClient {
         );
         const stderr = outputText(stderrResult.output);
         if (result.action.state !== 'SUCCEEDED' || result.command.exitCode !== 0) {
-          const detail =
-            stderr || stdout || result.action.failureMessage || result.action.failureCode;
+          const detail = [
+            stderr.slice(-1000),
+            stdout.slice(-2500),
+            result.action.failureMessage ?? result.action.failureCode,
+          ]
+            .filter(Boolean)
+            .join('\n');
           throw new Error(`${command.label} failed${detail ? `: ${detail.slice(-4000)}` : '.'}`);
         }
         return { id: command.id, label: command.label, state: 'succeeded', stdout, stderr };

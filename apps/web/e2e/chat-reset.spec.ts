@@ -73,19 +73,20 @@ async function send(page: Page, text: string) {
   await page.getByRole('button', { name: 'Send' }).click();
 }
 
-/** Let the held answer reach the page and the page run whatever it does with it. */
+/** Release the stub after cancellation and allow any late handler work to settle. */
 async function deliverHeld(page: Page, release: () => void) {
-  const delivered = page.waitForResponse(
-    (r) => r.url().includes('/api/a2a/example-agent') && r.request().postDataJSON() !== null,
-  );
   release();
-  await delivered;
   await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
 }
 
 async function startOverWhileWaiting(page: Page, posts: unknown[]) {
   await expect.poll(() => posts.length).toBe(2);
+  const canceled = page.waitForEvent('requestfailed', {
+    predicate: (request) => request.url().includes('/api/a2a/example-agent'),
+    timeout: 5000,
+  });
   await page.getByRole('button', { name: 'Start over' }).click();
+  expect((await canceled).failure()?.errorText).toMatch(/abort|cancel/i);
   await expect(page.getByText('First answer.')).toHaveCount(0);
 }
 

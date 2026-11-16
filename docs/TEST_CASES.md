@@ -261,3 +261,5 @@ Scaffold network scope: `agent-mode.spec.ts` checks that only `scaffold-builder`
 | WEB-PRD-CAPABILITIES | Team/workflow routes reject cross-origin writes, wrong roles, owner injection and production modes; reminders/payments remain local test adapters. | Automated |
 | WEB-A2A-TOKENS | A2A artifact deltas arrive before completion, survive arbitrary UTF-8 boundaries and replacements, exclude private metadata from token callbacks, reject incomplete streams, and abort upstream on disconnect. | Automated |
 | TOOL-PRD-COMPUTER | Derived product manifests remove builder access and propose only exact sites for the generated assistant, with no project paths, command profiles or secrets. | Automated |
+
+| TOOL-BOOTSTRAP-SPACE | Bootstrap checks the project volume before a cold dependency install and reserves remaining build space for an installed workspace. It deletes nothing. Failed Computer commands retain stdout diagnostics even when stderr contains only a generic wrapper error. | Automated |

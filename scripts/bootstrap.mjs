@@ -75,6 +75,7 @@ import { APC_THEMES, DEFAULT_THEME } from './build-apc-theme.mjs';
 import { THEME_IDS, setTheme } from './set-theme.mjs';
 import { initialCommitEnv } from './initial-commit-env.mjs';
 import { verifyTemplateRevision } from './verify-template-revision.mjs';
+import { checkBootstrapSpace } from './bootstrap-space.mjs';
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_BRANCH = 'develop';
@@ -522,6 +523,7 @@ async function confirm(question) {
 
 async function main() {
   verifyTemplateRevision(rootDir, flagVal('expected-template-commit'));
+  checkBootstrapSpace(rootDir);
   console.log('── Precast bootstrap ────────────────────────────────────────────\n');
 
   const name = await resolveName();
