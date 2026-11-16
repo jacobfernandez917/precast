@@ -42,7 +42,7 @@
   },
   "devDependencies": {
     "@mastra/deployer": "^1.78.0",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.6.6",
     "@types/pg": "^8.15.6",
     "esbuild": "^0.28.1",
     "hono": "4.13.3",
