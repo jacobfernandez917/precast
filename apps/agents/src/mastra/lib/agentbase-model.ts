@@ -1,5 +1,6 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { LanguageModelV4 } from '@ai-sdk/provider';
+import { createHash } from 'node:crypto';
 
 /**
  * ABIMP-LLM — lets the org admin choose which LLM (and key) an IMPORTED
@@ -116,6 +117,16 @@ function agentBaseEnv(agentId: string, key: AgentBaseEnvKey): string | undefined
  */
 function tokenUrl(): string | undefined {
   return process.env.AGENTBASE_TOKEN_URL || process.env.AGENTBASE_LLM_TOKEN_URL;
+}
+
+/** Keep durable service receipts separate when several imports share storage. */
+export function agentBaseIdentityKey(agentId: string): string {
+  const issuer = tokenUrl();
+  const clientId = agentBaseEnv(agentId, 'CLIENT_ID');
+  if (!issuer || !clientId) throw new Error('This agent needs its own AgentBase service identity.');
+  return createHash('sha256')
+    .update(JSON.stringify([issuer, clientId]))
+    .digest('hex');
 }
 
 /**

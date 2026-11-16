@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getAgentBaseToken,
+  agentBaseIdentityKey,
   isAgentBaseLlmConfigured,
   resetAgentBaseLlmTokenCacheForTests,
   resolveAgentModel,
@@ -49,6 +50,18 @@ function setConfig() {
   process.env.AGENTBASE_CLIENT_SECRET_EXAMPLE_AGENT = 'svc-client-secret';
   process.env.AGENTBASE_LLM_MODEL_EXAMPLE_AGENT = 'google/gemini-2.5-flash';
 }
+
+it('isolates durable service receipts by issuer and agent service client, without secret rotation losing them', () => {
+  setConfig();
+  const first = agentBaseIdentityKey('example-agent');
+  process.env.AGENTBASE_CLIENT_SECRET_EXAMPLE_AGENT = 'rotated-secret';
+  expect(agentBaseIdentityKey('example-agent')).toBe(first);
+  process.env.AGENTBASE_CLIENT_ID_EXAMPLE_AGENT = 'another-service';
+  expect(agentBaseIdentityKey('example-agent')).not.toBe(first);
+  process.env.AGENTBASE_CLIENT_ID_EXAMPLE_AGENT = 'svc-client-id';
+  process.env.AGENTBASE_TOKEN_URL = 'https://another-issuer.test/token';
+  expect(agentBaseIdentityKey('example-agent')).not.toBe(first);
+});
 
 describe('resolveAgentModel', () => {
   it('is unconfigured (fails at call time) when not AgentBase-hosted and no account model is set', () => {
