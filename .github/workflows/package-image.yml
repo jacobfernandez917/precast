@@ -27,6 +27,9 @@ jobs:
       tag: ${{ steps.package.outputs.tag }}
     steps:
       - uses: actions/checkout@v5
+      # setup-node v5 auto-detects packageManager and asks pnpm for its cache path even when the
+      # explicit cache option is absent, so pnpm must already be on PATH.
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
           node-version: 24.22.1
