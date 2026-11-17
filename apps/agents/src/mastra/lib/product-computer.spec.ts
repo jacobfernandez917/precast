@@ -5,6 +5,7 @@ import {
   productComputerInput,
   createProductComputerTools,
   terminalComputerRun,
+  enforceBrowserInteraction,
 } from './product-computer';
 const token = vi.hoisted(() => vi.fn(async () => 'product-test-token'));
 vi.mock('./agentbase-model', () => ({
@@ -23,6 +24,46 @@ const action = '00000000-0000-4000-8000-000000000003';
 const stateHash = `sha256:${'a'.repeat(64)}`;
 beforeEach(() => vi.clearAllMocks());
 describe('generated-agent Computer isolation', () => {
+  it('refuses observation-only clicks and non-root navigation before any request, including saved clicks', async () => {
+    for (const input of [
+      { operation: 'click' as const, ref: 'e1', intent: 'Delete the selected message' },
+      { operation: 'open' as const, url: 'https://mail.google.com/mail/u/0/?act=delete' },
+      { operation: 'open' as const, url: 'https://mail.google.com/#compose' },
+    ])
+      expect(() => enforceBrowserInteraction(input, 'observe')).toThrow();
+    expect(() =>
+      enforceBrowserInteraction({ operation: 'open', url: 'https://mail.google.com/' }, 'observe'),
+    ).not.toThrow();
+    for (const operation of [
+      'inspect',
+      'scroll',
+      'tabs',
+      'wait',
+      'needs-person',
+      'finish',
+    ] as const)
+      expect(() => enforceBrowserInteraction({ operation }, 'observe')).not.toThrow();
+    const fetcher = vi.fn();
+    const saved = {
+      key: run,
+      digest: 'old',
+      executing: false,
+      stateHash,
+      input: { operation: 'click' as const, ref: 'e1', intent: 'Previously reviewed click' },
+    };
+    await expect(
+      new ProductComputerClient('example-agent', 'https://agentbase.test', fetcher).step(
+        { runId: run, leaseId: lease, epoch: 2 },
+        { operation: 'continue' },
+        'mail.google.com',
+        saved,
+        undefined,
+        {},
+        'observe',
+      ),
+    ).rejects.toThrow('Observation-only');
+    expect(fetcher).not.toHaveBeenCalled();
+  });
   it('does not expose Computer tools in the template or permit shell, typing or mail-send operations', () => {
     expect(createProductComputerTools('example-agent', null)).toEqual({});
     for (const operation of [

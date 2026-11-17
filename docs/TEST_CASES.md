@@ -267,3 +267,5 @@ The connected-model check accepts surrounding explanation and requires its marke
 | TOOL-BOOTSTRAP-SPACE | Bootstrap checks the project volume before a cold dependency install and reserves remaining build space for an installed workspace. It deletes nothing. Failed Computer commands retain stdout diagnostics even when stderr contains only a generic wrapper error. | Automated |
 
 | SHARED-HOSTED-TLS | An operator-supplied Postgres CA remains verified in hosted agent memory; URL parsing cannot discard the explicit CA. Cold scaffold builds read matching Turbo caches without writing duplicate runtime archives. | Automated |
+
+Generated-agent observation-only Computer access: product-computer.spec.ts refuses direct and saved clicks and non-root navigation before any browser request, while retaining inspection and owner sign-in handoff. Shared PRD contracts preserve the requested interaction mode.

@@ -283,6 +283,12 @@ export function PrdCapabilitiesPanel({
               sign-in, MFA and CAPTCHA yourself. This app does not inherit the scaffold builder’s
               access.
             </Text>
+            {caps.computer.interactionMode === 'observe' && (
+              <Text>
+                The assistant can read the page you choose. It cannot click controls or open
+                individual messages.
+              </Text>
+            )}
           </section>
         )}
         {error && (

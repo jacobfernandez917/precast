@@ -27,6 +27,23 @@ const brief = {
 };
 
 describe('SHARED-009 PRD application contracts', () => {
+  it('preserves explicit observation-only access and defaults existing Computer briefs to reviewed access', () => {
+    const computer = {
+      domains: ['mail.google.com'],
+      authenticatedSites: true,
+      purpose: 'Summarize visible mail',
+    };
+    expect(
+      prdBlueprintSchema.parse({ ...brief, capabilities: { computer } }).capabilities?.computer
+        ?.interactionMode,
+    ).toBe('reviewed');
+    expect(
+      prdBlueprintSchema.parse({
+        ...brief,
+        capabilities: { computer: { ...computer, interactionMode: 'observe' } },
+      }).capabilities?.computer?.interactionMode,
+    ).toBe('observe');
+  });
   it('defaults privileged capabilities off and refuses production payments or wildcard Computer domains', () => {
     expect(prdCapabilities(prdBlueprintSchema.parse(brief))).toEqual({
       collaboration: 'private',

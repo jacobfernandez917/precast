@@ -18,6 +18,7 @@ export const prdCapabilitiesSchema = z
       .object({
         domains: z.array(computerDomain).min(1).max(10),
         authenticatedSites: z.boolean().default(false),
+        interactionMode: z.enum(['reviewed', 'observe']).default('reviewed'),
         purpose: z.string().trim().min(8).max(1000),
       })
       .strict()
