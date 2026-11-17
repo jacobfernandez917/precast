@@ -135,7 +135,15 @@ function boundedReason(error) {
   return message.replace(/[\r\n]+/g, ' ').slice(0, 240);
 }
 
-export function inspectPackageImage(root = scriptRoot, imageRoot = DEFAULT_PACKAGE_IMAGE_ROOT) {
+export function inspectPackageImage(
+  root = scriptRoot,
+  imageRoot = DEFAULT_PACKAGE_IMAGE_ROOT,
+  runtime = {
+    platform: process.platform,
+    arch: process.arch,
+    nodeMajor: Number(process.versions.node.split('.')[0]),
+  },
+) {
   try {
     const manifestPath = join(imageRoot, PACKAGE_MANIFEST);
     const archivePath = join(imageRoot, PACKAGE_ARCHIVE);
@@ -153,10 +161,10 @@ export function inspectPackageImage(root = scriptRoot, imageRoot = DEFAULT_PACKA
     if (manifest.pnpm !== pnpmVersion(root)) {
       return { usable: false, reason: 'the package image uses another pnpm version' };
     }
-    if (process.platform !== manifest.platform || process.arch !== manifest.arch) {
+    if (runtime.platform !== manifest.platform || runtime.arch !== manifest.arch) {
       return { usable: false, reason: 'the package image targets another platform' };
     }
-    if (Number(process.versions.node.split('.')[0]) !== manifest.nodeMajor) {
+    if (runtime.nodeMajor !== manifest.nodeMajor) {
       return { usable: false, reason: 'the package image targets another Node major version' };
     }
     const archiveStat = statSync(archivePath);
@@ -205,9 +213,9 @@ function extractWithTar(archivePath, destination) {
  */
 export function activatePackageImage(
   root = scriptRoot,
-  { imageRoot = DEFAULT_PACKAGE_IMAGE_ROOT, extract = extractWithTar } = {},
+  { imageRoot = DEFAULT_PACKAGE_IMAGE_ROOT, extract = extractWithTar, runtime } = {},
 ) {
-  const inspected = inspectPackageImage(root, imageRoot);
+  const inspected = inspectPackageImage(root, imageRoot, runtime);
   if (!inspected.usable) return { used: false, reason: inspected.reason };
 
   const moduleTargets = workspaceManifests(root)

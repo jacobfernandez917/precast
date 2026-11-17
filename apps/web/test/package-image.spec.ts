@@ -12,6 +12,7 @@ import {
 } from '../../../scripts/package-image.mjs';
 
 const temporary: string[] = [];
+const packageRuntime = { platform: 'linux', arch: 'x64', nodeMajor: 24 };
 
 function temp(prefix: string) {
   const dir = mkdtempSync(join(tmpdir(), prefix));
@@ -53,9 +54,9 @@ function packageImage(root: string, imageRoot: string, archive = 'tiny-package-a
     v: 1,
     graphHash: packageGraphHash(root),
     sourceRevision: 'a'.repeat(40),
-    platform: process.platform,
-    arch: process.arch,
-    nodeMajor: Number(process.versions.node.split('.')[0]),
+    platform: packageRuntime.platform,
+    arch: packageRuntime.arch,
+    nodeMajor: packageRuntime.nodeMajor,
     pnpm: '9.15.9',
     archive: {
       file: 'node-modules.tar.zst',
@@ -102,10 +103,10 @@ describe('warm package image identity', () => {
     const image = temp('precast-package-image-');
     project(root);
     packageImage(root, image);
-    expect(inspectPackageImage(root, image)).toMatchObject({ usable: true });
+    expect(inspectPackageImage(root, image, packageRuntime)).toMatchObject({ usable: true });
 
     writeFileSync(join(image, 'node-modules.tar.zst'), 'changed');
-    expect(inspectPackageImage(root, image)).toEqual({
+    expect(inspectPackageImage(root, image, packageRuntime)).toEqual({
       usable: false,
       reason: 'the package image archive size does not match its manifest',
     });
@@ -119,6 +120,7 @@ describe('warm package image identity', () => {
 
     const restored = activatePackageImage(root, {
       imageRoot: image,
+      runtime: packageRuntime,
       extract: (_archive, stage) => {
         write(stage, 'node_modules/.modules.yaml', 'layoutVersion: 5\n');
         write(stage, 'node_modules/.pnpm/zod/package.json', { name: 'zod' });
@@ -144,13 +146,13 @@ describe('warm package image identity', () => {
     const root = temp('precast-package-project-');
     const image = temp('precast-package-image-');
     project(root);
-    expect(activatePackageImage(root, { imageRoot: image })).toEqual({
+    expect(activatePackageImage(root, { imageRoot: image, runtime: packageRuntime })).toEqual({
       used: false,
       reason: 'no package image is present in this Computer image',
     });
     packageImage(root, image);
     mkdirSync(join(root, 'node_modules'));
-    expect(activatePackageImage(root, { imageRoot: image })).toEqual({
+    expect(activatePackageImage(root, { imageRoot: image, runtime: packageRuntime })).toEqual({
       used: false,
       reason: 'dependencies already exist in this checkout',
     });
