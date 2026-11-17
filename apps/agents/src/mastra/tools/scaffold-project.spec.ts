@@ -173,6 +173,15 @@ describe('AGT-034 connected scaffold gates', () => {
     expect(calls.commands.find((c) => c.id === 'build')?.argv).toContain('--cache=local:r');
     expect(calls.verify).not.toHaveBeenCalled();
   });
+  it('uses the package image only behind its operator gate', async () => {
+    await scaffoldProject({ ...input, services: 'deferred' });
+    expect(calls.commands.find((c) => c.id === 'bootstrap')?.argv).not.toContain('--package-image');
+
+    calls.commands.length = 0;
+    vi.stubEnv('PRECAST_PACKAGE_IMAGE_ENABLED', '1');
+    await scaffoldProject({ ...input, services: 'deferred' });
+    expect(calls.commands.find((c) => c.id === 'bootstrap')?.argv).toContain('--package-image');
+  });
   it('runs connected setup with an alias only, verifies before building and returns no private receipt', async () => {
     vi.stubEnv('PRECAST_AGENT_MODE', 'scaffold-builder');
     vi.stubEnv('PRECAST_SERVICE_SETUP_ENABLED', '1');

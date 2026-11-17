@@ -31,6 +31,9 @@ export const EnvSchema = z.object({
     .string()
     .regex(/^[a-f0-9]{40}$/)
     .optional(),
+  // Builder-only optimisation. The generated project still validates the exact graph and signed
+  // archive before use, and falls back to its ordinary frozen install on every mismatch.
+  PRECAST_PACKAGE_IMAGE_ENABLED: z.enum(['0', '1']).default('0'),
   // ── Mastra API (agents + Studio) ───────────────────────────────────────────
   MASTRA_PORT: z.coerce.number().default(45000),
   // 127.0.0.1: a local run is for this computer. The image sets 0.0.0.0 for AgentBase.

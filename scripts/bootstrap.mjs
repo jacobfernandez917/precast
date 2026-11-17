@@ -77,6 +77,7 @@ import { initialCommitEnv } from './initial-commit-env.mjs';
 import { verifyTemplateRevision } from './verify-template-revision.mjs';
 import { checkBootstrapSpace } from './bootstrap-space.mjs';
 import { commandFailureReason } from './bootstrap-command.mjs';
+import { activatePackageImage } from './package-image.mjs';
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_BRANCH = 'develop';
@@ -149,6 +150,7 @@ const AGENTBASE_LLM_FIELDS = [
 const rawArgs = process.argv.slice(2);
 const assumeYes = rawArgs.includes('--yes') || rawArgs.includes('-y');
 const skipDeps = rawArgs.includes('--skip-deps');
+const packageImage = rawArgs.includes('--package-image');
 const nameArg = rawArgs.find((a) => !a.startsWith('-'));
 
 function flagVal(name) {
@@ -566,7 +568,7 @@ async function main() {
       : `  2. Set ports — agents ${ports.mastra}, web ${ports.web}`,
   );
   console.log(
-    `  3. Install${skipDeps ? '' : ' + update'} dependencies${skipDeps ? '' : ' to latest compatible'}`,
+    `  3. ${packageImage ? 'Restore the matching warm package image, or fall back to a frozen install' : `Install${skipDeps ? '' : ' + update'} dependencies${skipDeps ? '' : ' to latest compatible'}`}`,
   );
   console.log(
     `  4. Apply the ${APC_THEMES.find((t) => t.id === apcTheme).label} APC theme + reset progress docs to a clean slate`,
@@ -602,12 +604,22 @@ async function main() {
 
   // 3. Dependencies.
   if (skipDeps) {
-    run('pnpm', [
-      'install',
-      '--frozen-lockfile',
-      '--network-concurrency=4',
-      '--child-concurrency=1',
-    ]);
+    const restored = packageImage ? activatePackageImage(rootDir) : { used: false };
+    if (restored.used) {
+      console.log(
+        `\n✓ Restored the matching warm package image (${restored.graphHash.slice(0, 16)}).`,
+      );
+    } else {
+      if (packageImage) {
+        console.log(`\nWarm package image unavailable: ${restored.reason}. Using frozen install.`);
+      }
+      run('pnpm', [
+        'install',
+        '--frozen-lockfile',
+        '--network-concurrency=4',
+        '--child-concurrency=1',
+      ]);
+    }
   } else {
     run('node', ['scripts/update-deps.mjs', '--no-verify']);
   }

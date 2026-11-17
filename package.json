@@ -13,6 +13,7 @@
     "set-ports": "node scripts/set-ports.mjs",
     "set-theme": "node scripts/set-theme.mjs",
     "theme:build": "node scripts/build-apc-theme.mjs",
+    "package:image": "node scripts/package-image.mjs",
     "emit:import-manifest": "node scripts/emit-import-manifest.mjs",
     "precast:version": "node scripts/precast-lock.mjs",
     "precast:update": "node scripts/precast-update.mjs",

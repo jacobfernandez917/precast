@@ -172,6 +172,7 @@ export async function scaffoldProject(
         parsed.projectName,
         '--yes',
         '--skip-deps',
+        ...(process.env.PRECAST_PACKAGE_IMAGE_ENABLED === '1' ? ['--package-image'] : []),
         '--llm-provider=skip',
         '--db=later',
         `--theme=${parsed.theme}`,
