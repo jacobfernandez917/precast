@@ -269,3 +269,5 @@ The connected-model check accepts surrounding explanation and requires its marke
 | SHARED-HOSTED-TLS | An operator-supplied Postgres CA remains verified in hosted agent memory; URL parsing cannot discard the explicit CA. Cold scaffold builds read matching Turbo caches without writing duplicate runtime archives. | Automated |
 
 Generated-agent observation-only Computer access: product-computer.spec.ts refuses direct and saved clicks and non-root navigation before any browser request, while retaining inspection and owner sign-in handoff. Shared PRD contracts preserve the requested interaction mode.
+
+PRD label preservation: read-prd.spec.ts restores case-only model rewrites for explicitly identified collection and field labels, retains later human label overrides, and refuses to infer corrections from ambiguous declarations.

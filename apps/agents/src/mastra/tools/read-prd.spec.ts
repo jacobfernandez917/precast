@@ -23,8 +23,51 @@ vi.mock('../lib/prd-drafts', async (original) => ({
   }),
   savePrdDraft: calls.save,
 }));
-import { readPrdTool } from './read-prd';
+import { readPrdTool, preserveExplicitPrdLabels } from './read-prd';
 const id = '00000000-0000-4000-8000-000000000001';
+describe('explicit PRD label preservation', () => {
+  const blueprint = {
+    title: 'Notes',
+    mission: 'Private notes',
+    audience: 'The owner',
+    agentJob: 'Help read notes',
+    collections: [
+      {
+        id: 'notes',
+        label: 'Manual Notes',
+        singular: 'Note',
+        fields: [
+          { id: 'title', label: 'Note Title', type: 'text' as const, required: true, choices: [] },
+        ],
+      },
+    ],
+    acceptanceCriteria: ['Save a note'],
+  };
+  const document =
+    '### Manual notes\nCollection identifier: notes. Singular label: Note.\n- Note title (identifier title): required text.\n\n## Acceptance\nSave a note.\n';
+  it('retains the explicitly identified collection and field label casing without changing identifiers', () => {
+    const result = preserveExplicitPrdLabels(blueprint, document, ['Use project folder my-notes']);
+    expect(result.collections[0]).toMatchObject({
+      id: 'notes',
+      label: 'Manual notes',
+      fields: [{ id: 'title', label: 'Note title' }],
+    });
+    expect(blueprint.collections[0]!.label).toBe('Manual Notes');
+  });
+  it('honors later explicit human labels and leaves ambiguous or semantically different labels alone', () => {
+    expect(
+      preserveExplicitPrdLabels(blueprint, document, ['Use the label Manual Notes']).collections[0]!
+        .label,
+    ).toBe('Manual Notes');
+    expect(
+      preserveExplicitPrdLabels(blueprint, document + document, []).collections[0]!.label,
+    ).toBe('Manual Notes');
+    expect(
+      preserveExplicitPrdLabels(blueprint, document.replace('Manual notes', 'Inbox'), [])
+        .collections[0]!.label,
+    ).toBe('Manual Notes');
+  });
+});
 const analysis = {
   blueprint: null,
   projectName: null,

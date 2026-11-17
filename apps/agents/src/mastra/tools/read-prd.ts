@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import type { PrdBlueprint } from '@precast/shared';
 import { resolveAgentModel } from '../lib/agentbase-model';
 import { resolveAgentMode } from '../lib/agent-mode';
 import {
@@ -19,6 +20,53 @@ export const readPrdInput = z.object({
   clarification: z.string().max(4000).optional(),
   discard: z.boolean().optional(),
 });
+
+/** Correct case-only model rewrites when a PRD explicitly binds a label to an identifier. */
+export function preserveExplicitPrdLabels(
+  blueprint: PrdBlueprint,
+  document: string,
+  answers: string[],
+): PrdBlueprint {
+  const originalCase = (current: string, stated: string | undefined) =>
+    stated &&
+    stated.toLowerCase() === current.toLowerCase() &&
+    !answers.some((answer) => answer.includes(current))
+      ? stated
+      : current;
+  const sections = [
+    ...document.matchAll(/^#{1,6}[\t ]+([^\r\n]+)\r?\n([\s\S]*?)(?=^#{1,6}[\t ]|$(?![\s\S]))/gm),
+  ];
+  return {
+    ...blueprint,
+    collections: blueprint.collections.map((collection) => {
+      const blocks = sections.filter(
+        (section) =>
+          section[2]!.match(/Collection identifier:\s*([a-z][a-z0-9_]*)\./)?.[1] === collection.id,
+      );
+      if (blocks.length !== 1) return collection;
+      const [, heading, body] = blocks[0]!;
+      const labels = [...body!.matchAll(/^-[\t ]+(.+?)[\t ]+\(identifier ([a-z][a-z0-9_]*)\):/gm)];
+      return {
+        ...collection,
+        label: originalCase(collection.label, heading!.trim()),
+        singular: originalCase(
+          collection.singular,
+          body!.match(/Singular label:\s*([^\r\n.]+)\./)?.[1]?.trim(),
+        ),
+        fields: collection.fields.map((field) => {
+          const matches = labels.filter((label) => label[2] === field.id);
+          return {
+            ...field,
+            label: originalCase(
+              field.label,
+              matches.length === 1 ? matches[0]![1]!.trim() : undefined,
+            ),
+          };
+        }),
+      };
+    }),
+  };
+}
 
 export async function readPrd(input: z.input<typeof readPrdInput>) {
   if (resolveAgentMode() !== 'scaffold-builder' || process.env.PRECAST_PRD_BUILD_ENABLED !== '1')
@@ -87,6 +135,8 @@ export async function readPrd(input: z.input<typeof readPrdInput>) {
     },
   );
   const analysis = prdAnalysisSchema.parse(result.object);
+  if (analysis.blueprint)
+    analysis.blueprint = preserveExplicitPrdLabels(analysis.blueprint, source.sourceText, answers);
   // Setup choices may come from the original document or a later human override.
   const choiceSource = [source.sourceText, ...answers].join('\n');
   if (analysis.projectName && !choiceSource.includes(analysis.projectName))
