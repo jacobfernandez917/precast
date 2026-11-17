@@ -136,6 +136,18 @@ test('E2E-019 fixture-specific public app, every collection, account isolation a
               await page
                 .getByRole('checkbox', { name: previous.label, exact: true })
                 .setChecked(data[previous.id] === true);
+            else if (previous.type === 'choice' || previous.type === 'reference')
+              await page
+                .getByRole('combobox', { name: previous.label, exact: true })
+                .selectOption(String(data[previous.id]));
+            else if (previous.type === 'number')
+              await page
+                .getByRole('spinbutton', { name: previous.label, exact: true })
+                .fill(String(data[previous.id]));
+            else if (previous.type === 'date')
+              await page
+                .getByLabel(previous.label, { exact: true })
+                .fill(String(data[previous.id]));
           }
           await page
             .getByRole('combobox', { name: field.label, exact: true })
