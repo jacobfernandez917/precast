@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { createTool } from '@mastra/core/tools';
 import type { ToolsInput } from '@mastra/core/agent';
 import { parseApiEnv, prdCapabilities, type PrdBlueprint } from '@precast/shared';
-import { AgentBaseComputerClient, argumentDigest } from './agentbase-computer';
+import { AgentBaseComputerClient, ComputerApiError, argumentDigest } from './agentbase-computer';
 import { currentRayaScopeKey } from './request-context';
 import { getMastraStore } from './storage';
 import { agentBaseIdentityKey } from './agentbase-model';
@@ -59,6 +59,25 @@ const recordSchema = z.object({
     .default(null),
 });
 type BrowserRecord = z.infer<typeof recordSchema>;
+
+/** Return only bounded platform codes; upstream bodies and credentials never reach the model. */
+export function productComputerFailure(error: unknown) {
+  const code =
+    error instanceof ComputerApiError && /^computer_[a-z0-9_]{1,80}$/.test(error.code)
+      ? error.code
+      : error instanceof TypeError
+        ? 'computer_connection_failed'
+        : 'computer_request_failed';
+  return {
+    state: 'blocked',
+    code,
+    ...(error instanceof ComputerApiError ? { status: error.status } : {}),
+    message:
+      code === 'computer_grant_required'
+        ? 'This agent needs its own approved Computer access for this Raya conversation.'
+        : 'The Computer request did not complete. Check the task status or connection in Raya. Sign-in and MFA belong to the owner.',
+  };
+}
 
 export function terminalComputerRun(state: string): boolean {
   return ['SUCCEEDED', 'FAILED', 'CANCELED', 'TIMED_OUT', 'BUDGET_EXCEEDED'].includes(state);
@@ -445,10 +464,7 @@ export function createProductComputerTools(
           // No upstream body, lease, session key or credential reaches the model.
           if (error instanceof z.ZodError)
             throw new Error('The browser request or response was invalid.', { cause: error });
-          throw new Error(
-            'Computer access did not complete. Check this agent’s own access approval and task status in Raya; sign-in steps must be completed by the owner.',
-            { cause: error },
-          );
+          return productComputerFailure(error);
         } finally {
           await db
             .query('SELECT pg_advisory_unlock(hashtextextended($1,0))', [scope])

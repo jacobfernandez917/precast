@@ -6,7 +6,9 @@ import {
   createProductComputerTools,
   terminalComputerRun,
   enforceBrowserInteraction,
+  productComputerFailure,
 } from './product-computer';
+import { ComputerApiError } from './agentbase-computer';
 const token = vi.hoisted(() => vi.fn(async () => 'product-test-token'));
 vi.mock('./agentbase-model', () => ({
   getAgentBaseToken: token,
@@ -24,6 +26,24 @@ const action = '00000000-0000-4000-8000-000000000003';
 const stateHash = `sha256:${'a'.repeat(64)}`;
 beforeEach(() => vi.clearAllMocks());
 describe('generated-agent Computer isolation', () => {
+  it('distinguishes a platform refusal from a connection failure without exposing upstream messages or arbitrary codes', () => {
+    const refused = productComputerFailure(
+      new ComputerApiError('computer_model_not_qualified', 'private upstream detail', 403),
+    );
+    expect(refused.code).toBe('computer_model_not_qualified');
+    expect(JSON.stringify(refused)).not.toContain('private upstream detail');
+    expect(productComputerFailure(new TypeError('fetch failed; private token')).code).toBe(
+      'computer_connection_failed',
+    );
+    expect(
+      productComputerFailure(new ComputerApiError('secret-token-value', 'private detail', 500))
+        .code,
+    ).toBe('computer_request_failed');
+    expect(
+      productComputerFailure(new ComputerApiError('computer_grant_required', 'private detail', 403))
+        .message,
+    ).toContain('own approved Computer access');
+  });
   it('refuses observation-only clicks and non-root navigation before any request, including saved clicks', async () => {
     for (const input of [
       { operation: 'click' as const, ref: 'e1', intent: 'Delete the selected message' },

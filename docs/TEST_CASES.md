@@ -271,3 +271,5 @@ The connected-model check accepts surrounding explanation and requires its marke
 Generated-agent observation-only Computer access: product-computer.spec.ts refuses direct and saved clicks and non-root navigation before any browser request, while retaining inspection and owner sign-in handoff. Shared PRD contracts preserve the requested interaction mode.
 
 PRD label preservation: read-prd.spec.ts restores case-only model rewrites for explicitly identified collection and field labels, retains later human label overrides, and refuses to infer corrections from ambiguous declarations.
+
+Product Computer refusals: `product-computer.spec.ts` retains bounded platform refusal codes, distinguishes transport failures, and excludes upstream messages and arbitrary code values from tool output.
