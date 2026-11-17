@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "pnpm --filter @precast/shared --filter @precast/a2ui build && dotenv -e ../../.env -- next dev -p 45001",
     "dev:verbose": "pnpm --filter @precast/shared --filter @precast/a2ui build && dotenv -v LOG_LEVEL=debug -e ../../.env -- next dev -p 45001",
-    "build": "next build --webpack",
+    "build": "dotenv -e ../../.env -- next build --webpack",
     "start": "dotenv -e ../../.env -- next start -p 45001",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -24,7 +24,8 @@ with each scaffold's lockfile and starts only with saved owner approval and enab
 loopback and uses the existing managed Postgres, Better Auth, Gemini gateway and production
 bundles. The scoped service credential may name one exact HTTPS Raya origin for the development
 preview: that build emits a matching CSP `frame-ancestors` value and omits the incompatible
-`X-Frame-Options` header so Raya can embed it. Without that approved origin, derived apps retain
+`X-Frame-Options` header so Raya can embed it. The production web build loads the sealed root
+environment before Next generates those headers. Without that approved origin, derived apps retain
 `frame-ancestors 'none'` and `X-Frame-Options: DENY`. The separate saved preview approval and API/builder flags are mandatory. No new
 remote repository, database service or signed Computer image is introduced.
 

@@ -31,6 +31,13 @@ describe('security headers', () => {
       'one exact HTTPS origin',
     );
   });
+
+  it('loads the sealed project environment while producing the web bundle', () => {
+    const webPackage = JSON.parse(readFileSync(`${ROOT}apps/web/package.json`, 'utf8')) as {
+      scripts: { build: string };
+    };
+    expect(webPackage.scripts.build).toBe('dotenv -e ../../.env -- next build --webpack');
+  });
 });
 
 /** APP-029: the apps listen on this computer only, not on the network it is on. */

@@ -72,8 +72,9 @@ trusted Postgres role and app readiness; `scripts/preview-tunnel.mjs` owns only 
 srv.us SSH connection to the app's loopback web port. `scaffold-project.ts` and
 `agentbase-computer.ts` perform authorization and owner handoff through AgentBase.
 `scripts/setup-services.mjs` validates the optional exact Raya preview parent and writes it into
-the derived environment; `apps/web/next.config.ts` keeps strict frame denial unless that value is
-present, then emits only the approved CSP ancestor and drops the incompatible legacy frame header.
+the derived environment; the web package loads that sealed environment for its production build,
+and `apps/web/next.config.ts` keeps strict frame denial unless the value is present, then emits only
+the approved CSP ancestor and drops the incompatible legacy frame header.
 
 Preview streaming: `apps/web/app/lib/chat-stream.ts` sends elapsed-time/result frames and parses
 bounded incremental responses; `chat-stream.spec.ts` and `a2a-route.spec.ts` cover framing,

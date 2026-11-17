@@ -43,7 +43,8 @@ Record a concrete blocker and the action needed to resolve it when one is found.
 Use `TEST_CASES.md` for test contracts. Record the checks run for this project's changes and their actual results.
 
 The scaffold baseline covers default frame denial, one exact approved Raya parent, unsafe-origin
-rejection, setup persistence, production build, and the existing PoC verification suite.
+rejection, setup persistence, production-build environment loading, and the existing PoC
+verification suite.
 
 ## 7. Environment State
 

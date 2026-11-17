@@ -48,7 +48,8 @@ Connected builds automatically start the app on the Raya Computer and return its
 srv.us URL and expiry. You do not need to ask for a tunnel or choose a provider. The builder
 and API preview flags and saved project approvals must already be enabled by the operator.
 When the saved project credential names the exact Raya HTTPS origin, that build can also appear
-inside Raya's toggleable Preview pane. Builds without that credential remain non-embeddable;
+inside Raya's toggleable Preview pane. The production web build reads that sealed project
+environment before generating its response headers. Builds without that credential remain non-embeddable;
 HTTP, path-bearing and otherwise malformed origins are rejected before setup.
 The public app keeps sign-in; stopping the Computer, handing back owner control or expiry
 ends the preview. You can explicitly request a private build. Deferring either connection
