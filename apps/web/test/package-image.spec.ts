@@ -12,7 +12,7 @@ import {
 } from '../../../scripts/package-image.mjs';
 
 const temporary: string[] = [];
-const packageRuntime = { platform: 'linux', arch: 'x64', nodeMajor: 24 };
+const packageRuntime = { platform: 'linux', arch: 'x64', nodeMajor: 24 } as const;
 
 function temp(prefix: string) {
   const dir = mkdtempSync(join(tmpdir(), prefix));

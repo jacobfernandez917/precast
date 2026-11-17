@@ -135,6 +135,18 @@ function boundedReason(error) {
   return message.replace(/[\r\n]+/g, ' ').slice(0, 240);
 }
 
+/**
+ * @typedef {object} PackageRuntime
+ * @property {NodeJS.Platform} platform
+ * @property {NodeJS.Architecture} arch
+ * @property {number} nodeMajor
+ */
+
+/**
+ * @param {string} [root]
+ * @param {string} [imageRoot]
+ * @param {PackageRuntime} [runtime]
+ */
 export function inspectPackageImage(
   root = scriptRoot,
   imageRoot = DEFAULT_PACKAGE_IMAGE_ROOT,
@@ -210,6 +222,8 @@ function extractWithTar(archivePath, destination) {
 /**
  * Restore an exact package image into a fresh checkout. `extract` is injectable for unit tests;
  * production uses GNU tar + zstd from the signed Developer Computer image.
+ * @param {string} [root]
+ * @param {{ imageRoot?: string, extract?: (archivePath: string, destination: string) => void, runtime?: PackageRuntime }} [options]
  */
 export function activatePackageImage(
   root = scriptRoot,
