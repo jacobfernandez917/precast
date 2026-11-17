@@ -250,6 +250,8 @@ Scaffold network scope: `agent-mode.spec.ts` checks that only `scaffold-builder`
 | E2E-020    | PDF interview acceptance: exact source/fields, one missing question, clarification, override, pause, readable replacement, explicit scope deferral and persisted discard                                                                                          | Integration acceptance; keep run-specific results outside this repository                   |
 | TOOL-021   | srv.us tunnel integration acceptance: incremental progress, long responses, same-URL reconnection and expiry                                                                                                                                                      | Use an approved test environment; keep execution evidence outside this repository           |
 
+The connected-model check accepts surrounding explanation and requires its marker in the completed assistant reply; the user prompt cannot satisfy it.
+
 | SHARED-012 | Prepared reuse schemas require matching ownership without database CREATE; missing/foreign schemas refuse replacement; ordinary projects retain creation | Covered by the shared database unit suite |
 
 | WEB-044 | Prepared sign-in migrations use the owned auth search path without schema creation; foreign owners fail before migration; ordinary projects retain explicit schema selection | Covered by the auth database unit suite |

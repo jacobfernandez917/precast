@@ -299,7 +299,11 @@ test('E2E-019 fixture-specific public app, every collection, account isolation a
     const response = await answer;
     expect(response.status()).toBe(200);
     expect(response.headers()['content-type']).toContain('text/event-stream');
-    await expect(page.getByText(marker, { exact: true })).toBeVisible({ timeout: 180000 });
+    const assistantReply = page
+      .getByRole('log', { name: 'Conversation' })
+      .getByText('Assistant', { exact: true })
+      .locator('..');
+    await expect(assistantReply).toContainText(marker, { timeout: 180000 });
     evidence.modelUi = {
       realConnectedGemini: true,
       streamedResponse: true,
