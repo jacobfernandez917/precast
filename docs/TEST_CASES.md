@@ -256,7 +256,7 @@ The connected-model check accepts surrounding explanation and requires its marke
 
 | WEB-044 | Prepared sign-in migrations use the owned auth search path without schema creation; foreign owners fail before migration; ordinary projects retain explicit schema selection | Covered by the auth database unit suite |
 
-| APP-036 | Automated scaffolds use existing skip-deps mode with frozen installation; manual bootstrap retains its compatible dependency update | Covered by bootstrap and scaffold orchestration checks |
+| APP-036 | Automated scaffolds use existing skip-deps mode with frozen installation; manual bootstrap retains its compatible dependency update; frozen installs bound download/build concurrency. `bootstrap-command.spec.ts` exercises actual nonzero exits, signal termination, spawn failure and an absent status | Covered by bootstrap and scaffold orchestration checks |
 
 | AGT-PRODUCT-COMPUTER | Generated-agent browser tools default off; exact HTTPS domains only; separate service identity and General profile; no shell, typing, mail-send or payment operations; reviewed clicks bind the observed page hash and resume saved arguments; scroll is non-idempotent; unfinished outcomes retain receipts; own leases refresh after handoff; terminal receipts allow another task; service identities isolate shared storage; uncertain external effects are reconciled without replay. | Automated |
 | AGT-PRODUCT-CONFIG | Product blueprint environment overrides are validated and allowed only in project mode, never on the scaffold-builder surface. | Automated |

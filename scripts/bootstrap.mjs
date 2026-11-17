@@ -76,6 +76,7 @@ import { THEME_IDS, setTheme } from './set-theme.mjs';
 import { initialCommitEnv } from './initial-commit-env.mjs';
 import { verifyTemplateRevision } from './verify-template-revision.mjs';
 import { checkBootstrapSpace } from './bootstrap-space.mjs';
+import { commandFailureReason } from './bootstrap-command.mjs';
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_BRANCH = 'develop';
@@ -175,11 +176,11 @@ function run(cmd, args, { allowFail = false, env } = {}) {
   });
   if (res.status !== 0 && !allowFail) {
     console.error(
-      `\n❌ \`${cmd} ${args.join(' ')}\` failed (exit ${res.status}). Bootstrap aborted.`,
+      `\n❌ \`${cmd} ${args.join(' ')}\` failed (${commandFailureReason(res)}). Bootstrap aborted.`,
     );
     process.exit(res.status ?? 1);
   }
-  return res.status ?? 0;
+  return res.status ?? 1;
 }
 
 function validateName(name) {
@@ -601,7 +602,12 @@ async function main() {
 
   // 3. Dependencies.
   if (skipDeps) {
-    run('pnpm', ['install', '--frozen-lockfile']);
+    run('pnpm', [
+      'install',
+      '--frozen-lockfile',
+      '--network-concurrency=4',
+      '--child-concurrency=1',
+    ]);
   } else {
     run('node', ['scripts/update-deps.mjs', '--no-verify']);
   }
