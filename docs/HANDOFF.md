@@ -14,13 +14,13 @@
 
 This is the neutral Precast starting point. Project mode serves the app's agents; the separately gated scaffold-builder mode creates projects through Raya's Developer Computer.
 
-Readable PRDs supply the product brief and field contracts. The builder asks missing questions one at a time, preserves human overrides and pauses, and blocks unsupported scope until it is clarified. Connected previews require the existing saved owner approvals and operator gates.
+Readable PRDs supply the product brief and field contracts. The builder asks missing questions one at a time, preserves human overrides and pauses, and blocks unsupported scope until it is clarified. Connected previews require the existing saved owner approvals and operator gates. A saved project credential may additionally allow one exact HTTPS Raya parent; only that derived build becomes embeddable, while the default CSP and legacy frame header continue to deny every parent.
 
 Use this document for the derived project's own continuity. Maintainer session notes, operational identifiers and internal validation reports belong in the separate maintainer workspace and require explicit approval before publication.
 
 ## 2. Next task (overwrite on each handoff)
 
-Define the project's mission, users, data and acceptance criteria in its feed-forward docs. Configure the approved model and Postgres connection, then run the relevant checks described in `TEST_CASES.md` and `SCRIPTS.md`.
+Define the project's mission, users, data and acceptance criteria in its feed-forward docs. Configure the approved model and Postgres connection, then run the relevant checks described in `TEST_CASES.md` and `SCRIPTS.md`. If an embedded Raya preview is required, use the operator-issued setup credential that names its exact HTTPS origin; never add a wildcard or copy an approval between projects.
 
 ## 3. Resume prompt (paste into the next agent)
 
@@ -71,6 +71,9 @@ Automatic previews: `scripts/start-project-preview.mjs` checks the saved project
 trusted Postgres role and app readiness; `scripts/preview-tunnel.mjs` owns only the expiring
 srv.us SSH connection to the app's loopback web port. `scaffold-project.ts` and
 `agentbase-computer.ts` perform authorization and owner handoff through AgentBase.
+`scripts/setup-services.mjs` validates the optional exact Raya preview parent and writes it into
+the derived environment; `apps/web/next.config.ts` keeps strict frame denial unless that value is
+present, then emits only the approved CSP ancestor and drops the incompatible legacy frame header.
 
 Preview streaming: `apps/web/app/lib/chat-stream.ts` sends elapsed-time/result frames and parses
 bounded incremental responses; `chat-stream.spec.ts` and `a2a-route.spec.ts` cover framing,

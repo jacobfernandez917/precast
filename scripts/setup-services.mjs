@@ -57,7 +57,7 @@ export function parseSetupGrant(raw, projectName, now = Date.now(), services = '
       keys.splice(keys.indexOf(key), 1);
     keys.push('databaseUrl', 'databaseName');
   }
-  const allowedKeys = [...keys, ...(reuse ? ['databaseCaPem'] : [])];
+  const allowedKeys = [...keys, ...(reuse ? ['databaseCaPem'] : []), 'previewFrameAncestor'];
   requireValue(
     Object.keys(grant).every((key) => allowedKeys.includes(key)) &&
       keys.every(
@@ -83,6 +83,25 @@ export function parseSetupGrant(raw, projectName, now = Date.now(), services = '
       u.protocol === 'https:' && !u.username && !u.password && !u.hash && !u.search,
       'invalid_setup_origin',
     );
+  }
+  if (grant.previewFrameAncestor !== undefined) {
+    requireValue(
+      typeof grant.previewFrameAncestor === 'string' &&
+        grant.previewFrameAncestor.length <= 2048 &&
+        !/[\r\n\0]/.test(grant.previewFrameAncestor),
+      'invalid_preview_frame_ancestor',
+    );
+    const previewOrigin = new URL(grant.previewFrameAncestor);
+    requireValue(
+      previewOrigin.protocol === 'https:' &&
+        !previewOrigin.username &&
+        !previewOrigin.password &&
+        previewOrigin.pathname === '/' &&
+        !previewOrigin.search &&
+        !previewOrigin.hash,
+      'invalid_preview_frame_ancestor',
+    );
+    grant.previewFrameAncestor = previewOrigin.origin;
   }
   requireValue(
     new URL(grant.apiUrl).pathname === '/' &&
@@ -209,6 +228,7 @@ export async function setupServices({
         grant.modelListingId,
         grant.hannibalListingId,
         grant.databaseHost,
+        grant.previewFrameAncestor ?? null,
         ...(reuse
           ? [
               services,
@@ -372,6 +392,9 @@ export async function setupServices({
     DATABASE_URL: reuse ? database.toString() : connectionString,
     ...(reuse
       ? { PRECAST_DB_NAMESPACE: databaseNamespace, MASTRA_DB_SCHEMA: databaseNamespace + '_agents' }
+      : {}),
+    ...(grant.previewFrameAncestor
+      ? { PRECAST_PREVIEW_FRAME_ANCESTOR: grant.previewFrameAncestor }
       : {}),
   };
   if (reuse && grant.databaseCaPem) {

@@ -22,7 +22,10 @@ supports the srv.us SSH reverse connection. Connected scaffolds now include the 
 automatically after conversational setup; explicit private builds can opt out. It is installed
 with each scaffold's lockfile and starts only with saved owner approval and enabled gates. The app remains bound to
 loopback and uses the existing managed Postgres, Better Auth, Gemini gateway and production
-bundles. The separate saved preview approval and API/builder flags are mandatory. No new
+bundles. The scoped service credential may name one exact HTTPS Raya origin for the development
+preview: that build emits a matching CSP `frame-ancestors` value and omits the incompatible
+`X-Frame-Options` header so Raya can embed it. Without that approved origin, derived apps retain
+`frame-ancestors 'none'` and `X-Frame-Options: DENY`. The separate saved preview approval and API/builder flags are mandatory. No new
 remote repository, database service or signed Computer image is introduced.
 
 **Public Computer preview (2026-11-13):** the existing web A2A route can return

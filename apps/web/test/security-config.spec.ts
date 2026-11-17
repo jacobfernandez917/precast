@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import nextConfig, { SECURITY_HEADERS } from '../next.config';
+import nextConfig, { SECURITY_HEADERS, securityHeadersFor } from '../next.config';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -14,6 +14,22 @@ describe('security headers', () => {
     expect(byKey['X-Content-Type-Options']).toBe('nosniff');
     expect(nextConfig.poweredByHeader).toBe(false);
     expect(await nextConfig.headers!()).toEqual([{ source: '/:path*', headers: SECURITY_HEADERS }]);
+  });
+
+  it('allows only one exact approved HTTPS preview parent and otherwise stays fail-closed', () => {
+    const headers = Object.fromEntries(
+      securityHeadersFor('https://raya-local.917v.dev').map((header) => [header.key, header.value]),
+    );
+    expect(headers['Content-Security-Policy']).toContain(
+      'frame-ancestors https://raya-local.917v.dev',
+    );
+    expect(headers['X-Frame-Options']).toBeUndefined();
+    expect(() => securityHeadersFor('http://raya-local.917v.dev')).toThrow(
+      'one exact HTTPS origin',
+    );
+    expect(() => securityHeadersFor('https://raya-local.917v.dev/computer')).toThrow(
+      'one exact HTTPS origin',
+    );
   });
 });
 

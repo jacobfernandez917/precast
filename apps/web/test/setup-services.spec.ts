@@ -151,6 +151,40 @@ describe('TOOL-016 connected scaffold service boundaries', () => {
     });
     expect(upstream.provisionCalls).toBe(1);
   });
+  it('stores one credential-approved Raya preview parent for the later production build', async () => {
+    const root = fixture(),
+      upstream = server();
+    await setupServices({
+      root,
+      projectName: name,
+      grant: JSON.stringify({
+        ...grant,
+        previewFrameAncestor: 'https://raya-local.917v.dev',
+      }),
+      publicKey,
+      fetch: upstream.fetch,
+    });
+    expect(readFileSync(join(root, '.env'), 'utf8')).toContain(
+      'PRECAST_PREVIEW_FRAME_ANCESTOR=https://raya-local.917v.dev',
+    );
+  });
+  it.each([
+    'http://raya-local.917v.dev',
+    'https://raya-local.917v.dev/computer',
+    'https://raya-local.917v.dev?room=secret',
+  ])('refuses an unsafe preview parent before any call: %s', async (previewFrameAncestor) => {
+    const upstream = server();
+    await expect(
+      setupServices({
+        root: fixture(),
+        projectName: name,
+        grant: JSON.stringify({ ...grant, previewFrameAncestor }),
+        publicKey,
+        fetch: upstream.fetch,
+      }),
+    ).rejects.toThrow('invalid_preview_frame_ancestor');
+    expect(upstream.fetch).not.toHaveBeenCalled();
+  });
   it('refuses a retry after a lost database reply, without a second request', async () => {
     const root = fixture(),
       upstream = server({ uncertain: true });
