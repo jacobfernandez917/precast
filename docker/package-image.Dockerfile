@@ -5,7 +5,7 @@
 # and a compressed archive of pnpm's root/workspace node_modules trees. Runtime activation still
 # checks the exact dependency-graph hash and falls back to a frozen install on any miss.
 
-FROM node:24.22.1-bookworm-slim AS packages
+FROM node:26.13.1-bookworm-slim AS packages
 RUN corepack enable \
   && corepack prepare pnpm@9.15.9 --activate \
   && apt-get update -qq \
