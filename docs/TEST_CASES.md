@@ -275,3 +275,26 @@ Generated-agent observation-only Computer access: product-computer.spec.ts refus
 PRD label preservation: read-prd.spec.ts restores case-only model rewrites for explicitly identified collection and field labels, retains later human label overrides, and refuses to infer corrections from ambiguous declarations.
 
 Product Computer refusals: `product-computer.spec.ts` retains bounded platform refusal codes, distinguishes transport failures, and excludes upstream messages and arbitrary code values from tool output.
+
+## Setup preflight and failure preservation
+
+| ID      | Description                                                                                                                                                                                                                                                                                                                                                                            | Status                                                                                   |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| AGT-048 | `project-setup-preflight.spec.ts`: descriptor 3–6; invalid descriptor rejected before read; exact versus similar/previous slug; expired/invalid/overlong expiry; missing/wrong-type/multiline secret; foreign metadata; malformed/oversized input; reuse/provision mode shape; public fixed command without credential values. VM exposes only descriptor reads and bounded output.    | Passing (27 cases).                                                                      |
+| AGT-049 | `scaffold-project.spec.ts`: exact fixed program in a restricted VM with synthetic FD and simulated clone; mismatch/missing/expired/wrong-kind leave no directory; matched path proceeds; PRD mismatch leaves input/draft untouched; unavailable/error output never reaches the model or completion summary. Existing successful PRD, preview, reuse and deferred regressions retained. | Passing (11 new cases). This is synthetic orchestration, not a real Computer invocation. |
+| AGT-050 | `agentbase-computer.spec.ts`: fixed source/slug/mode/alias argument digest; unchanged run/lease/control epoch/member provenance; needs-person and deny never commit, execute or auto-approve.                                                                                                                                                                                          | Passing (3 new cases). Mocked policy decisions, not actual command-policy acceptance.    |
+| AGT-051 | `scaffold-project.spec.ts`: deterministic bootstrap failure, pre-existing nonempty/empty directory, user changes, lost clone reply, uncertain service effect, PRD input failure and unknown completion all preserve exact synthetic contents; no rollback/cleanup/retry/UI calls; typed stage/ownership/effect status; no raw private error body.                                      | Passing (8 cases).                                                                       |
+
+Focused agent suites: 69 passing. Setup-services and repo-hygiene regressions: 112 passing,
+one pre-existing skip. `pnpm typecheck` and `pnpm lint` passed. The normal `pnpm verify` gate
+was run and failed in existing sandbox-dependent web tests: `bootstrap-command` (1),
+`initial-commit-env` (2), `poc` (1), `ports` (1), and `update-deps` (1); subprocess creation
+and loopback listeners report EPERM. Web totals: 439 passing, six failing, one skipped.
+Separate full agent run: 272 passing, four failing and 16 skipped; telemetry listener setup
+fails/times out under the same loopback restriction. Shared/a2ui suites: 38/34 passing.
+These environmental failures were not suppressed or changed. Full gate is not green.
+
+No live platform, credential, provider or database test was attempted. Neither VM execution nor
+mocked Computer decisions establishes actual `node -e` permission. The authoritative public
+policy and a conditional rollback contract remain unverified. No synthetic test claims a
+successful rollback. See the [policy and rollback handoff](INTEGRATION_AGENTBASE.md#setup-preflight-and-platform-handoff).

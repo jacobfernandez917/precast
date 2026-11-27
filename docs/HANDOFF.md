@@ -14,6 +14,23 @@
 
 This is the neutral Precast starting point. Project mode serves the app's agents; the separately gated scaffold-builder mode creates projects through Raya's Developer Computer.
 
+Connected builds now run a read-only descriptor preflight before clone or PRD project writes.
+An exact project mismatch, missing/expired/malformed grant, or unavailable preflight returns a
+typed Configure project access blocker. Deferred ordering and service/database namespace rules
+are unchanged. The preflight checks structure and binding only; provider validity and any
+expiry/binding change after the check remain subject to the existing service stage.
+
+Later failures preserve the directory with a typed recovery result: ownership and unchanged
+contents are unproven, rollback is never attempted, and service effects require review once
+setup was requested. The workflow cannot safely use check-then-delete or ordinary Trash.
+
+Known carry-forwards: exact `node -e` policy acceptance and a conditional server-side Trash
+contract remain unverified because authoritative public platform source was unavailable. No
+new route or primitive is invented. Focused checks passed (69 agent cases and 112 web cases,
+one pre-existing skip); typecheck and lint passed. Full suites are blocked by sandbox spawn
+and loopback-listener restrictions (six web failures; four agent failures plus skipped listener
+cases). See `TEST_CASES.md` and the integration guide for the exact limits and platform handoff.
+
 Readable PRDs supply the product brief and field contracts. The builder asks missing questions one at a time, preserves human overrides and pauses, and blocks unsupported scope until it is clarified. Connected previews require the existing saved owner approvals and operator gates. A saved project credential may additionally allow one exact HTTPS Raya parent; only that derived build becomes embeddable, while the default CSP and legacy frame header continue to deny every parent.
 
 Use this document for the derived project's own continuity. Maintainer session notes, operational identifiers and internal validation reports belong in the separate maintainer workspace and require explicit approval before publication.
@@ -21,6 +38,13 @@ Use this document for the derived project's own continuity. Maintainer session n
 ## 2. Next task (overwrite on each handoff)
 
 Define the project's mission, users, data and acceptance criteria in its feed-forward docs. Configure the approved model and Postgres connection, then run the relevant checks described in `TEST_CASES.md` and `SCRIPTS.md`. If an embedded Raya preview is required, use the operator-issued setup credential that names its exact HTTPS origin; never add a wildcard or copy an approval between projects.
+
+Obtain the canonical public AgentBase/Raya policy source and verify the exact preflight command;
+if disallowed, integrate only a platform-supplied fixed helper or metadata check. Keep all failed
+project directories preserved until a conditional server-side rollback contract is available.
+Re-run `pnpm verify` in an environment permitting its synthetic subprocess/listener tests before
+claiming the full gate is green. See the policy and rollback handoff in
+`INTEGRATION_AGENTBASE.md`.
 
 ## 3. Resume prompt (paste into the next agent)
 
@@ -54,6 +78,12 @@ Return format:
 ```
 
 ## 4. File map for takeover (always-current)
+
+Pre-clone access: `lib/project-setup-preflight.ts` owns the fixed descriptor program and typed
+blocker; `tools/scaffold-project.ts` executes it before the first project write.
+`lib/scaffold-recovery.ts` defines the preservation result for later failures, without cleanup. Its specs cover
+synthetic grant validation, command ordering, PRD refusal and suppression of raw errors;
+`lib/agentbase-computer.spec.ts` checks the unchanged action bindings and approval fences.
 
 Existing database reuse: `lib/database-setup-mode.ts` validates the operator restriction; `scripts/setup-services.mjs` has a separate no-Hannibal path, while `lib/service-verification.ts` binds the actual database, pooler project, role and three owned schemas. `scripts/start-project-preview.mjs` preserves strict TLS and the saved external approval. `docs/fixtures/scaffold-project-ideas.json` defines ten regression ideas.
 

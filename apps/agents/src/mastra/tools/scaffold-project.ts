@@ -11,6 +11,13 @@ import { resolveAgentMode } from '../lib/agent-mode';
 import { createServiceVerifier } from '../lib/service-verification';
 import { loadPrdDraft, pendingPrdDraft, settlePrdDraft } from '../lib/prd-drafts';
 import { resolveDatabaseSetupMode } from '../lib/database-setup-mode';
+import { preserveScaffold, scaffoldRecovery } from '../lib/scaffold-recovery';
+import {
+  configureProjectAccess,
+  projectAccessRequired,
+  projectSetupPreflightCommand,
+  setupPreflightStatus,
+} from '../lib/project-setup-preflight';
 
 export const SCAFFOLD_BUILDER_AGENT_ID = 'scaffold-builder';
 const TEMPLATE_REPOSITORY =
@@ -37,7 +44,7 @@ const commandResultSchema = z.object({
   stderr: z.string(),
 });
 
-export const scaffoldProjectOutput = z.object({
+const scaffoldProjectSuccess = z.object({
   projectName: z.string(),
   projectPath: z.string(),
   theme: z.string(),
@@ -75,6 +82,12 @@ export const scaffoldProjectOutput = z.object({
     })
     .optional(),
 });
+
+export const scaffoldProjectOutput = z.discriminatedUnion('state', [
+  scaffoldProjectSuccess,
+  projectAccessRequired,
+  scaffoldRecovery,
+]);
 
 export async function scaffoldProject(
   input: z.input<typeof scaffoldProjectInput>,
@@ -239,13 +252,41 @@ export async function scaffoldProject(
   const client = new AgentBaseComputerClient(SCAFFOLD_BUILDER_AGENT_ID);
   const { run, lease } = await client.createRun(seed);
   const steps: ComputerCommandResult[] = [];
-  let services: z.infer<typeof scaffoldProjectOutput>['services'];
-  let preview: z.infer<typeof scaffoldProjectOutput>['preview'];
+  let services: z.infer<typeof scaffoldProjectSuccess>['services'];
+  let preview: z.infer<typeof scaffoldProjectSuccess>['preview'];
+  let failedStage: z.infer<typeof scaffoldRecovery>['failedStage'] = 'admission';
+  let projectWriteAttempted = false;
+  let serviceSetupAttempted = false;
   try {
     await client.waitUntilRunning(run.id);
+    failedStage = 'control';
     const controlEpoch = await client.takeControl(run.id, lease.id);
+    if (parsed.services !== 'deferred') {
+      let status: z.infer<typeof projectAccessRequired>['code'] | 'ready';
+      try {
+        const result = await client.runCommand(
+          run.id,
+          lease.id,
+          controlEpoch,
+          projectSetupPreflightCommand(parsed.projectName, parsed.services),
+          seed,
+        );
+        const checked = setupPreflightStatus.safeParse(result.stdout);
+        status =
+          checked.success && result.stderr === '' ? checked.data : 'setup_preflight_unavailable';
+      } catch {
+        // Never forward descriptor, policy, transport or process error bodies.
+        status = 'setup_preflight_unavailable';
+      }
+      if (status !== 'ready') {
+        const blocked = configureProjectAccess(parsed.projectName, status);
+        await client.complete(run.id, lease.id, 'failed', blocked.message).catch(() => undefined);
+        return blocked;
+      }
+    }
     for (const command of commands) {
-      if (command.id === 'product' && draft)
+      if (command.id === 'product' && draft) {
+        failedStage = 'product-input';
         await client.writeProjectInput(
           run.id,
           lease.id,
@@ -261,8 +302,13 @@ export async function scaffoldProject(
           }),
           seed,
         );
+      }
+      failedStage = scaffoldRecovery.shape.failedStage.parse(command.id);
+      projectWriteAttempted = true;
+      if (command.id === 'services') serviceSetupAttempted = true;
       const result = await client.runCommand(run.id, lease.id, controlEpoch, command, seed);
       if (command.id === 'services' && verifier) {
+        failedStage = 'service-verification';
         services = await verifier.verify(result.stdout);
         // Only the verified public summary reaches the model. The encrypted receipt stays internal.
         steps.push({
@@ -282,6 +328,7 @@ export async function scaffoldProject(
         applicationId: services.applicationId,
         controlEpoch,
       };
+      failedStage = 'preview-authorization';
       const approval = await client.projectPreview(run.id, 'authorize', binding);
       if (
         approval.provider !== 'srv.us' ||
@@ -290,6 +337,7 @@ export async function scaffoldProject(
         !Number.isFinite(Date.parse(approval.expiresAt))
       )
         throw new Error('The preview authorization did not match this connected project.');
+      failedStage = 'preview';
       const result = await client.runCommand(
         run.id,
         lease.id,
@@ -331,8 +379,9 @@ export async function scaffoldProject(
         })
         .strict()
         .parse(JSON.parse(line?.slice('PRECAST_PROJECT_PREVIEW:'.length) ?? '{}'));
+      failedStage = 'preview-handoff';
       const ready = await client.projectPreview(run.id, 'handoff', { ...binding, url: report.url });
-      preview = scaffoldProjectOutput.shape.preview.unwrap().parse(ready);
+      preview = scaffoldProjectSuccess.shape.preview.unwrap().parse(ready);
       if (preview.url !== report.url || preview.expiresAt !== approval.expiresAt)
         throw new Error('The handed-over preview changed its URL or approval window.');
       steps.push({
@@ -340,14 +389,24 @@ export async function scaffoldProject(
         stdout: 'The connected app is running with a verified public sign-in URL.',
         stderr: '',
       });
-    } else
+    } else {
+      failedStage = 'complete';
       await client.complete(run.id, lease.id, 'succeeded', `Created and verified ${projectPath}.`);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    await client.complete(run.id, lease.id, 'failed', message).catch(() => undefined);
-    throw error;
+    }
+    if (draft) {
+      failedStage = 'prd-settlement';
+      await settlePrdDraft(draft.id, 'complete');
+    }
+  } catch {
+    const recovery = preserveScaffold(
+      parsed.projectName,
+      failedStage,
+      projectWriteAttempted,
+      serviceSetupAttempted,
+    );
+    await client.complete(run.id, lease.id, 'failed', recovery.message).catch(() => undefined);
+    return recovery;
   }
-  if (draft) await settlePrdDraft(draft.id, 'complete');
   return {
     projectName: parsed.projectName,
     projectPath,

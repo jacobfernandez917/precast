@@ -34,6 +34,118 @@ the exact relay, database endpoint and expiry. The user is never asked to select
 Missing approval is a blocker, not a reason to fabricate a link. Explicit private builds may
 set `preview: off`; deferred builds do not start an app or request preview secrets.
 
+### Setup preflight and platform handoff
+
+The connected scaffold order is now: existing operator/PRD/proof gates → resolve Computer
+run → admission/control → **read-only setup preflight** → clone → bootstrap → optional PRD
+upload/materialization → service setup/verification → verify → build → optional approved preview.
+Previously the first credential/project comparison happened in `parseSetupGrant()` inside
+`scripts/setup-services.mjs`, after clone, bootstrap and PRD writes. It still runs there as
+defense in depth. Deferred builds keep clone/bootstrap/verify/build and request no descriptor.
+
+`project-setup-preflight.ts` supplies a fixed `node -e` program through the existing governed
+`command_run` action, with `cwd: Projects`; it needs no file in the new project. The proposal,
+commit and execution retain the existing member provenance, signed request proofs, run, lease,
+control epoch and argument digest. Credential-related metadata contains only the alias and
+public purpose; the program source, exact project slug and service mode are public arguments.
+AgentBase/Computer must authorize and inject the alias as `RAYA_SECRET_FD_PRECAST_PROJECT_SETUP`
+(descriptor 3–6). The program reads at most 65,537 bytes, rejects payloads over 65,536 bytes,
+checks the existing required string fields and allowed keys for the exact service mode, compares
+the project slug byte for byte, and requires expiry in the next 24 hours. It emits only one
+allowlisted status. It does not inspect global authentication files, write files, subscribe,
+authenticate to a provider, provision a database, or make a service/network call.
+
+The tool validates that status with zod and requires empty stderr. Unknown/malformed output,
+unsupported commands, denied/pending approval, descriptor errors and transport failures stop
+before clone. Raw error bodies and process output from this step are never returned to the model
+or copied into the run completion summary. A blocked tool result carries `state: blocked`, a
+bounded `code`, the unchanged `projectName`/`projectPath`, `projectCreated: false` (this attempt),
+`nextAction: Configure project access`, and a fixed owner/operator instruction. A PRD refusal
+does not upload or settle the draft. No automatic approval, retry, slug change, alias swap,
+credential lookup, namespace rewrite or binding replacement is performed.
+
+**Trust boundary and limits.** The descriptor contents are not an attestation of member/org/run
+ownership. Those bindings remain the platform's responsibility; the preflight does not infer
+them from model input or add invented identity fields to the credential. The existing database
+namespace derivation and service validation are unchanged. `ready` means structurally matching,
+unexpired setup input delivered by the trusted Computer, not authenticated provider access.
+Full URL/listing/database target validation and a real credential/provider check remain in the
+existing service stage. A syntactically valid but revoked/incorrect client secret cannot be
+detected offline. A credential that expires or changes after preflight can still fail later;
+this check is not an atomic reservation across the clone/bootstrap interval.
+
+**Minimal AgentBase/Raya handoff.** This checkout establishes the descriptor/action contract and
+Precast's structured tool result, but contains no project-access configuration primitive or
+Raya action-card route. No new endpoint, deep link or interactive button is claimed here. Platform
+owners need to confirm support for this fixed Node command and descriptor delivery on their
+deployed Computer; unsupported policy fails closed. To support a trusted Configure project access
+flow, AgentBase must resolve/check access server-side under the current verified org/member,
+builder agent, run/lease/control epoch and exact requested project slug, preserving the approved
+Application/listings and database namespace. It must distinguish missing, expired, wrong-kind,
+mismatched and unauthorized bindings without returning credential contents. Configuration belongs
+in an owner-approved secure surface, with no automatic replacement of an existing binding. Raya
+must render the bounded blocker through its established approval/configuration mechanism once
+that mechanism is defined, then retry only on explicit continuation with freshly checked access.
+An atomic guarantee would also require pinning/revalidating the same credential version through
+service setup. These capabilities and their wire contract must be supplied by the platform;
+Precast must not invent them or mint approvals locally.
+
+**Policy verification blocker.** The exact proposed command is `node -e <fixed program>
+<exact-project-slug> <service-mode>`, in `Projects`, with only the approved setup alias,
+30-second timeout and 128 MiB allowance. A generic `node` executable in the client type is not
+proof that the governed Computer policy allows inline evaluation, the program length, that
+working directory, that memory limit, or a secret descriptor on this command. The public-source
+lookup at `jacobfernandez917/agentbase` returned a repository-ID redirect that the connector
+could not follow; `jacobfernandez917/raya` was unavailable. No authoritative command-policy
+source or deployed acceptance was obtained. Therefore **exact-command permission is unverified**,
+not approved or known-denied. Synthetic allow/deny tests only establish Precast's behavior.
+
+The smallest next platform task is to supply the canonical public policy source/revision and
+test this exact argv/alias/cwd tuple against it. If inline evaluation is forbidden, do not
+weaken the general policy or disguise the code as another command. Supply an explicitly
+governed, fixed preflight helper in the trusted Computer runtime (or a server-side metadata check)
+that is available before the new directory exists and returns only the bounded status. Its
+actual invocation/schema must come from the platform; no speculative route/helper is called here.
+
+### Failure preservation and conditional rollback
+
+After a Computer run is admitted, failures now return `state: recovery_required`,
+`code: scaffold_preserved`, the unchanged project path and failed stage, `creationOwnership:
+unproven`, `rollback: not_attempted`, and `automaticRetry: false`. `filesystem: not_touched`
+means no project command was attempted; `preserved_uninspected` means no cleanup was attempted,
+not that the directory is known to exist or be unchanged. Once the service command is attempted,
+`serviceEffects: review_required` stays set, even if the response is lost or a later local
+step deterministically fails. Other attempts report `not_requested` for service setup only.
+Raw process/provider error text does not enter this result or its completion summary.
+
+The current Precast Computer client has no conditional directory rollback contract, exclusive
+creation receipt or tree revision. Public platform source was not obtained, so this is not a
+claim that no such capability exists anywhere in AgentBase/Raya. No rollback is attempted here.
+An ordinary clone reply cannot prove exclusive creation: Git can clone into an already-existing
+empty directory, replies can be replayed/lost, and another writer can change files afterward.
+Deterministic failure, success markers, a local manifest, or a separate stat/hash check do not
+make a later delete safe. Existing, empty, user-modified and uncertain directories all remain
+preserved; PRD drafts remain unsettled on project-step failure. No external UI/prompt,
+credential/binding change, database cleanup or service compensation is introduced.
+
+If the platform lacks the needed conditional operation, the smallest safe extension is:
+
+- An exclusive create operation that refuses every pre-existing destination and returns a
+  server-issued receipt bound to the exact org/member/agent/run/attempt, parent directory identity,
+  child identity and approved path. A reused action reply must not imply a new creation.
+- A trustworthy tree generation covering nested files, metadata, symlinks and all writers,
+  plus an execution fence proving every command for that attempt has settled. No receipt or
+  untracked/concurrent writer means preservation.
+- A single server-side compare-and-Trash operation, extending an existing reversible Trash
+  mechanism only if supported: atomically verify the creation receipt, scope, identity, expected
+  generation and settled state, then move to Trash without a check/delete race. Refused
+  preconditions preserve; an uncertain response requires review rather than another mutation.
+  Return a bounded outcome and a restore receipt only after a confirmed move.
+
+The workflow must still preserve when external effects are uncertain. The extension requires an
+approved platform contract and policy; no endpoint, schema name, filesystem delete/move command,
+or claimed rollback success is fabricated by this implementation.
+
 ### Public preview options reviewed, 13 November 2026
 
 | Option                                                                                          | Assessment for this application                                                                                                                                                                                                                        |

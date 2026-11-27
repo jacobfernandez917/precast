@@ -139,3 +139,84 @@ describe('AgentBase Computer command binding', () => {
     expect(proposed.argumentDigest).toBe(argumentDigest(executed));
   });
 });
+
+describe('AGT-050 setup preflight Computer authority', () => {
+  it('binds the fixed preflight, exact slug and alias to the existing run, lease, epoch and argument digest', async () => {
+    const { projectSetupPreflightCommand } = await import('./project-setup-preflight');
+    const captured: Array<{ path: string; body: Record<string, unknown> }> = [];
+    const fetcher = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const path = String(url);
+      captured.push({ path, body: init?.body ? JSON.parse(String(init.body)) : {} });
+      return Response.json(
+        path.endsWith('/actions')
+          ? { action: { id: 'preflight' }, decision: { verdict: 'allow' } }
+          : path.includes('/command?')
+            ? {
+                action: { state: 'SUCCEEDED' },
+                command: { exitCode: 0 },
+                output: { content: path.includes('stdout') ? 'ready' : '' },
+              }
+            : {},
+      );
+    });
+    const client = new AgentBaseComputerClient(
+      'scaffold-builder',
+      'https://agentbase.test',
+      fetcher,
+    );
+    const command = projectSetupPreflightCommand('expense-tracker', 'existing-postgres-gemini');
+    await client.runCommand('bound-run', 'bound-lease', 7, command, 'seed');
+    expect(
+      captured.every((c) =>
+        c.path.startsWith('https://agentbase.test/computer-agent/runs/bound-run/'),
+      ),
+    ).toBe(true);
+    const proposal = captured.find((c) => c.path.endsWith('/actions'))!.body;
+    const commit = captured.find((c) => c.path.endsWith('/commit'))!.body;
+    const execute = captured.find((c) => c.path.endsWith('/execute'))!.body;
+    expect(proposal).toMatchObject({
+      leaseId: 'bound-lease',
+      controlEpoch: 7,
+      operation: 'command_run',
+      provenance: { authorityFrom: 'member' },
+    });
+    expect(commit).toMatchObject({ leaseId: 'bound-lease', controlEpoch: 7 });
+    expect(execute.leaseId).toBe('bound-lease');
+    expect(execute.arguments).toMatchObject({
+      executable: 'node',
+      cwd: 'Projects',
+      argv: command.argv,
+      secrets: command.secrets,
+      profile: 'developer',
+    });
+    expect(proposal.target).toMatchObject({
+      path: 'Projects',
+      argumentDigest: argumentDigest(execute.arguments as Record<string, unknown>),
+    });
+  });
+
+  it.each(['needs_person', 'deny'])(
+    'does not commit, execute or auto-approve after %s',
+    async (verdict) => {
+      const { projectSetupPreflightCommand } = await import('./project-setup-preflight');
+      const fetcher = vi.fn(async () =>
+        Response.json({ action: { id: 'pending' }, decision: { verdict } }),
+      );
+      const client = new AgentBaseComputerClient(
+        'scaffold-builder',
+        'https://agentbase.test',
+        fetcher,
+      );
+      await expect(
+        client.runCommand(
+          'run',
+          'lease',
+          1,
+          projectSetupPreflightCommand('expense-tracker', 'hannibal-gemini'),
+          'seed',
+        ),
+      ).rejects.toThrow(/approval|refused/);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    },
+  );
+});

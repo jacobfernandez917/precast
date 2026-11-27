@@ -78,6 +78,22 @@ the warm path never changes project output or requires Docker inside the Compute
 
 Choose Gemini and a managed Postgres database in the conversation to enable connected scaffolding. Hannibal provides the database behind the scenes. This requires the operator setting, an approved database host, and the member-approved `precast_project_setup` secret alias bound to one project Application and exact listings. Deferred scaffolding requests no secret. See [Connected scaffolding](docs/INTEGRATION_AGENTBASE.md#connected-scaffolding).
 
+Before cloning a connected project, the builder now checks the approved setup descriptor for
+the exact project name, credential shape and expiry without writing project files or contacting
+services. Missing, expired or mismatched access returns **Configure project access** and stops;
+the owner/operator must resolve access outside chat without changing another project's binding.
+The check does not authenticate the credential with a provider. Service verification still runs
+after bootstrap, and deferred builds keep their existing behavior. See the
+[preflight contract and platform handoff](docs/INTEGRATION_AGENTBASE.md#setup-preflight-and-platform-handoff)
+for the limits of this check and the remaining AgentBase/Raya work.
+
+If a later step fails, the builder returns **Review preserved project**, including the failed
+stage and whether service effects need review. It does not delete or trash the directory,
+retry automatically, or clean up services. The current workflow cannot prove exclusive creation
+and unchanged contents atomically. A successful clone alone is insufficient evidence. The
+exact preflight command's platform policy acceptance still requires source confirmation;
+unsupported or refused execution stops before clone.
+
 On a fresh Computer without a Git identity, bootstrap uses `Project Scaffold <scaffold@localhost>` for the initial local commit. Configured member identities and explicit author overrides take precedence; Git configuration is never changed.
 
 Precast remains the single source repository. `PRECAST_AGENT_MODE=project` (the default) constructs and serves only the existing project crew. `PRECAST_AGENT_MODE=scaffold-builder` constructs and serves only `scaffold-builder`, which can create a new project in the Raya member's `Projects` folder after that member approves Developer Computer access. Mode-selection identifiers stay valid when bootstrap renames a project. Agent factories keep unused memory, tools, and MCP preflight inactive and avoid circular dynamic imports in Mastra's deployed bundle.

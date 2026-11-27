@@ -1,5 +1,13 @@
 # TECH_STACK.md — Tech Inventory
 
+**Setup preflight:** no new runtime dependency or platform route. A fixed, dependency-free Node
+program uses the existing Computer `command_run` and leased setup descriptor before clone.
+The scaffold tool's zod output is now a discriminated success/blocked/recovery-required union; the blocked result
+offers an owner/operator Configure project access handoff without exposing credential values.
+Later failures report preservation and possible service effects without any cleanup primitive.
+Exact `node -e` policy acceptance remains unverified pending authoritative public platform source.
+See [the integration contract](INTEGRATION_AGENTBASE.md#setup-preflight-and-platform-handoff).
+
 **Frozen bootstrap installation:** the pinned pnpm installer uses four concurrent network requests and one package build process. Bootstrap reports child termination signals and spawn errors without treating a missing exit status as success. No new dependency or service.
 
 **Warm scaffold package image:** `.github/workflows/package-image.yml` publishes a source-free
