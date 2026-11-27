@@ -86,7 +86,11 @@ export function projectSetupPreflightCommand(
     timeoutMs: 30_000,
     memoryMiB: 128,
     secrets: [
-      { alias: 'precast_project_setup', purpose: `Check setup access only for ${projectName}` },
+      {
+        alias: 'precast_project_setup',
+        purpose: `Check setup access only for ${projectName}`,
+        project: projectName,
+      },
     ],
   };
 }

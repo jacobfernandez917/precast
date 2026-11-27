@@ -221,6 +221,7 @@ describe('AGT-034 connected scaffold gates', () => {
       {
         alias: 'PRECAST_PROJECT_SETUP'.toLowerCase(),
         purpose: 'Connect services only for connected-project',
+        project: 'connected-project',
       },
     ]);
     expect(calls.verify).toHaveBeenCalledWith('encrypted-receipt-private-to-tool');
@@ -479,6 +480,14 @@ describe('AGT-049 preflight before the first project write', () => {
         });
         expect(existsSync(project)).toBe(false);
         expect(readdirSync(projects)).toEqual([]);
+        // T-344: AgentBase records the block for exactly this project, so Raya can offer the step.
+        expect(calls.complete).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          'failed',
+          expect.any(String),
+          { code: (result as { code: string }).code, projectName: input.projectName },
+        );
         expect(calls.commands.map((c) => c.id)).toEqual(['setup-preflight']);
         expect(calls.writeProjectInput).not.toHaveBeenCalled();
         expect(calls.settlePrdDraft).not.toHaveBeenCalled();

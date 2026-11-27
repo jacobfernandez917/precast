@@ -14,7 +14,8 @@ export interface ComputerCommand {
   cwd: string;
   timeoutMs: number;
   memoryMiB?: number;
-  secrets?: Array<{ alias: string; purpose: string }>;
+  /** T-344: `project` asks AgentBase for the credential chosen for exactly that project. */
+  secrets?: Array<{ alias: string; purpose: string; project?: string }>;
 }
 
 export interface ComputerCommandResult {
@@ -245,6 +246,7 @@ export class AgentBaseComputerClient {
     leaseId: string,
     outcome: 'succeeded' | 'failed',
     summary: string,
+    projectAccess?: { code: string; projectName: string },
   ): Promise<void> {
     await this.request(`/computer-agent/runs/${runId}/complete`, {
       method: 'POST',
@@ -252,7 +254,11 @@ export class AgentBaseComputerClient {
         leaseId,
         outcome,
         summary: summary.slice(0, 2000),
-        ...(outcome === 'failed' ? { failureCode: 'precast_scaffold_failed' } : {}),
+        ...(outcome === 'failed'
+          ? { failureCode: projectAccess?.code ?? 'precast_scaffold_failed' }
+          : {}),
+        // T-344: the member is offered "Configure project access" for exactly this project.
+        ...(outcome === 'failed' && projectAccess ? { projectAccess } : {}),
       }),
     });
   }

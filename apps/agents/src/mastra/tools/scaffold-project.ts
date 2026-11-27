@@ -236,6 +236,7 @@ export async function scaffoldProject(
         {
           alias: 'PRECAST_PROJECT_SETUP'.toLowerCase(),
           purpose: `Connect services only for ${parsed.projectName}`,
+          project: parsed.projectName,
         },
       ],
     });
@@ -280,7 +281,12 @@ export async function scaffoldProject(
       }
       if (status !== 'ready') {
         const blocked = configureProjectAccess(parsed.projectName, status);
-        await client.complete(run.id, lease.id, 'failed', blocked.message).catch(() => undefined);
+        await client
+          .complete(run.id, lease.id, 'failed', blocked.message, {
+            code: status,
+            projectName: parsed.projectName,
+          })
+          .catch(() => undefined);
         return blocked;
       }
     }

@@ -109,7 +109,11 @@ describe('AGT-048 read-only setup descriptor preflight', () => {
     expect(command.cwd).toBe('Projects');
     expect(command.argv.slice(2)).toEqual([name, 'existing-postgres-gemini']);
     expect(command.secrets).toEqual([
-      { alias: 'precast_project_setup', purpose: `Check setup access only for ${name}` },
+      {
+        alias: 'precast_project_setup',
+        purpose: `Check setup access only for ${name}`,
+        project: name,
+      },
     ]);
   });
 });
